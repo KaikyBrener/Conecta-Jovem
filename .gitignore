@@ -7,21 +7,33 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependências e build
 node_modules
 dist
 dist-ssr
 *.local
 
+# Cache de build (Vite/TypeScript)
+.vite
+*.tsbuildinfo
+
+# Testes
+coverage
+*.lcov
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
 
 # Segredos locais
 .env
