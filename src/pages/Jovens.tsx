@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, UserCheck, UserX, ChevronRight, AlertCircle } from 'lucide-react';
-import { useYouth } from '../hooks/useYouth';
+import { useYouth, type YouthStatusFilter } from '../hooks/useYouth';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useToast } from '../contexts/ToastContext';
 import { Modal } from '../components/Modal';
 import { YouthForm } from '../components/youth/YouthForm';
 import { YouthDetail } from '../components/youth/YouthDetail';
@@ -10,20 +12,24 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Badge } from '../components/ui/Badge';
+import { Pagination } from '../components/ui/Pagination';
 import { primaryBtnCls } from '../lib/formStyles';
+import { cn } from '../lib/utils';
 import type { Youth, YouthInsert, YouthUpdate } from '../types/database.types';
 
-type FilterStatus = 'all' | 'active' | 'inactive';
-
 export function Jovens() {
-  const { youth, groups, loading, error, role, createYouth, updateYouth, deactivateYouth, activateYouth } = useYouth();
+  const toast = useToast();
+  // UI state — filtros, ordenação e paginação são aplicados no servidor (useYouth)
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
+  const [filterStatus, setFilterStatus] = useState<YouthStatusFilter>('active');
+  const [groupFilter, setGroupFilter] = useState<string>('all');
+  const {
+    youth, groups, total, page, setPage, pageSize, totalPages, activeCount, inactiveCount,
+    loading, error, role, createYouth, updateYouth, deactivateYouth, activateYouth,
+  } = useYouth({ search: debouncedSearch, status: filterStatus, groupId: groupFilter });
   const navigate = useNavigate();
   const groupName = useMemo(() => new Map(groups.map((g) => [g.id, g.name])), [groups]);
-
-  // UI state
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('active');
-  const [groupFilter, setGroupFilter] = useState<string>('all');
   const [selectedYouth, setSelectedYouth] = useState<Youth | null>(null);
   const [mode, setMode] = useState<'view' | 'create' | 'edit'>('view');
   const [formLoading, setFormLoading] = useState(false);
@@ -31,21 +37,6 @@ export function Jovens() {
 
   const canCreate = role === 'coordinator';
   const canEdit = role === 'coordinator' || role === 'leader';
-
-  // Filter + search
-  const filtered = useMemo(() => {
-    return youth.filter((y) => {
-      const matchesSearch = y.full_name.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus =
-        filterStatus === 'all' ||
-        (filterStatus === 'active' && y.is_active) ||
-        (filterStatus === 'inactive' && !y.is_active);
-      const matchesGroup =
-        groupFilter === 'all' ||
-        (groupFilter === 'none' ? !y.group_id : y.group_id === groupFilter);
-      return matchesSearch && matchesStatus && matchesGroup;
-    });
-  }, [youth, search, filterStatus, groupFilter]);
 
   // Handlers
   const openCreate = () => { setSelectedYouth(null); setMode('create'); };
@@ -57,7 +48,7 @@ export function Jovens() {
     setFormLoading(true);
     const result = await createYouth(data as Omit<YouthInsert, 'created_by'>);
     setFormLoading(false);
-    if (result) closeModal();
+    if (result) { closeModal(); toast.success('Jovem cadastrado.'); }
   };
 
   const handleEdit = async (data: Omit<YouthInsert, 'created_by'> | YouthUpdate) => {
@@ -65,24 +56,18 @@ export function Jovens() {
     setFormLoading(true);
     const result = await updateYouth(selectedYouth.id, data as YouthUpdate);
     setFormLoading(false);
-    if (result) { setSelectedYouth(result); setMode('view'); }
+    if (result) { setSelectedYouth(result); setMode('view'); toast.success('Dados do jovem atualizados.'); }
   };
 
   const handleToggleStatus = async () => {
     if (!selectedYouth) return;
     setActionLoading(true);
-    if (selectedYouth.is_active) {
-      await deactivateYouth(selectedYouth.id);
-    } else {
-      await activateYouth(selectedYouth.id);
-    }
+    const wasActive = selectedYouth.is_active;
+    const ok = wasActive ? await deactivateYouth(selectedYouth.id) : await activateYouth(selectedYouth.id);
+    if (ok) toast.success(wasActive ? 'Jovem desativado.' : 'Jovem reativado.');
     setActionLoading(false);
     closeModal();
   };
-
-  // Badge counts
-  const activeCount = youth.filter((y) => y.is_active).length;
-  const inactiveCount = youth.filter((y) => !y.is_active).length;
 
   return (
     <div className="space-y-5">
@@ -113,7 +98,7 @@ export function Jovens() {
           {role === 'coordinator' && <option value="none">Sem grupo</option>}
         </select>
         <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
-          {(['all', 'active', 'inactive'] as FilterStatus[]).map((f) => (
+          {(['all', 'active', 'inactive'] as YouthStatusFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilterStatus(f)}
@@ -136,10 +121,10 @@ export function Jovens() {
       )}
 
       {/* Loading */}
-      {loading && <LoadingBlock />}
+      {loading && youth.length === 0 && <LoadingBlock />}
 
       {/* Empty */}
-      {!loading && !error && filtered.length === 0 && (
+      {!loading && !error && youth.length === 0 && (
         <EmptyState
           icon={UserCheck}
           title={search ? `Nenhum jovem encontrado para "${search}".` : 'Nenhum jovem cadastrado ainda.'}
@@ -152,8 +137,8 @@ export function Jovens() {
       )}
 
       {/* Tabela - Desktop */}
-      {!loading && filtered.length > 0 && (
-        <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {youth.length > 0 && (
+        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -165,7 +150,7 @@ export function Jovens() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((y) => (
+              {youth.map((y) => (
                 <tr key={y.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <button onClick={() => openView(y)} className="flex items-center gap-3 text-left">
@@ -193,9 +178,9 @@ export function Jovens() {
       )}
 
       {/* Cards - Mobile */}
-      {!loading && filtered.length > 0 && (
-        <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          {filtered.map((y) => (
+      {youth.length > 0 && (
+        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          {youth.map((y) => (
             <li key={y.id}>
               <button
                 onClick={() => openView(y)}
@@ -226,6 +211,8 @@ export function Jovens() {
           ))}
         </ul>
       )}
+
+      <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'jovem' : 'jovens'} disabled={loading} />
 
       {/* Modal: Visualização */}
       {selectedYouth && mode === 'view' && (

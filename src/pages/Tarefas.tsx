@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Loader2, ListChecks, CalendarClock, Play, Check, Pencil, Trash2, AlertTriangle, User as UserIcon } from 'lucide-react';
-import { useTasks, prefillTaskFromAlert, prefillTaskFromYouth, type TaskWithRelations } from '../hooks/useTasks';
+import { useTasks, prefillTaskFromAlert, prefillTaskFromYouth, type TaskWithRelations, type TaskListFilter } from '../hooks/useTasks';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useToast } from '../contexts/ToastContext';
 import { Modal } from '../components/Modal';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { TaskForm, type TaskFormPayload } from '../components/tasks/TaskForm';
@@ -11,12 +13,12 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
+import { Pagination } from '../components/ui/Pagination';
 import { primaryBtnCls } from '../lib/formStyles';
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from '../lib/labels';
 import { formatDateOnly, isOverdue } from '../lib/format';
+import { cn } from '../lib/utils';
 import type { Task, TaskPriority, TaskStatus } from '../types/database.types';
-
-type Filter = 'open' | 'done' | 'all';
 
 const STATUS_BADGE_COLOR: Record<TaskStatus, BadgeColor> = {
   pending: 'amber',
@@ -34,12 +36,18 @@ const PRIORITY_COLOR: Record<TaskPriority, string> = {
 const isOpen = (s: TaskStatus) => s === 'pending' || s === 'in_progress';
 
 export function Tarefas() {
-  const { tasks, options, loading, error, isCoordinator, user, createTask, updateTask, deleteTask } = useTasks();
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [filter, setFilter] = useState<Filter>('open');
+  // Filtros, ordenação e paginação são aplicados no servidor (useTasks)
+  const [filter, setFilter] = useState<TaskListFilter>('open');
   const [onlyMine, setOnlyMine] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
+  const {
+    tasks, total, page, setPage, pageSize, totalPages, openCount, overdueCount,
+    options, loading, error, isCoordinator, user, createTask, updateTask, deleteTask,
+  } = useTasks({ status: filter, onlyMine, search: debouncedSearch });
   const [editing, setEditing] = useState<TaskWithRelations | null>(null);
   const [creating, setCreating] = useState<Partial<Task> | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -67,30 +75,11 @@ export function Tarefas() {
     return () => { cancelled = true; };
   }, [searchParams, setSearchParams]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return tasks
-      .filter((t) => filter === 'all' || (filter === 'open' ? isOpen(t.status) : !isOpen(t.status)))
-      .filter((t) => !onlyMine || t.assigned_to === user?.id)
-      .filter((t) => !q || t.title.toLowerCase().includes(q) || (t.youth?.full_name ?? '').toLowerCase().includes(q))
-      .sort((a, b) => {
-        // Abertas: prazo mais próximo primeiro (sem prazo por último), depois prioridade
-        const da = a.due_date ?? '9999-12-31';
-        const db = b.due_date ?? '9999-12-31';
-        if (isOpen(a.status) && isOpen(b.status) && da !== db) return da.localeCompare(db);
-        const rank = { high: 0, medium: 1, low: 2 };
-        return rank[a.priority] - rank[b.priority] || b.created_at.localeCompare(a.created_at);
-      });
-  }, [tasks, filter, onlyMine, search, user?.id]);
-
-  const openCount = tasks.filter((t) => isOpen(t.status)).length;
-  const overdueCount = tasks.filter((t) => isOverdue(t.due_date, t.status)).length;
-
   const handleCreate = async (payload: TaskFormPayload) => {
     setFormLoading(true);
     const ok = await createTask(payload);
     setFormLoading(false);
-    if (ok) setCreating(null);
+    if (ok) { setCreating(null); toast.success('Tarefa criada.'); }
   };
 
   const handleEdit = async (payload: TaskFormPayload) => {
@@ -98,25 +87,27 @@ export function Tarefas() {
     setFormLoading(true);
     const ok = await updateTask(editing.id, payload);
     setFormLoading(false);
-    if (ok) setEditing(null);
+    if (ok) { setEditing(null); toast.success('Tarefa atualizada.'); }
   };
 
   const quickStatus = async (t: TaskWithRelations, status: TaskStatus) => {
     setBusyId(t.id);
-    await updateTask(t.id, { status });
+    const ok = await updateTask(t.id, { status });
     setBusyId(null);
+    if (ok) toast.success(status === 'done' ? 'Tarefa concluída.' : status === 'in_progress' ? 'Tarefa iniciada.' : 'Tarefa atualizada.');
   };
 
   const handleDelete = async (t: TaskWithRelations) => {
     if (!window.confirm(`Excluir a tarefa "${t.title}"?`)) return;
     setBusyId(t.id);
-    await deleteTask(t.id);
+    const ok = await deleteTask(t.id);
     setBusyId(null);
+    if (ok) toast.success('Tarefa excluída.');
   };
 
   const canDelete = (t: TaskWithRelations) => isCoordinator || t.created_by === user?.id;
 
-  const filters: { label: string; value: Filter }[] = [
+  const filters: { label: string; value: TaskListFilter }[] = [
     { label: `Abertas (${openCount})`, value: 'open' },
     { label: 'Encerradas', value: 'done' },
     { label: 'Todas', value: 'all' },
@@ -153,15 +144,15 @@ export function Tarefas() {
 
       <ErrorBanner message={error} />
 
-      {loading && <LoadingBlock />}
+      {loading && tasks.length === 0 && <LoadingBlock />}
 
-      {!loading && filtered.length === 0 && (
-        <EmptyState icon={ListChecks} title={search ? `Nenhuma tarefa encontrada para "${search}".` : 'Nenhuma tarefa aqui.'} />
+      {!loading && tasks.length === 0 && (
+        <EmptyState icon={ListChecks} title={search ? `Nenhuma tarefa encontrada para "${search}".` : 'Nenhuma tarefa encontrada para este filtro.'} />
       )}
 
-      {!loading && filtered.length > 0 && (
-        <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          {filtered.map((t) => {
+      {tasks.length > 0 && (
+        <ul className={cn('bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          {tasks.map((t) => {
             const overdue = isOverdue(t.due_date, t.status);
             return (
               <li key={t.id} className="px-4 py-3 space-y-2">
@@ -225,6 +216,8 @@ export function Tarefas() {
           })}
         </ul>
       )}
+
+      <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'tarefa' : 'tarefas'} disabled={loading} />
 
       {creating && (
         <Modal title="Nova tarefa" onClose={() => setCreating(null)}>

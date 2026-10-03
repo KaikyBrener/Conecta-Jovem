@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Users, ChevronRight, AlertCircle, Pencil, Search, UsersRound } from 'lucide-react';
 import { useGroups } from '../hooks/useGroups';
+import { useToast } from '../contexts/ToastContext';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { Modal } from '../components/Modal';
 import { GroupForm } from '../components/groups/GroupForm';
 import { GroupMembers } from '../components/groups/GroupMembers';
@@ -8,15 +10,27 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
+import { Pagination } from '../components/ui/Pagination';
 import { primaryBtnCls } from '../lib/formStyles';
+import { cn } from '../lib/utils';
 import type { Group, GroupInsert, GroupUpdate } from '../types/database.types';
 import type { GroupWithLeader } from '../hooks/useGroups';
 
 type ModalMode = 'none' | 'create' | 'edit' | 'members';
 
 export function Grupos() {
+  const toast = useToast();
+  // Busca, ordenação e paginação são aplicadas no servidor (useGroups)
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
   const {
     groups,
+    total,
+    totalAll,
+    page,
+    setPage,
+    pageSize,
+    totalPages,
     leaders,
     loading,
     error,
@@ -30,14 +44,13 @@ export function Grupos() {
     updateGroup,
     assignYouth,
     removeYouthFromGroup,
-  } = useGroups();
+  } = useGroups({ search: debouncedSearch });
 
   const isCoordinator = role === 'coordinator';
 
   const [modalMode, setModalMode] = useState<ModalMode>('none');
   const [selected, setSelected] = useState<GroupWithLeader | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [search, setSearch] = useState('');
 
   // Carrega líderes quando o coordenador abre o modal de criação/edição
   useEffect(() => {
@@ -45,14 +58,6 @@ export function Grupos() {
       fetchLeaders();
     }
   }, [isCoordinator, modalMode, fetchLeaders]);
-
-  const filteredGroups = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return groups;
-    return groups.filter(
-      (g) => g.name.toLowerCase().includes(term) || (g.leader_name ?? '').toLowerCase().includes(term)
-    );
-  }, [groups, search]);
 
   const openCreate = () => { setSelected(null); setModalMode('create'); };
   const openEdit = (g: GroupWithLeader) => { setSelected(g); setModalMode('edit'); };
@@ -63,7 +68,7 @@ export function Grupos() {
     setFormLoading(true);
     const result = await createGroup(data as GroupInsert);
     setFormLoading(false);
-    if (result) closeModal();
+    if (result) { closeModal(); toast.success('Grupo criado.'); }
   };
 
   const handleEdit = async (data: GroupInsert | GroupUpdate) => {
@@ -71,7 +76,7 @@ export function Grupos() {
     setFormLoading(true);
     const result = await updateGroup(selected.id, data as GroupUpdate);
     setFormLoading(false);
-    if (result) { await refetch(); closeModal(); }
+    if (result) { await refetch(); closeModal(); toast.success('Grupo atualizado.'); }
   };
 
   // Líder pode editar apenas o seu próprio grupo
@@ -82,7 +87,7 @@ export function Grupos() {
     <div className="space-y-5">
       <PageHeader
         title="Grupos"
-        subtitle={`${groups.length} grupo${groups.length !== 1 ? 's' : ''} cadastrado${groups.length !== 1 ? 's' : ''}`}
+        subtitle={`${totalAll} grupo${totalAll !== 1 ? 's' : ''} cadastrado${totalAll !== 1 ? 's' : ''}`}
         action={isCoordinator && (
           <button onClick={openCreate} className={primaryBtnCls}>
             <Plus className="w-4 h-4" />
@@ -105,10 +110,10 @@ export function Grupos() {
       )}
 
       {/* Loading */}
-      {loading && <LoadingBlock />}
+      {loading && groups.length === 0 && <LoadingBlock />}
 
       {/* Empty (sem grupos cadastrados) */}
-      {!loading && !error && groups.length === 0 && (
+      {!loading && !error && total === 0 && !search.trim() && (
         <EmptyState
           icon={Users}
           title="Nenhum grupo cadastrado ainda."
@@ -121,13 +126,13 @@ export function Grupos() {
       )}
 
       {/* Empty (filtro sem resultado) */}
-      {!loading && !error && groups.length > 0 && filteredGroups.length === 0 && (
+      {!loading && !error && total === 0 && search.trim() && (
         <EmptyState icon={Search} title={`Nenhum grupo encontrado para "${search}".`} />
       )}
 
       {/* Tabela - Desktop */}
-      {!loading && filteredGroups.length > 0 && (
-        <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {groups.length > 0 && (
+        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -138,7 +143,7 @@ export function Grupos() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredGroups.map((g) => (
+              {groups.map((g) => (
                 <tr key={g.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <button onClick={() => openMembers(g)} className="flex items-center gap-3 text-left">
@@ -182,9 +187,9 @@ export function Grupos() {
       )}
 
       {/* Cards - Mobile */}
-      {!loading && filteredGroups.length > 0 && (
-        <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          {filteredGroups.map((g) => (
+      {groups.length > 0 && (
+        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          {groups.map((g) => (
             <li key={g.id}>
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm flex items-center justify-center uppercase">
@@ -225,6 +230,8 @@ export function Grupos() {
           ))}
         </ul>
       )}
+
+      <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'grupo' : 'grupos'} disabled={loading} />
 
       {/* Modal: Criar */}
       {modalMode === 'create' && (

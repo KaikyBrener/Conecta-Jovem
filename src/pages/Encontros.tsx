@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar, ChevronRight, AlertCircle } from 'lucide-react';
-import { useEvents } from '../hooks/useEvents';
+import { useEvents, type EventStatusFilter } from '../hooks/useEvents';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useToast } from '../contexts/ToastContext';
 import { Modal } from '../components/Modal';
 import { EventForm } from '../components/events/EventForm';
 import { EventDetail } from '../components/events/EventDetail';
@@ -11,11 +13,11 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
+import { Pagination } from '../components/ui/Pagination';
 import { primaryBtnCls } from '../lib/formStyles';
+import { cn } from '../lib/utils';
 import type { EventInsert, EventUpdate, EventStatus } from '../types/database.types';
 import type { EventWithGroups } from '../hooks/useEvents';
-
-type FilterStatus = 'all' | EventStatus;
 
 const STATUS_BADGE_COLOR: Record<EventStatus, BadgeColor> = {
   scheduled: 'blue',
@@ -42,9 +44,20 @@ function formatDate(iso: string): string {
 type ModalMode = 'none' | 'view' | 'create' | 'edit';
 
 export function Encontros() {
+  const toast = useToast();
   const navigate = useNavigate();
+  // Filtros, ordenação e paginação são aplicados no servidor (useEvents)
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
+  const [filterStatus, setFilterStatus] = useState<EventStatusFilter>('all');
   const {
     events,
+    total,
+    totalAll,
+    page,
+    setPage,
+    pageSize,
+    totalPages,
     allGroups,
     loading,
     error,
@@ -53,12 +66,10 @@ export function Encontros() {
     createEvent,
     updateEvent,
     deleteEvent,
-  } = useEvents();
+  } = useEvents({ search: debouncedSearch, status: filterStatus });
 
   const isCoordinator = role === 'coordinator';
 
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [modalMode, setModalMode] = useState<ModalMode>('none');
   const [selected, setSelected] = useState<EventWithGroups | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -71,12 +82,6 @@ export function Encontros() {
     }
   }, [modalMode, fetchAllGroups]);
 
-  const filtered = events.filter((ev) => {
-    const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || ev.status === filterStatus;
-    return matchSearch && matchStatus;
-  });
-
   const openCreate = () => { setSelected(null); setModalMode('create'); };
   const openView = (ev: EventWithGroups) => { setSelected(ev); setModalMode('view'); };
   const openEdit = () => setModalMode('edit');
@@ -86,7 +91,7 @@ export function Encontros() {
     setFormLoading(true);
     const result = await createEvent(payload as Omit<EventInsert, 'created_by'>, groupIds);
     setFormLoading(false);
-    if (result) closeModal();
+    if (result) { closeModal(); toast.success('Encontro criado.'); }
   };
 
   const handleEdit = async (payload: Omit<EventInsert, 'created_by'> | EventUpdate, groupIds: string[]) => {
@@ -94,7 +99,7 @@ export function Encontros() {
     setFormLoading(true);
     const result = await updateEvent(selected.id, payload as EventUpdate, groupIds);
     setFormLoading(false);
-    if (result) closeModal();
+    if (result) { closeModal(); toast.success('Encontro atualizado.'); }
   };
 
   const handleDelete = async () => {
@@ -104,10 +109,10 @@ export function Encontros() {
     setActionLoading(true);
     const ok = await deleteEvent(selected.id);
     setActionLoading(false);
-    if (ok) closeModal();
+    if (ok) { closeModal(); toast.success('Encontro excluído.'); }
   };
 
-  const filters: { label: string; value: FilterStatus }[] = [
+  const filters: { label: string; value: EventStatusFilter }[] = [
     { label: 'Todos', value: 'all' },
     { label: 'Agendados', value: 'scheduled' },
     { label: 'Realizados', value: 'completed' },
@@ -118,7 +123,7 @@ export function Encontros() {
     <div className="space-y-5">
       <PageHeader
         title="Encontros"
-        subtitle={`${events.length} encontro${events.length !== 1 ? 's' : ''}`}
+        subtitle={`${totalAll} encontro${totalAll !== 1 ? 's' : ''}`}
         action={isCoordinator && (
           <button onClick={openCreate} className={primaryBtnCls}>
             <Plus className="w-4 h-4" />
@@ -142,10 +147,10 @@ export function Encontros() {
       )}
 
       {/* Loading */}
-      {loading && <LoadingBlock />}
+      {loading && events.length === 0 && <LoadingBlock />}
 
       {/* Empty */}
-      {!loading && !error && filtered.length === 0 && (
+      {!loading && !error && events.length === 0 && (
         <EmptyState
           icon={Calendar}
           title={search ? `Nenhum encontro encontrado para "${search}".` : 'Nenhum encontro cadastrado ainda.'}
@@ -158,8 +163,8 @@ export function Encontros() {
       )}
 
       {/* Tabela - Desktop */}
-      {!loading && filtered.length > 0 && (
-        <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {events.length > 0 && (
+        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -171,7 +176,7 @@ export function Encontros() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((ev) => (
+              {events.map((ev) => (
                 <tr key={ev.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <button onClick={() => openView(ev)} className="flex items-center gap-3 text-left">
@@ -202,9 +207,9 @@ export function Encontros() {
       )}
 
       {/* Cards - Mobile */}
-      {!loading && filtered.length > 0 && (
-        <ul className="md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          {filtered.map((ev) => (
+      {events.length > 0 && (
+        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          {events.map((ev) => (
             <li key={ev.id}>
               <button
                 onClick={() => openView(ev)}
@@ -239,6 +244,8 @@ export function Encontros() {
           ))}
         </ul>
       )}
+
+      <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'encontro' : 'encontros'} disabled={loading} />
 
       {/* Modal: Visualização */}
       {modalMode === 'view' && selected && (

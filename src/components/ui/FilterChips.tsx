@@ -10,6 +10,8 @@ export function FilterChips<T extends string>({ options, value, onChange }: Filt
       {options.map((opt) => (
         <button
           key={opt.value}
+          type="button"
+          aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
           className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
             value === opt.value
