@@ -1,13 +1,37 @@
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAttendance, type AttendanceState } from '../hooks/useAttendance';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAttendance, type SaveAttendanceResult } from '../hooks/useAttendance';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { formatDateTime } from '../lib/format';
-import { ArrowLeft, Users, CheckCircle2, Circle, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  attendanceMarkLabel,
+  countAttendance,
+  filterBySearchAndGroup,
+  filterByState,
+  formatAttendanceRate,
+  nextMark,
+  unregisteredIds,
+  type AttendanceFilter,
+  type AttendanceMark,
+  type AttendanceRow,
+} from '../lib/attendance';
+import { ALERT_SEVERITY_LABEL, alertTypeLabel } from '../lib/labels';
+import { ArrowLeft, AlertCircle, AlertTriangle, CheckCircle2, XCircle, Loader2, CheckCheck } from 'lucide-react';
 import { SearchInput } from '../components/ui/SearchInput';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
+import { FilterChips } from '../components/ui/FilterChips';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { cn } from '../lib/utils';
+
+type SaveSummary = SaveAttendanceResult & { completionFailed: boolean };
+
+function plural(n: number, one: string, many: string) {
+  return `${n} ${n === 1 ? one : many}`;
+}
 
 export function Chamada() {
+  const toast = useToast();
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -15,62 +39,79 @@ export function Chamada() {
   const isCoordinator = role === 'coordinator';
   const { loading, error, event, attendanceMap, groups, savedCount, saveAttendance, markEventCompleted } = useAttendance(eventId!);
 
-  // Alterações locais (youth_id -> presente) sobrepostas ao que veio do banco
-  const [edits, setEdits] = useState<Record<string, boolean>>({});
+  // Alterações locais (youth_id -> estado) sobrepostas ao que veio do banco; null = não registrado
+  const [edits, setEdits] = useState<Record<string, AttendanceMark>>({});
   const [saving, setSaving] = useState(false);
   const [markCompleted, setMarkCompleted] = useState(true);
+  const [summary, setSummary] = useState<SaveSummary | null>(null);
   const isCancelled = event?.status === 'cancelled';
 
-  const localMap = useMemo(() => {
-    const merged: Record<string, AttendanceState> = {};
-    for (const [id, st] of Object.entries(attendanceMap)) {
-      merged[id] = id in edits ? { ...st, present: edits[id] } : st;
-    }
-    return merged;
-  }, [attendanceMap, edits]);
-  
-  // Filters
+  // Filtros
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [stateFilter, setStateFilter] = useState<AttendanceFilter>('all');
 
-  const handleToggle = (youthId: string) => {
+  const groupName = useMemo(() => new Map(groups.map((g) => [g.id, g.name])), [groups]);
+
+  // Todas as linhas (já com as edições aplicadas), em ordem alfabética
+  const rows = useMemo<AttendanceRow[]>(() => {
+    return Object.values(attendanceMap)
+      .map((s) => ({ ...s, present: s.youth_id in edits ? edits[s.youth_id] : s.present }))
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  }, [attendanceMap, edits]);
+
+  const counts = useMemo(() => countAttendance(rows), [rows]);
+
+  // Busca + grupo definem o "escopo"; o filtro de estado refina dentro dele
+  const scoped = useMemo(() => filterBySearchAndGroup(rows, search, groupFilter), [rows, search, groupFilter]);
+  const scopedCounts = useMemo(() => countAttendance(scoped), [scoped]);
+  const visible = useMemo(() => filterByState(scoped, stateFilter), [scoped, stateFilter]);
+  const visibleUnregistered = useMemo(() => unregisteredIds(visible), [visible]);
+
+  const filterOptions: { label: string; value: AttendanceFilter }[] = [
+    { label: `Todos (${scopedCounts.total})`, value: 'all' },
+    { label: `Não registrados (${scopedCounts.unregistered})`, value: 'unregistered' },
+    { label: `Presentes (${scopedCounts.present})`, value: 'present' },
+    { label: `Ausentes (${scopedCounts.absent})`, value: 'absent' },
+  ];
+
+  const handleMark = (row: AttendanceRow, target: boolean) => {
     if (isCancelled) return;
-    setEdits(prev => ({ ...prev, [youthId]: !localMap[youthId].present }));
+    const next = nextMark(row.present, target, row.saved);
+    if (next === row.present) return;
+    setEdits((prev) => ({ ...prev, [row.youth_id]: next }));
   };
 
-  const youthList = useMemo(() => Object.values(localMap), [localMap]);
-  
-  const filteredList = useMemo(() => {
-    return youthList.filter(y => {
-      const matchSearch = y.full_name.toLowerCase().includes(search.toLowerCase());
-      const matchGroup = groupFilter === 'all' || y.group_id === groupFilter;
-      return matchSearch && matchGroup;
-    }).sort((a, b) => a.full_name.localeCompare(b.full_name));
-  }, [youthList, search, groupFilter]);
-
-  const markAllVisible = () => {
-    setEdits(prev => {
+  // Só afeta quem está sem estado; nunca sobrescreve quem já foi marcado
+  const markUnregisteredPresent = () => {
+    if (isCancelled || visibleUnregistered.length === 0) return;
+    setEdits((prev) => {
       const next = { ...prev };
-      for (const y of filteredList) next[y.youth_id] = true;
+      for (const id of visibleUnregistered) next[id] = true;
       return next;
     });
   };
 
+  const canSave = !saving && !isCancelled && counts.total > 0 && counts.registered > 0;
+
   const handleSave = async () => {
+    if (!canSave) return;
     setSaving(true);
-    // CRÍTICA: salvar considera TODAS as marcações (youthList), não apenas filteredList
-    let ok = await saveAttendance(youthList);
-    if (ok && isCoordinator && markCompleted && event?.status === 'scheduled') {
-      ok = await markEventCompleted();
+    // CRÍTICO: salva TODOS os marcados (rows), não apenas os filtrados na tela
+    const res = await saveAttendance(rows);
+    if (!res) {
+      setSaving(false);
+      return;
+    }
+    setEdits({});
+    let completionFailed = false;
+    if (isCoordinator && markCompleted && event?.status === 'scheduled') {
+      completionFailed = !(await markEventCompleted());
     }
     setSaving(false);
-    if (ok) {
-      navigate('/encontros');
-    }
+    setSummary({ ...res, completionFailed });
+    if (!completionFailed) toast.success('Chamada registrada.');
   };
-
-  const presentCount = youthList.filter(y => y.present).length;
-  const totalCount = youthList.length;
 
   if (loading) {
     return <LoadingBlock />;
@@ -87,31 +128,107 @@ export function Chamada() {
     );
   }
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/encontros')}
-          className="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 leading-tight">Chamada</h2>
-          <p className="text-sm text-gray-500">{event.title} · {formatDateTime(event.event_date)}</p>
-          {savedCount > 0 && (
-            <p className="text-xs text-green-700 mt-0.5">Chamada já registrada — você está editando.</p>
-          )}
-        </div>
+  const header = (
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => navigate('/encontros')}
+        aria-label="Voltar para os encontros"
+        className="p-2 -ml-2 min-h-11 min-w-11 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+      <div className="min-w-0">
+        <h2 className="text-xl font-semibold text-gray-900 leading-tight">Chamada</h2>
+        <p className="text-sm text-gray-500">{event.title} · {formatDateTime(event.event_date)}</p>
+        {savedCount > 0 && (
+          <p className="text-xs text-green-700 mt-0.5">Chamada já registrada — você está editando.</p>
+        )}
       </div>
+    </div>
+  );
 
-      {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </div>
-      )}
+  // Pós-salvar: painel de resumo (não navega sozinho)
+  if (summary) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        {header}
+        <ErrorBanner message={error} />
+        <section
+          aria-labelledby="chamada-resumo-titulo"
+          data-testid="chamada-resumo"
+          className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 space-y-4"
+        >
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" aria-hidden="true" />
+            <div>
+              <h3 id="chamada-resumo-titulo" className="text-base font-semibold text-gray-900">
+                {summary.completionFailed
+                  ? 'Chamada registrada, mas o encontro não foi marcado como realizado.'
+                  : 'Chamada registrada.'}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1" data-testid="chamada-resumo-numeros">
+                {summary.total_registered} total · {plural(summary.present, 'presente', 'presentes')} ·{' '}
+                {plural(summary.absent, 'ausente', 'ausentes')} · {summary.rate}%
+              </p>
+            </div>
+          </div>
+
+          {summary.new_alerts.length === 0 ? (
+            <p className="text-sm text-gray-500">Nenhum novo alerta.</p>
+          ) : (
+            <div data-testid="chamada-novos-alertas">
+              <p className="text-sm font-medium text-amber-800 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+                Novas situações que pedem atenção
+              </p>
+              <ul className="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-lg">
+                {summary.new_alerts.map((a) => (
+                  <li key={a.id} className="px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3">
+                    <span className="font-medium text-gray-900">{a.youth_name}</span>
+                    <span className="text-gray-600">
+                      {alertTypeLabel(a.type, a.consecutive_absences)}
+                      {a.severity === 'critical' && ` · ${ALERT_SEVERITY_LABEL.critical}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/alertas" className="inline-block mt-2 text-sm text-blue-600 hover:underline">
+                Ver alertas
+              </Link>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-2">
+            <button
+              onClick={() => setSummary(null)}
+              className="min-h-11 px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Continuar editando
+            </button>
+            <button
+              onClick={() => navigate('/encontros')}
+              className="min-h-11 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              Voltar aos encontros
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const stat = (label: string, value: string | number, testId: string, tone?: string) => (
+    <div className="text-center min-w-0">
+      <p className={cn('text-xl font-bold leading-none text-gray-900', tone)} data-testid={testId}>{value}</p>
+      <p className="text-xs text-gray-500 mt-1">{label}</p>
+    </div>
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
+      {header}
+
+      <ErrorBanner message={error} />
 
       {isCancelled && (
         <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-4 py-3">
@@ -126,91 +243,154 @@ export function Chamada() {
         </div>
       )}
 
-      {/* Counters & Mark All */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-            <Users className="w-6 h-6 text-blue-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Total Presentes</p>
-            <p className="text-2xl font-bold text-gray-900 leading-none">
-              {presentCount} <span className="text-sm font-medium text-gray-400">/ {totalCount}</span>
-            </p>
-          </div>
+      {/* Resumo */}
+      <div
+        data-testid="chamada-contadores"
+        className="grid grid-cols-5 gap-2 bg-white p-3 sm:p-4 rounded-xl border border-gray-200"
+      >
+        {stat('Total', counts.total, 'contador-total')}
+        {stat('Presentes', counts.present, 'contador-presentes', 'text-green-700')}
+        {stat('Ausentes', counts.absent, 'contador-ausentes', 'text-red-700')}
+        {stat('Não reg.', counts.unregistered, 'contador-nao-registrados')}
+        {stat('Frequência', formatAttendanceRate(counts.rate), 'contador-percentual')}
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar jovem..."
+            aria-label="Buscar jovem"
+            className="flex-1"
+          />
+          {groups.length > 1 && (
+            <select
+              value={groupFilter}
+              onChange={(e) => setGroupFilter(e.target.value)}
+              aria-label="Filtrar por grupo"
+              className="sm:w-48 min-h-10 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+            >
+              <option value="all">Todos os grupos</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          )}
         </div>
+        <FilterChips options={filterOptions} value={stateFilter} onChange={setStateFilter} />
         <button
-          onClick={markAllVisible}
-          disabled={filteredList.length === 0 || isCancelled}
-          className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg disabled:opacity-50 transition-colors"
+          onClick={markUnregisteredPresent}
+          disabled={visibleUnregistered.length === 0 || isCancelled}
+          className="w-full sm:w-auto min-h-11 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
-          Marcar todos (visíveis)
+          <CheckCheck className="w-4 h-4" aria-hidden="true" />
+          Marcar não registrados (visíveis) como presentes
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row gap-3">
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar jovem..." className="flex-1" />
-        <select
-          value={groupFilter}
-          onChange={(e) => setGroupFilter(e.target.value)}
-          className="sm:w-48 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
-        >
-          <option value="all">Todos os grupos</option>
-          {groups.map(g => (
-            <option key={g.id} value={g.id}>{g.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* List */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {filteredList.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 text-sm">
-            Nenhum jovem encontrado com os filtros atuais.
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {filteredList.map(y => (
+      {/* Lista */}
+      {visible.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500 text-sm">
+          {counts.total === 0
+            ? 'Nenhum jovem ativo nos grupos deste encontro.'
+            : 'Nenhum jovem encontrado com os filtros atuais.'}
+        </div>
+      ) : (
+        <ul className="space-y-2 md:space-y-0 md:bg-white md:rounded-xl md:border md:border-gray-200 md:divide-y md:divide-gray-100 md:overflow-hidden">
+          {visible.map((y) => {
+            const stateText = attendanceMarkLabel(y.present);
+            return (
               <li
                 key={y.youth_id}
-                onClick={() => handleToggle(y.youth_id)}
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors select-none"
+                data-testid="chamada-jovem"
+                data-state={y.present === true ? 'present' : y.present === false ? 'absent' : 'unregistered'}
+                className="bg-white border border-gray-200 rounded-xl p-3 md:border-0 md:rounded-none md:px-4 md:flex md:items-center md:justify-between md:gap-4"
               >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{y.full_name}</p>
-                  <p className="text-xs text-gray-500">{groups.find(g => g.id === y.group_id)?.name}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 break-words">{y.full_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {groupName.get(y.group_id) ?? 'Sem grupo'}
+                    {' · '}
+                    <span
+                      data-testid="estado-texto"
+                      className={cn(
+                        'font-medium',
+                        y.present === true && 'text-green-700',
+                        y.present === false && 'text-red-700',
+                      )}
+                    >
+                      {stateText}
+                    </span>
+                  </p>
                 </div>
-                <div className="flex-shrink-0 ml-4">
-                  {y.present ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
-                  ) : (
-                    <Circle className="w-6 h-6 text-gray-300" />
-                  )}
+                <div className="grid grid-cols-2 gap-2 mt-3 md:mt-0 md:w-72 md:flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleMark(y, true)}
+                    disabled={isCancelled}
+                    aria-pressed={y.present === true}
+                    aria-label={`Presente: ${y.full_name}`}
+                    className={cn(
+                      'min-h-11 px-3 text-sm font-medium rounded-lg border flex items-center justify-center gap-2 transition-colors disabled:opacity-60',
+                      y.present === true
+                        ? 'bg-green-600 border-green-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+                    )}
+                  >
+                    <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
+                    Presente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMark(y, false)}
+                    disabled={isCancelled}
+                    aria-pressed={y.present === false}
+                    aria-label={`Ausente: ${y.full_name}`}
+                    className={cn(
+                      'min-h-11 px-3 text-sm font-medium rounded-lg border flex items-center justify-center gap-2 transition-colors disabled:opacity-60',
+                      y.present === false
+                        ? 'bg-red-600 border-red-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+                    )}
+                  >
+                    <XCircle className="w-5 h-5" aria-hidden="true" />
+                    Ausente
+                  </button>
                 </div>
               </li>
-            ))}
-          </ul>
-        )}
-      </div>
+            );
+          })}
+        </ul>
+      )}
 
-      {/* Save action */}
-      <div className="sticky bottom-20 md:bottom-auto pt-4 flex flex-col md:flex-row md:items-center md:justify-end gap-3">
-        {isCoordinator && event.status === 'scheduled' && !isCancelled && (
-          <label className="flex items-center gap-2 text-sm text-gray-700 bg-white/90 rounded-lg px-2 py-1">
-            <input
-              type="checkbox"
-              checked={markCompleted}
-              onChange={(e) => setMarkCompleted(e.target.checked)}
-              className="h-4 w-4 text-blue-600 rounded border-gray-300"
-            />
-            Marcar encontro como realizado
-          </label>
-        )}
+      {/* Salvar */}
+      <div className="sticky bottom-20 md:bottom-0 z-[5] bg-white border border-gray-200 rounded-xl shadow-lg p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-1 min-w-0">
+          {counts.unregistered > 0 && counts.total > 0 && (
+            <p className="text-xs text-gray-500" data-testid="aviso-sem-registro">
+              {counts.unregistered === 1
+                ? '1 jovem ficará sem registro'
+                : `${counts.unregistered} jovens ficarão sem registro`}
+            </p>
+          )}
+          {isCoordinator && event.status === 'scheduled' && !isCancelled && (
+            <label className="flex items-center gap-2 text-sm text-gray-700 min-h-8">
+              <input
+                type="checkbox"
+                checked={markCompleted}
+                onChange={(e) => setMarkCompleted(e.target.checked)}
+                className="h-4 w-4 text-blue-600 rounded border-gray-300"
+              />
+              Marcar encontro como realizado
+            </label>
+          )}
+        </div>
         <button
           onClick={handleSave}
-          disabled={saving || youthList.length === 0 || isCancelled}
-          className="w-full md:w-auto px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-200 transition-colors flex items-center justify-center gap-2"
+          disabled={!canSave}
+          className="w-full md:w-auto min-h-11 px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
           {saving ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>

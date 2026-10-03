@@ -1,14 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Youth, Attendance, EventStatus, GroupRef } from '../types/database.types';
+import type { Youth, Attendance, EventStatus, GroupRef, AlertType, AlertSeverity } from '../types/database.types';
 import { useAuth } from '../contexts/AuthContext';
 import { errorMessage } from '../lib/format';
+import { fetchAll } from '../lib/fetchAll';
+import { notifyAlertsChanged } from '../lib/alertsBus';
 
 export interface AttendanceState {
   youth_id: string;
   group_id: string;
   full_name: string;
-  present: boolean;
+  /** true = presente, false = ausente, null = não registrado (sem linha; não é falta) */
+  present: boolean | null;
+  /** Já existe linha no banco para este jovem neste encontro */
+  saved: boolean;
+}
+
+export interface NewAttendanceAlert {
+  id: string;
+  youth_id: string;
+  youth_name: string;
+  type: AlertType;
+  severity: AlertSeverity;
+  consecutive_absences: number | null;
+}
+
+/** Retorno da RPC save_attendance (contagens do encontro inteiro visíveis ao usuário) */
+export interface SaveAttendanceResult {
+  saved: number;
+  present: number;
+  absent: number;
+  total_registered: number;
+  /** 0-100 */
+  rate: number;
+  new_alerts: NewAttendanceAlert[];
+}
+
+function parseSaveResult(raw: unknown): SaveAttendanceResult {
+  const r = (raw ?? {}) as Partial<SaveAttendanceResult>;
+  return {
+    saved: Number(r.saved ?? 0),
+    present: Number(r.present ?? 0),
+    absent: Number(r.absent ?? 0),
+    total_registered: Number(r.total_registered ?? 0),
+    rate: Number(r.rate ?? 0),
+    new_alerts: Array.isArray(r.new_alerts) ? r.new_alerts : [],
+  };
 }
 
 export interface AttendanceEvent {
@@ -50,28 +87,32 @@ async function loadAttendance(eventId: string): Promise<AttendanceData> {
   }
 
   // 2. Jovens ativos desses grupos + 3. registros existentes
-  const [youthRes, attRes]: [any, any] = await Promise.all([
-    (supabase as any)
-      .from('youth')
-      .select('id, full_name, group_id')
-      .eq('is_active', true)
-      .in('group_id', groupIds)
-      .order('full_name', { ascending: true }),
-    (supabase as any).from('attendance').select('*').eq('event_id', eventId),
+  // fetchAll: a chamada precisa de TODOS os jovens; o PostgREST corta respostas em 1000 linhas
+  const sb = supabase as any;
+  const [youthRows, attRows] = await Promise.all([
+    fetchAll<Pick<Youth, 'id' | 'full_name' | 'group_id'>>(() =>
+      sb.from('youth')
+        .select('id, full_name, group_id')
+        .eq('is_active', true)
+        .in('group_id', groupIds)
+        .order('full_name', { ascending: true })
+        .order('id')),
+    fetchAll<Attendance>(() => sb.from('attendance').select('*').eq('event_id', eventId).order('id')),
   ]);
-  if (youthRes.error) throw youthRes.error;
-  if (attRes.error) throw attRes.error;
 
   const attRecord: Record<string, Attendance> = {};
-  for (const a of (attRes.data ?? []) as Attendance[]) attRecord[a.youth_id] = a;
+  for (const a of attRows) attRecord[a.youth_id] = a;
 
+  // Sem linha no banco = "não registrado" (null) — nunca vira falta
   const attendanceMap: Record<string, AttendanceState> = {};
-  for (const y of (youthRes.data ?? []) as Youth[]) {
+  for (const y of youthRows) {
+    const rec = attRecord[y.id];
     attendanceMap[y.id] = {
       youth_id: y.id,
       group_id: y.group_id!,
       full_name: y.full_name,
-      present: attRecord[y.id]?.present ?? false,
+      present: rec ? rec.present : null,
+      saved: !!rec,
     };
   }
 
@@ -108,29 +149,45 @@ export function useAttendance(eventId: string) {
     }
   }, [eventId]);
 
-  const saveAttendance = async (states: AttendanceState[]): Promise<boolean> => {
-    if (!user) return false;
+  /**
+   * Grava só quem foi marcado (present !== null) via RPC `save_attendance` (atômica, RLS vale).
+   * Não registrado = sem linha; null é ignorado pelo banco e nunca apaga um registro existente.
+   * Os alertas são recalculados pelo banco. Devolve o resumo do encontro ou null em erro.
+   */
+  const saveAttendance = async (states: AttendanceState[]): Promise<SaveAttendanceResult | null> => {
+    if (!user) return null;
     setError(null);
 
-    const payload = states.map((s) => ({
-      event_id: eventId,
-      youth_id: s.youth_id,
-      group_id: s.group_id,
-      present: s.present,
-      recorded_by: user.id,
-    }));
-
-    if (payload.length === 0) return true;
-
-    // Os alertas de faltas são recalculados pelo banco (trigger em attendance)
-    const { error: upsertErr } = await (supabase as any)
-      .from('attendance')
-      .upsert(payload, { onConflict: 'event_id,youth_id' });
-    if (upsertErr) {
-      setError(errorMessage(upsertErr, 'Erro ao salvar chamada.'));
-      return false;
+    const marked = states.filter((s) => s.present !== null);
+    if (marked.length === 0) {
+      setError('Marque ao menos um jovem antes de salvar.');
+      return null;
     }
-    return true;
+
+    const { data: res, error: rpcErr } = await (supabase as any).rpc('save_attendance', {
+      p_event_id: eventId,
+      p_entries: marked.map((s) => ({ youth_id: s.youth_id, present: s.present })),
+    });
+    if (rpcErr) {
+      setError(errorMessage(rpcErr, 'Erro ao salvar chamada.'));
+      return null;
+    }
+
+    const result = parseSaveResult(res);
+    // Os triggers do banco podem ter criado/resolvido alertas: o contador do menu recarrega
+    notifyAlertsChanged();
+    // Reflete o que foi gravado sem recarregar a tela (linhas marcadas passam a "salvas")
+    setData((prev) => {
+      if (!prev) return prev;
+      const attendanceMap = { ...prev.attendanceMap };
+      for (const s of marked) {
+        const cur = attendanceMap[s.youth_id];
+        if (cur) attendanceMap[s.youth_id] = { ...cur, present: s.present, saved: true };
+      }
+      const savedCount = Object.values(attendanceMap).filter((a) => a.saved).length;
+      return { ...prev, attendanceMap, savedCount };
+    });
+    return result;
   };
 
   /** Coordenador: marca o encontro como realizado após a chamada */
@@ -140,6 +197,7 @@ export function useAttendance(eventId: string) {
       .update({ status: 'completed' })
       .eq('id', eventId);
     if (e) { setError(errorMessage(e, 'Erro ao atualizar o encontro.')); return false; }
+    setData((prev) => (prev ? { ...prev, event: { ...prev.event, status: 'completed' } } : prev));
     return true;
   };
 
