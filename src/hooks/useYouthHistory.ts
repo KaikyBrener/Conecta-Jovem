@@ -24,7 +24,8 @@ export interface YouthHistoryStats {
 
 interface HistoryResult {
   stats: YouthHistoryStats;
-  openAlert: Alert | null;
+  /** Todos os alertas abertos do jovem (pode haver um de cada tipo), do mais grave ao mais recente */
+  openAlerts: Alert[];
 }
 
 async function loadHistory(youthId: string): Promise<HistoryResult> {
@@ -47,10 +48,11 @@ async function loadHistory(youthId: string): Promise<HistoryResult> {
       .select('*')
       .eq('youth_id', youthId)
       .eq('status', 'open')
-      .maybeSingle(),
+      .order('created_at', { ascending: false }),
   ]);
 
   if (attRes.error) throw attRes.error;
+  if (alertRes.error) throw alertRes.error;
 
   // Encontros cancelados não contam na frequência (mesma regra dos alertas)
   const history = ((attRes.data as AttendanceHistory[]) || [])
@@ -67,7 +69,9 @@ async function loadHistory(youthId: string): Promise<HistoryResult> {
       percentage: total === 0 ? 0 : Math.round((present / total) * 100),
       history,
     },
-    openAlert: (alertRes.data as Alert | null) ?? null,
+    openAlerts: [...((alertRes.data ?? []) as Alert[])].sort(
+      (a, b) => Number(b.severity === 'critical') - Number(a.severity === 'critical'),
+    ),
   };
 }
 
@@ -76,7 +80,7 @@ export function useYouthHistory(youthId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<YouthHistoryStats | null>(null);
-  const [openAlert, setOpenAlert] = useState<Alert | null>(null);
+  const [openAlerts, setOpenAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
     if (!user || !youthId) return;
@@ -85,7 +89,7 @@ export function useYouthHistory(youthId: string) {
       .then((r) => {
         if (cancelled) return;
         setStats(r.stats);
-        setOpenAlert(r.openAlert);
+        setOpenAlerts(r.openAlerts);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -103,7 +107,7 @@ export function useYouthHistory(youthId: string) {
     try {
       const r = await loadHistory(youthId);
       setStats(r.stats);
-      setOpenAlert(r.openAlert);
+      setOpenAlerts(r.openAlerts);
       setError(null);
     } catch (err: unknown) {
       setError(errorMessage(err, 'Erro ao carregar histórico.'));
@@ -112,5 +116,5 @@ export function useYouthHistory(youthId: string) {
     }
   }, [youthId, user]);
 
-  return { loading, error, stats, openAlert, refetch };
+  return { loading, error, stats, openAlerts, openAlert: openAlerts[0] ?? null, refetch };
 }

@@ -1,10 +1,15 @@
 import type { Youth } from '../../types/database.types';
 import { useYouthHistory } from '../../hooks/useYouthHistory';
+import { useYouthSituation } from '../../hooks/useYouthSituation';
+import { useAppSettings } from '../../hooks/useSettings';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Circle, AlertCircle, AlertTriangle, ListPlus } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { LoadingBlock } from '../ui/LoadingBlock';
+import { SituationPanel } from './SituationPanel';
+import { FollowUpSection } from '../followups/FollowUpSection';
 import { secondaryBtnCls } from '../../lib/formStyles';
+import { ALERT_SEVERITY_LABEL, alertDescription } from '../../lib/labels';
 
 interface YouthDetailProps {
   youth: Youth;
@@ -15,6 +20,8 @@ interface YouthDetailProps {
   onToggleStatus: () => void;
   onClose: () => void;
   actionLoading: boolean;
+  /** Avisa a tela pai que a situação do jovem pode ter mudado (acompanhamento registrado, etc.) */
+  onDataChanged?: () => void;
 }
 
 const GENDER_LABEL: Record<string, string> = {
@@ -39,9 +46,18 @@ function Row({ label, value }: { label: string; value: string | null | undefined
   );
 }
 
-export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, onToggleStatus, onClose, actionLoading }: YouthDetailProps) {
+export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, onToggleStatus, onClose, actionLoading, onDataChanged }: YouthDetailProps) {
   const isActive = youth.is_active;
-  const { loading: histLoading, error: histErr, stats, openAlert } = useYouthHistory(youth.id);
+  const { loading: histLoading, error: histErr, stats, openAlerts, refetch: refetchHistory } = useYouthHistory(youth.id);
+  const { situation, loading: situationLoading, error: situationError, refetch: refetchSituation } = useYouthSituation(youth.id);
+  const { settings } = useAppSettings();
+
+  // Acompanhamento registrado/editado/transferido: situação e alertas (resolvidos pelo banco) mudam
+  const handleFollowUpChanged = () => {
+    refetchSituation();
+    refetchHistory();
+    onDataChanged?.();
+  };
 
   return (
     <div className="space-y-4">
@@ -55,11 +71,25 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
         </div>
       </div>
 
-      {openAlert && (
-        <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="font-medium">{openAlert.consecutive_absences} faltas consecutivas</p>
+      <SituationPanel
+        situation={situation}
+        loading={situationLoading}
+        error={situationError}
+        limits={{ attention: settings?.absence_alert_threshold, critical: settings?.critical_absence_threshold }}
+      />
+
+      {openAlerts.length > 0 && (
+        <div data-testid="alertas-abertos-jovem" className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <ul className="space-y-0.5">
+              {openAlerts.map((a) => (
+                <li key={a.id} className="font-medium">
+                  {alertDescription(a)}
+                  {a.severity === 'critical' && <span className="ml-1 text-xs font-semibold">· {ALERT_SEVERITY_LABEL.critical}</span>}
+                </li>
+              ))}
+            </ul>
             <Link to="/alertas" className="text-xs underline">Ver alertas</Link>
           </div>
         </div>
@@ -76,6 +106,9 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
         <Row label="Endereço" value={youth.address} />
         <Row label="Observações" value={youth.notes} />
       </div>
+
+      {/* Acompanhamento */}
+      <FollowUpSection youth={{ id: youth.id, full_name: youth.full_name }} onChanged={handleFollowUpChanged} />
 
       {/* Histórico de Presença */}
       <div className="border-t border-gray-100 pt-4">
@@ -130,7 +163,7 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
           </div>
         ) : (
           <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-lg text-center">
-            Nenhum registro de chamada encontrado para este jovem.
+            Nenhuma chamada registrada para este jovem ainda.
           </p>
         )}
       </div>
