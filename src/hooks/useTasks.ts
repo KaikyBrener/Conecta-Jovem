@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage } from '../lib/format';
+import { errorMessage, toDateInput } from '../lib/format';
+import { logError } from '../lib/logger';
+import { fetchAll } from '../lib/fetchAll';
+import { searchPattern } from '../lib/pagination';
+import { usePagedList, type PagedResult } from './usePagedList';
 import type { Task, TaskInsert, TaskUpdate, AlertStatus, GroupRef } from '../types/database.types';
 
 /** Monta o pré-preenchimento de uma nova tarefa a partir de um alerta (vindo de /alertas) */
@@ -46,6 +50,14 @@ export interface TaskOptions {
   assignees: { id: string; full_name: string | null }[];
 }
 
+export type TaskListFilter = 'open' | 'done' | 'all';
+
+export interface TaskFilters {
+  status: TaskListFilter;
+  onlyMine: boolean;
+  search: string;
+}
+
 const SELECT = `
   *,
   youth:youth_id ( full_name ),
@@ -54,95 +66,198 @@ const SELECT = `
   alert:alert_id ( status, consecutive_absences )
 `;
 
-async function loadTasks(): Promise<TaskWithRelations[]> {
-  // RLS filtra: coordenador vê todas; líder as atribuídas/criadas/dos seus grupos
-  const { data, error } = await (supabase as any)
-    .from('tasks')
-    .select(SELECT)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as TaskWithRelations[];
-}
+const OPEN_STATUSES = ['pending', 'in_progress'];
+const CLOSED_STATUSES = ['done', 'cancelled'];
 
 async function loadOptions(isCoordinator: boolean, userId: string, userName: string | null): Promise<TaskOptions> {
-  const [yRes, gRes, pRes]: [any, any, any] = await Promise.all([
-    (supabase as any).from('youth').select('id, full_name, group_id').eq('is_active', true).order('full_name'),
-    (supabase as any).from('groups').select('id, name').order('name'),
+  const sb = supabase as any;
+  // fetchAll: o PostgREST corta em 1000 linhas e estas listas alimentam <select>
+  const [youth, groups, assignees] = await Promise.all([
+    fetchAll<TaskOptions['youth'][number]>(() =>
+      sb.from('youth').select('id, full_name, group_id').eq('is_active', true).order('full_name').order('id')),
+    fetchAll<GroupRef>(() => sb.from('groups').select('id, name').order('name').order('id')),
     isCoordinator
-      ? (supabase as any).from('profiles').select('id, full_name').order('full_name')
-      : Promise.resolve({ data: [{ id: userId, full_name: userName }] }),
+      ? fetchAll<TaskOptions['assignees'][number]>(() =>
+          sb.from('profiles').select('id, full_name').order('full_name').order('id'))
+      : Promise.resolve([{ id: userId, full_name: userName }]),
   ]);
-  return {
-    youth: yRes.data ?? [],
-    groups: gRes.data ?? [],
-    assignees: pRes.data ?? [],
-  };
+  return { youth, groups, assignees };
 }
 
-export function useTasks() {
+export function useTasks(filters: TaskFilters) {
   const { user, role, profile } = useAuth();
   const isCoordinator = role === 'coordinator';
-  const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
   const [options, setOptions] = useState<TaskOptions>({ youth: [], groups: [], assignees: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  // Falha ao carregar as opções do formulário (sem elas o formulário abriria com listas vazias, sem explicação)
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+  // Cabeçalho: sempre sobre todas as tarefas visíveis (RLS), independente de filtros e página
+  const [counts, setCounts] = useState({ open: 0, overdue: 0 });
+  const userId = user?.id;
 
+  // RLS filtra: coordenador vê todas; líder as atribuídas/criadas/dos seus grupos
+  const list = usePagedList<TaskWithRelations>({
+    enabled: !!user,
+    filters: [filters.status, filters.onlyMine, filters.search],
+    errorFallback: 'Erro ao carregar tarefas.',
+    fetchPage: async ({ from, to }) => {
+      const sb = supabase as any;
+      const pattern = searchPattern(filters.search);
+
+      // Título OU nome do jovem. O PostgREST não faz OR entre tabelas: ids dos jovens que
+      // combinam são resolvidos antes (youth respeita o RLS do usuário).
+      let orFilter: string | null = null;
+      if (pattern) {
+        const lookup = await sb.from('youth').select('id').ilike('full_name', pattern).limit(500);
+        if (lookup.error) throw lookup.error;
+        const ids = ((lookup.data ?? []) as { id: string }[]).map((y) => y.id);
+        orFilter = `title.ilike."${pattern}"${ids.length ? `,youth_id.in.(${ids.join(',')})` : ''}`;
+      }
+
+      const build = (statuses: string[] | null, head = false) => {
+        let q = head
+          ? sb.from('tasks').select('id', { count: 'exact', head: true })
+          : sb.from('tasks').select(SELECT, { count: 'exact' });
+        if (statuses) q = q.in('status', statuses);
+        if (filters.onlyMine && userId) q = q.eq('assigned_to', userId);
+        if (orFilter) q = q.or(orFilter);
+        return q;
+      };
+      // Abertas: prazo mais próximo primeiro (sem prazo por último), depois prioridade (alta→baixa),
+      // depois a mais recente. Encerradas: prioridade, depois a mais recente. `id` desempata
+      // para a paginação ser estável.
+      const openPage = (a: number, b: number) =>
+        build(OPEN_STATUSES)
+          .order('due_date', { ascending: true, nullsFirst: false })
+          .order('priority', { ascending: false })
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(a, b);
+      const closedPage = (a: number, b: number) =>
+        build(CLOSED_STATUSES)
+          .order('priority', { ascending: false })
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(a, b);
+
+      if (filters.status === 'open') {
+        const { data, count, error } = await openPage(from, to);
+        if (error) throw error;
+        return { rows: (data ?? []) as TaskWithRelations[], total: count ?? 0 };
+      }
+      if (filters.status === 'done') {
+        const { data, count, error } = await closedPage(from, to);
+        if (error) throw error;
+        return { rows: (data ?? []) as TaskWithRelations[], total: count ?? 0 };
+      }
+
+      // "Todas": abertas primeiro, depois encerradas, como uma única lista contínua.
+      // A janela [from, to] cruza as duas partes: pede cada parte só no trecho que lhe cabe.
+      const open = await openPage(from, to);
+      if (open.error) throw open.error;
+      const nOpen: number = open.count ?? 0;
+      const rows = [...((open.data ?? []) as TaskWithRelations[])];
+      const missing = to - from + 1 - rows.length;
+      let nClosed: number;
+      if (missing > 0) {
+        const start = Math.max(0, from - nOpen);
+        const closed = await closedPage(start, start + missing - 1);
+        if (closed.error) throw closed.error;
+        rows.push(...((closed.data ?? []) as TaskWithRelations[]));
+        nClosed = closed.count ?? 0;
+      } else {
+        const closed = await build(CLOSED_STATUSES, true);
+        if (closed.error) throw closed.error;
+        nClosed = closed.count ?? 0;
+      }
+      const result: PagedResult<TaskWithRelations> = { rows, total: nOpen + nClosed };
+      return result;
+    },
+  });
+  const { refetch } = list;
+
+  // Opções dos formulários (jovens/grupos/responsáveis): carregadas uma vez, completas
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    Promise.all([loadTasks(), loadOptions(isCoordinator, user.id, profile?.full_name ?? null)])
-      .then(([t, o]) => { if (!cancelled) { setTasks(t); setOptions(o); } })
-      .catch((err: unknown) => { if (!cancelled) setError(errorMessage(err, 'Erro ao carregar tarefas.')); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+    loadOptions(isCoordinator, user.id, profile?.full_name ?? null)
+      .then((o) => { if (!cancelled) { setOptions(o); setOptionsError(null); } })
+      .catch((err: unknown) => {
+        if (!cancelled) setOptionsError(errorMessage(err, 'Não foi possível carregar jovens, grupos e responsáveis para o formulário.'));
+      });
     return () => { cancelled = true; };
   }, [user, isCoordinator, profile?.full_name]);
 
-  const refetch = useCallback(async () => {
-    try {
-      setTasks(await loadTasks());
-      setError(null);
-    } catch (err: unknown) {
-      setError(errorMessage(err, 'Erro ao carregar tarefas.'));
-    }
-  }, []);
+  // Contadores do cabeçalho (abertas / atrasadas) — por consulta de contagem, não pela lista
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const sb = supabase as any;
+    const open = () => sb.from('tasks').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES);
+    Promise.all([open(), open().lt('due_date', toDateInput(new Date()))])
+      .then(([o, late]) => {
+        if (o.error || late.error) { logError('Erro ao contar tarefas abertas/atrasadas', o.error ?? late.error); return; }
+        if (!cancelled) setCounts({ open: o.count ?? 0, overdue: late.count ?? 0 });
+      })
+      .catch((err: unknown) => logError('Erro ao contar tarefas abertas/atrasadas', err));
+    return () => { cancelled = true; };
+  }, [user, list.version]);
 
   const createTask = async (payload: Omit<TaskInsert, 'created_by'>): Promise<boolean> => {
     if (!user) return false;
-    setError(null);
+    setMutationError(null);
     const { error: e } = await (supabase as any)
       .from('tasks')
       .insert({ ...payload, created_by: user.id });
-    if (e) { setError(errorMessage(e, 'Erro ao criar tarefa.')); return false; }
-    await refetch();
+    if (e) { setMutationError(errorMessage(e, 'Erro ao criar tarefa.')); return false; }
+    refetch();
     return true;
   };
 
   const updateTask = async (id: string, payload: TaskUpdate): Promise<boolean> => {
-    setError(null);
+    setMutationError(null);
     const { data, error: e } = await (supabase as any)
       .from('tasks')
       .update(payload)
       .eq('id', id)
       .select('id')
       .maybeSingle();
-    if (e) { setError(errorMessage(e, 'Erro ao atualizar tarefa.')); return false; }
-    if (!data) { setError('Sem permissão para alterar esta tarefa.'); return false; }
-    await refetch();
+    if (e) { setMutationError(errorMessage(e, 'Erro ao atualizar tarefa.')); return false; }
+    if (!data) { setMutationError('Sem permissão para alterar esta tarefa.'); return false; }
+    refetch();
     return true;
   };
 
   const deleteTask = async (id: string): Promise<boolean> => {
-    setError(null);
+    setMutationError(null);
     const { data, error: e } = await (supabase as any)
       .from('tasks')
       .delete()
       .eq('id', id)
       .select('id');
-    if (e) { setError(errorMessage(e, 'Erro ao excluir tarefa.')); return false; }
-    if (!data || data.length === 0) { setError('Você só pode excluir tarefas criadas por você.'); return false; }
-    await refetch();
+    if (e) { setMutationError(errorMessage(e, 'Erro ao excluir tarefa.')); return false; }
+    if (!data || data.length === 0) { setMutationError('Você só pode excluir tarefas criadas por você.'); return false; }
+    refetch();
     return true;
   };
 
-  return { tasks, options, loading, error, isCoordinator, user, refetch, createTask, updateTask, deleteTask };
+  return {
+    tasks: list.rows,
+    total: list.total,
+    page: list.page,
+    setPage: list.setPage,
+    pageSize: list.pageSize,
+    totalPages: list.totalPages,
+    openCount: counts.open,
+    overdueCount: counts.overdue,
+    options,
+    loading: list.loading,
+    error: mutationError ?? list.error ?? optionsError,
+    isCoordinator,
+    user,
+    refetch,
+    createTask,
+    updateTask,
+    deleteTask,
+  };
 }
