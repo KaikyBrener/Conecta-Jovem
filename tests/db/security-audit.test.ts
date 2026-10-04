@@ -97,12 +97,11 @@ describe('2. user_roles / set_user_role', () => {
   });
 
   it('funções-trigger (guards) não podem ser chamadas diretamente via RPC', async () => {
-    await expect(t.as(coord, () => t.q(`SELECT public.alerts_guard()`)))
-      .rejects.toThrow(/trigger functions can only be called as triggers/);
-    await expect(t.as(coord, () => t.q(`SELECT public.tasks_guard()`)))
-      .rejects.toThrow(/trigger functions can only be called as triggers/);
-    await expect(t.as(coord, () => t.q(`SELECT public.handle_new_user()`)))
-      .rejects.toThrow(/trigger functions can only be called as triggers/);
+    // Desde a 017 não há EXECUTE para clientes (permission denied); antes, o erro era "trigger functions can only be called as triggers".
+    const denied = /permission denied for function|trigger functions can only be called as triggers/;
+    await expect(t.as(coord, () => t.q(`SELECT public.alerts_guard()`))).rejects.toThrow(denied);
+    await expect(t.as(coord, () => t.q(`SELECT public.tasks_guard()`))).rejects.toThrow(denied);
+    await expect(t.as(coord, () => t.q(`SELECT public.handle_new_user()`))).rejects.toThrow(denied);
   });
 
   it('set_user_role continua bloqueando o rebaixamento do último coordenador após a correção da corrida (migration 008)', async () => {

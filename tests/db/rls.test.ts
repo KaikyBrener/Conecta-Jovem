@@ -35,7 +35,9 @@ async function mark(leader: string, eventId: string, youthId: string, groupId: s
 
 async function openAlert(youthId: string) {
   const rows = await t.q<{ id: string; consecutive_absences: number; group_id: string }>(
-    `SELECT id, consecutive_absences, group_id FROM public.alerts WHERE youth_id = $1 AND status = 'open'`,
+    // só faltas consecutivas: a migration 010 acrescentou outros tipos (frequência), cobertos em attendance-alerts.test.ts
+    `SELECT id, consecutive_absences, group_id FROM public.alerts
+      WHERE youth_id = $1 AND status = 'open' AND type = 'consecutive_absences'`,
     [youthId],
   );
   return rows[0] ?? null;
@@ -87,13 +89,10 @@ describe('migrations e cadastro', () => {
 
 describe('RLS básico', () => {
   it('anon não enxerga dados', async () => {
-    const counts = await t.as(null, async () => ({
-      youth: (await t.q(`SELECT 1 FROM public.youth`)).length,
-      alerts: (await t.q(`SELECT 1 FROM public.alerts`)).length,
-      tasks: (await t.q(`SELECT 1 FROM public.tasks`)).length,
-      settings: (await t.q(`SELECT 1 FROM public.app_settings`)).length,
-    }));
-    expect(counts).toEqual({ youth: 0, alerts: 0, tasks: 0, settings: 0 });
+    // Desde a migration 016 anon não tem privilégio algum nas tabelas (antes: 0 linhas por RLS).
+    for (const table of ['youth', 'alerts', 'tasks', 'app_settings']) {
+      await expect(t.as(null, () => t.q(`SELECT 1 FROM public.${table}`))).rejects.toThrow(/permission denied/);
+    }
   });
 
   it('líder vê só jovens do seu grupo; coordenador vê todos', async () => {
@@ -147,7 +146,8 @@ describe('alertas de faltas consecutivas', () => {
     await mark(leaderA, ev, ya1, groupA, true);
     expect(await openAlert(ya1)).toBeNull();
     const [a] = await t.q<{ status: string; resolution_notes: string }>(
-      `SELECT status, resolution_notes FROM public.alerts WHERE youth_id = $1 ORDER BY created_at DESC LIMIT 1`, [ya1]);
+      `SELECT status, resolution_notes FROM public.alerts
+        WHERE youth_id = $1 AND type = 'consecutive_absences' ORDER BY created_at DESC LIMIT 1`, [ya1]);
     expect(a.status).toBe('resolved');
     expect(a.resolution_notes).toMatch(/automaticamente/);
   });
@@ -158,7 +158,7 @@ describe('alertas de faltas consecutivas', () => {
     ).rejects.toThrow(/row-level security/);
   });
 
-  it('alerta dispensado não é recriado sem nova falta; nova falta cria outro', async () => {
+  it('alerta dispensado não é recriado na mesma sequência; só uma nova sequência (após presença) cria outro', async () => {
     for (let i = 0; i < 3; i++) {
       const ev = await createEvent([groupA]);
       await mark(leaderA, ev, ya2, groupA, false);
@@ -181,9 +181,18 @@ describe('alertas de faltas consecutivas', () => {
     await t.as(coord, () => t.q(`SELECT public.recalculate_all_alerts()`));
     expect(await openAlert(ya2)).toBeNull();
 
+    // Regra da migration 010: nova falta na MESMA sequência (nenhuma presença desde o encerramento
+    // manual) não recria o alerta que a pessoa fechou.
     const ev = await createEvent([groupA]);
     await mark(leaderA, ev, ya2, groupA, false);
-    expect((await openAlert(ya2))?.consecutive_absences).toBe(4);
+    expect(await openAlert(ya2)).toBeNull();
+
+    // Presença quebra a sequência; 3 novas faltas formam uma sequência nova e geram novo alerta.
+    await mark(leaderA, await createEvent([groupA]), ya2, groupA, true);
+    for (let i = 0; i < 3; i++) {
+      await mark(leaderA, await createEvent([groupA]), ya2, groupA, false);
+    }
+    expect((await openAlert(ya2))?.consecutive_absences).toBe(3);
   });
 
   it('inativar o jovem resolve o alerta', async () => {

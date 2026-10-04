@@ -78,7 +78,12 @@ const openOf = async (youth: string, type: string) =>
 const ageAlert = (id: string, days: number) =>
   t.q(`UPDATE public.alerts SET created_at = now() - ($2 || ' days')::interval WHERE id = $1`, [id, String(days)]);
 
-const sync = (user = coord) => t.as(user, () => t.q(`SELECT public.sync_time_alerts()`));
+// Desde a migration 016 sync_time_alerts() tem throttle (60 s). Estes testes exercitam a LÓGICA da varredura,
+// então zeram o estado do throttle antes de cada chamada; o throttle em si é testado em hardening.test.ts.
+const sync = async (user = coord) => {
+  await t.q(`UPDATE public.time_alerts_sync_state SET last_run = '-infinity'`);
+  return t.as(user, () => t.q(`SELECT public.sync_time_alerts()`));
+};
 
 /** Jovem com 3 faltas seguidas e alerta de faltas envelhecido `age` dias. */
 async function youthWithFaltas(age = 0, group = groupA) {
@@ -441,7 +446,7 @@ describe('transfer_follow_up', () => {
     expect(await history(id)).toHaveLength(1);
   });
 
-  it('histórico: líder só vê o dos acompanhamentos que enxerga; coordenador vê tudo; apagar o acompanhamento leva o histórico junto', async () => {
+  it('histórico: líder só vê o dos acompanhamentos que enxerga; coordenador vê tudo; acompanhamento com histórico não pode ser apagado (016)', async () => {
     const ya = await mkYouth(groupA);
     const id = await addFu(coord, ya);
     await transfer(coord, id, leaderA);
@@ -452,8 +457,9 @@ describe('transfer_follow_up', () => {
     expect(await count(leaderB)).toBe(0);
     expect(await count(leaderC)).toBe(0);
     expect(await count(coord)).toBe(1);
-    await t.as(coord, () => t.q(`DELETE FROM public.follow_ups WHERE id = $1`, [id]));
-    expect(await history(id)).toEqual([]);
+    await expect(t.as(coord, () => t.q(`DELETE FROM public.follow_ups WHERE id = $1`, [id])))
+      .rejects.toThrow(/histórico de transferências/);
+    expect(await history(id)).toHaveLength(1);
   });
 
   it('atualiza updated_at do acompanhamento e mantém created_by', async () => {
@@ -1000,13 +1006,15 @@ describe('youth_situation / youth_situations', () => {
     await expect(sit(coord, many)).rejects.toThrow(/no máximo 500/);
   });
 
-  it('líder do grupo novo vê a mesma contagem de faltas dos alertas mesmo sem acesso às linhas antigas de attendance', async () => {
+  it('líder do grupo novo vê a mesma contagem de faltas dos alertas e o histórico acompanha o jovem (012)', async () => {
     const y = await mkYouth(groupA);
     await seq(y, ['a', 'a', 'a'], groupA);
     await t.q(`UPDATE public.youth SET group_id = $2 WHERE id = $1`, [y, groupB]);
-    // o RLS de attendance usa o group_id gravado na linha: o líder B não lê o histórico antigo...
-    expect(await t.as(leaderB, () => t.q(`SELECT 1 FROM public.attendance WHERE youth_id = $1`, [y]))).toHaveLength(0);
-    // ...mas a situação usa o histórico completo, igual ao alerta
+    // Antes da migration 012 o RLS de attendance (group_id gravado na linha) escondia o histórico antigo do líder B.
+    // Desde a 012 o trigger youth_sync_attendance_group reaponta as linhas: o histórico segue o jovem...
+    expect(await t.as(leaderB, () => t.q(`SELECT 1 FROM public.attendance WHERE youth_id = $1`, [y]))).toHaveLength(3);
+    expect(await t.as(leaderA, () => t.q(`SELECT 1 FROM public.attendance WHERE youth_id = $1`, [y]))).toHaveLength(0);
+    // ...e a situação usa o histórico completo, igual ao alerta
     const s = await sit1(leaderB, y);
     expect(s).toMatchObject({ consecutive_absences: 3, group_name: 'Grupo B', leader_name: 'Líder B', situation: 'attention' });
     expect((await openOf(y, 'consecutive_absences'))?.consecutive_absences).toBe(3);
