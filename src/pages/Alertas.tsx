@@ -1,20 +1,31 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, ListPlus, Loader2, Phone, RotateCcw, XCircle, ListChecks } from 'lucide-react';
+import {
+  AlertTriangle, CheckCircle2, HeartHandshake, ListPlus, Loader2, Mail, MailCheck, OctagonAlert, Phone, RotateCcw, XCircle, ListChecks,
+} from 'lucide-react';
 import { useAlerts, type AlertWithRelations } from '../hooks/useAlerts';
+import { useToast } from '../contexts/ToastContext';
 import { Modal } from '../components/Modal';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { FollowUpFormModal } from '../components/followups/FollowUpFormModal';
+import { CommunicationModal } from '../components/communications/CommunicationModal';
+import { useSentCommunicationCounts } from '../hooks/useCommunications';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
+import { Pagination } from '../components/ui/Pagination';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { inputCls, labelCls, primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
-import { formatDate, formatDateTime } from '../lib/format';
-import { TASK_STATUS_LABEL } from '../lib/labels';
-import type { AlertStatus } from '../types/database.types';
+import { formatDate, formatDateOnly, formatDateTime, isOverdue } from '../lib/format';
+import {
+  ALERT_SEVERITY_LABEL, ALERT_TYPE_NAME, ALERT_TYPES, FOLLOW_UP_TYPE_LABEL, TASK_STATUS_LABEL, alertDescription,
+} from '../lib/labels';
+import type { AlertSeverity, AlertStatus, AlertType } from '../types/database.types';
 
-type Filter = 'open' | 'closed' | 'all';
+type StatusFilter = 'open' | 'resolved' | 'dismissed' | 'all';
+type TypeFilter = AlertType | 'all';
+type SeverityFilter = AlertSeverity | 'all';
 
 const STATUS_LABEL: Record<AlertStatus, string> = {
   open: 'Aberto',
@@ -27,6 +38,9 @@ const STATUS_BADGE_COLOR: Record<AlertStatus, BadgeColor> = {
   resolved: 'green',
   dismissed: 'gray',
 };
+
+const selectCls =
+  'sm:w-52 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500';
 
 function CloseAlertForm({ alert, action, onConfirm, onCancel }: {
   alert: AlertWithRelations;
@@ -42,8 +56,13 @@ function CloseAlertForm({ alert, action, onConfirm, onCancel }: {
       onSubmit={async (e) => { e.preventDefault(); setBusy(true); await onConfirm(notes.trim()); setBusy(false); }}
     >
       <p className="text-sm text-gray-700">
-        {action === 'resolved' ? 'Resolver' : 'Dispensar'} o alerta de <strong>{alert.youth?.full_name ?? 'jovem'}</strong>?
-        {action === 'dismissed' && ' O alerta não será recriado até que ocorra uma nova falta.'}
+        {action === 'resolved' ? 'Resolver' : 'Dispensar'} o alerta de <strong>{alert.youth?.full_name ?? 'jovem'}</strong>
+        {' '}({alertDescription(alert)})?
+      </p>
+      <p data-testid="aviso-historico" className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+        {action === 'resolved' ? 'Resolver' : 'Dispensar'} não apaga as faltas; elas continuam no histórico.
+
+        {' '}O alerta não é recriado enquanto a situação continuar a mesma. Ele só volta se uma presença quebrar a sequência.
       </p>
       <div>
         <label className={labelCls} htmlFor="notes">Observações</label>
@@ -69,39 +88,67 @@ function CloseAlertForm({ alert, action, onConfirm, onCancel }: {
 }
 
 export function Alertas() {
+  const toast = useToast();
   const navigate = useNavigate();
-  const { alerts, loading, error, updateStatus } = useAlerts();
-  const [filter, setFilter] = useState<Filter>('open');
+  const [status, setStatus] = useState<StatusFilter>('open');
+  const [type, setType] = useState<TypeFilter>('all');
+  const [severity, setSeverity] = useState<SeverityFilter>('all');
+  // Filtros, ordenação e paginação são aplicados no servidor (useAlerts)
+  const {
+    alerts: filtered, total, page, setPage, pageSize, totalPages, openCount, loading, error, updateStatus, refetch,
+  } = useAlerts({ status, type, severity });
   const [closing, setClosing] = useState<{ alert: AlertWithRelations; action: 'resolved' | 'dismissed' } | null>(null);
+  const [following, setFollowing] = useState<AlertWithRelations | null>(null);
+  const [emailing, setEmailing] = useState<AlertWithRelations | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  const openCount = alerts.filter((a) => a.status === 'open').length;
-  const filtered = useMemo(
-    () => alerts.filter((a) => filter === 'all' || (filter === 'open' ? a.status === 'open' : a.status !== 'open')),
-    [alerts, filter],
-  );
+  const { counts: sentCounts, refetch: refetchSentCounts } = useSentCommunicationCounts(filtered.map((a) => a.id));
 
   const reopen = async (a: AlertWithRelations) => {
     setBusyId(a.id);
-    await updateStatus(a.id, 'open');
+    const ok = await updateStatus(a.id, 'open');
     setBusyId(null);
+    if (ok) toast.success('Alerta reaberto.');
   };
 
-  const filters: { label: string; value: Filter }[] = [
+  const statusFilters: { label: string; value: StatusFilter }[] = [
     { label: `Abertos (${openCount})`, value: 'open' },
-    { label: 'Encerrados', value: 'closed' },
+    { label: 'Resolvidos', value: 'resolved' },
+    { label: 'Dispensados', value: 'dismissed' },
     { label: 'Todos', value: 'all' },
   ];
+
+  const hasExtraFilter = type !== 'all' || severity !== 'all';
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Alertas"
-        subtitle="Gerados automaticamente a partir das chamadas quando um jovem acumula faltas consecutivas."
+        subtitle="Gerados automaticamente pelo sistema: faltas seguidas, frequência baixa ou em queda, falta de acompanhamento e ações atrasadas. Os alertas encerrados ficam no histórico."
       />
 
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-        <FilterChips options={filters} value={filter} onChange={setFilter} />
+      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+        <FilterChips options={statusFilters} value={status} onChange={setStatus} />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as TypeFilter)}
+            className={selectCls}
+            aria-label="Filtrar por tipo"
+          >
+            <option value="all">Todos os tipos</option>
+            {ALERT_TYPES.map((t) => <option key={t} value={t}>{ALERT_TYPE_NAME[t]}</option>)}
+          </select>
+          <select
+            value={severity}
+            onChange={(e) => setSeverity(e.target.value as SeverityFilter)}
+            className={selectCls}
+            aria-label="Filtrar por severidade"
+          >
+            <option value="all">Qualquer severidade</option>
+            <option value="attention">{ALERT_SEVERITY_LABEL.attention}</option>
+            <option value="critical">{ALERT_SEVERITY_LABEL.critical}</option>
+          </select>
+        </div>
       </div>
 
       <ErrorBanner message={error} />
@@ -111,7 +158,7 @@ export function Alertas() {
       {!loading && filtered.length === 0 && (
         <EmptyState
           icon={CheckCircle2}
-          title={filter === 'open' ? 'Nenhum alerta aberto. Tudo em dia!' : 'Nenhum alerta encontrado.'}
+          title={status === 'open' && !hasExtraFilter ? 'Nenhum alerta aberto. Tudo em dia!' : 'Nenhum alerta encontrado.'}
         />
       )}
 
@@ -119,19 +166,28 @@ export function Alertas() {
         <ul className="space-y-3">
           {filtered.map((a) => {
             const openTasks = a.tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress');
+            const isOpen = a.status === 'open';
+            const critical = a.severity === 'critical';
+            const SeverityIcon = critical ? OctagonAlert : AlertTriangle;
             return (
-              <li key={a.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <li key={a.id} data-testid="alerta-item" data-tipo={a.type} data-severidade={a.severity} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
-                    <AlertTriangle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${a.status === 'open' ? 'text-amber-500' : 'text-gray-300'}`} />
+                    <SeverityIcon
+                      className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isOpen ? (critical ? 'text-red-600' : 'text-amber-500') : 'text-gray-300'}`}
+                      aria-hidden="true"
+                    />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{a.youth?.full_name ?? 'Jovem'}</p>
                       <p className="text-xs text-gray-500">
-                        {a.groups?.name ?? 'Sem grupo'} · {a.consecutive_absences} falta{a.consecutive_absences !== 1 ? 's' : ''} consecutiva{a.consecutive_absences !== 1 ? 's' : ''}
+                        {a.groups?.name ?? 'Sem grupo'} · <span data-testid="alerta-descricao">{alertDescription(a)}</span>
                       </p>
+                      {a.type !== 'consecutive_absences' && (
+                        <p className="text-xs text-gray-400">{ALERT_TYPE_NAME[a.type]}</p>
+                      )}
                       {a.last_event && (
                         <p className="text-xs text-gray-400">
-                          Última falta: {a.last_event.title} ({formatDate(a.last_event.event_date)})
+                          {a.type === 'consecutive_absences' ? 'Última falta' : 'Último encontro'}: {a.last_event.title} ({formatDate(a.last_event.event_date)})
                         </p>
                       )}
                       {a.youth?.phone && (
@@ -141,22 +197,56 @@ export function Alertas() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                    <Badge color={critical ? 'red' : 'amber'}>
+                      <SeverityIcon className="w-3 h-3" aria-hidden="true" />
+                      {ALERT_SEVERITY_LABEL[a.severity]}
+                    </Badge>
                     <Badge color={STATUS_BADGE_COLOR[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+                    {(sentCounts.get(a.id) ?? 0) > 0 && (
+                      <span data-testid="alerta-email-enviado">
+                        <Badge color="green">
+                          <MailCheck className="w-3 h-3" aria-hidden="true" />
+                          E-mail enviado{(sentCounts.get(a.id) ?? 0) > 1 ? ` (${sentCounts.get(a.id)})` : ''}
+                        </Badge>
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {a.tasks.length > 0 && (
-                  <div className="text-xs bg-gray-50 rounded-lg px-3 py-2 space-y-1">
-                    {a.tasks.map((t) => (
-                      <p key={t.id} className="flex items-center gap-1.5 text-gray-600">
-                        <ListChecks className="w-3.5 h-3.5" /> {t.title} — {TASK_STATUS_LABEL[t.status]}
-                      </p>
-                    ))}
+                {(a.tasks.length > 0 || a.follow_ups.length > 0) ? (
+                  <div data-testid="alerta-cadeia" className="text-xs bg-gray-50 rounded-lg px-3 py-2 space-y-2">
+                    {a.tasks.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="font-medium text-gray-500">Ações</p>
+                        {a.tasks.map((t) => (
+                          <p key={t.id} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-gray-600">
+                            <ListChecks className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{t.title} — {TASK_STATUS_LABEL[t.status]}</span>
+                            {t.due_date && <span className="text-gray-400">· prazo {formatDateOnly(t.due_date)}</span>}
+                            {isOverdue(t.due_date, t.status) && <Badge color="red">Atrasada</Badge>}
+                            {t.completed_by_follow_up_id && <Badge color="green">Concluída por acompanhamento</Badge>}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {a.follow_ups.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="font-medium text-gray-500">Acompanhamentos</p>
+                        {a.follow_ups.map((f) => (
+                          <p key={f.id} className="flex items-center gap-1.5 text-gray-600">
+                            <HeartHandshake className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                            <span className="min-w-0 break-words">{formatDateOnly(f.occurred_at)} · {FOLLOW_UP_TYPE_LABEL[f.type]} — {f.reason}</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                ) : isOpen && (
+                  <p className="text-xs text-gray-400">Ainda sem ação nem acompanhamento ligados a este alerta.</p>
                 )}
 
-                {a.status !== 'open' && (a.resolution_notes || a.resolved_at) && (
+                {!isOpen && (a.resolution_notes || a.resolved_at) && (
                   <p className="text-xs text-gray-500">
                     {a.resolved_at && `Encerrado em ${formatDateTime(a.resolved_at)}. `}
                     {a.resolution_notes}
@@ -164,7 +254,7 @@ export function Alertas() {
                 )}
 
                 <div className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3">
-                  {a.status === 'open' ? (
+                  {isOpen ? (
                     <>
                       <button
                         onClick={() => setClosing({ alert: a, action: 'dismissed' })}
@@ -177,6 +267,19 @@ export function Alertas() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Resolver
+                      </button>
+                      <button
+                        onClick={() => setFollowing(a)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                        <HeartHandshake className="w-3.5 h-3.5" /> Registrar acompanhamento
+                      </button>
+                      <button
+                        onClick={() => setEmailing(a)}
+                        data-testid="alerta-enviar-email"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Mail className="w-3.5 h-3.5" aria-hidden="true" /> Enviar e-mail
                       </button>
                       <button
                         onClick={() => navigate(`/tarefas?novo=1&alerta=${a.id}`)}
@@ -202,6 +305,8 @@ export function Alertas() {
         </ul>
       )}
 
+      <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'alerta' : 'alertas'} disabled={loading} />
+
       {closing && (
         <Modal title={closing.action === 'resolved' ? 'Resolver alerta' : 'Dispensar alerta'} onClose={() => setClosing(null)}>
           {error && <div className="mb-4"><ErrorBanner message={error} /></div>}
@@ -211,10 +316,34 @@ export function Alertas() {
             onCancel={() => setClosing(null)}
             onConfirm={async (notes) => {
               const ok = await updateStatus(closing.alert.id, closing.action, notes || null);
-              if (ok) setClosing(null);
+              if (ok) {
+                setClosing(null);
+                toast.success(closing.action === 'resolved' ? 'Alerta resolvido.' : 'Alerta dispensado.');
+              }
             }}
           />
         </Modal>
+      )}
+
+      {emailing && (
+        <CommunicationModal
+          youthId={emailing.youth_id}
+          youthName={emailing.youth?.full_name ?? 'Jovem'}
+          groupName={emailing.groups?.name}
+          fixedLinks={{ alert: { id: emailing.id, type: emailing.type, label: alertDescription(emailing) } }}
+          onClose={() => setEmailing(null)}
+          onChanged={refetchSentCounts}
+        />
+      )}
+
+      {following && (
+        <FollowUpFormModal
+          youthId={following.youth_id}
+          youthName={following.youth?.full_name ?? 'Jovem'}
+          defaultAlertId={following.id}
+          onClose={() => setFollowing(null)}
+          onSaved={() => { void refetch(); }}
+        />
       )}
     </div>
   );

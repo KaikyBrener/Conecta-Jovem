@@ -3,9 +3,11 @@ import { Plus, Users, ChevronRight, AlertCircle, Pencil, Search, UsersRound } fr
 import { useGroups } from '../hooks/useGroups';
 import { useToast } from '../contexts/ToastContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useSearchParamPrefill } from '../hooks/useSearchParamPrefill';
 import { Modal } from '../components/Modal';
 import { GroupForm } from '../components/groups/GroupForm';
 import { GroupMembers } from '../components/groups/GroupMembers';
+import { GroupMetric } from '../components/groups/GroupMetric';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -21,7 +23,8 @@ type ModalMode = 'none' | 'create' | 'edit' | 'members';
 export function Grupos() {
   const toast = useToast();
   // Busca, ordenação e paginação são aplicadas no servidor (useGroups)
-  const [search, setSearch] = useState('');
+  // `/grupos?busca=<texto>` (busca global) preenche o campo
+  const [search, setSearch] = useSearchParamPrefill('busca');
   const debouncedSearch = useDebouncedValue(search);
   const {
     groups,
@@ -32,6 +35,9 @@ export function Grupos() {
     pageSize,
     totalPages,
     leaders,
+    indicators,
+    indicatorsLoading,
+    indicatorsFailed,
     loading,
     error,
     role,
@@ -109,6 +115,12 @@ export function Grupos() {
         </div>
       )}
 
+      {indicatorsFailed && groups.length > 0 && (
+        <p className="text-xs text-gray-500" role="status" data-testid="grupos-indicadores-indisponiveis">
+          Não foi possível carregar os indicadores dos grupos agora. A lista continua disponível.
+        </p>
+      )}
+
       {/* Loading */}
       {loading && groups.length === 0 && <LoadingBlock />}
 
@@ -132,19 +144,23 @@ export function Grupos() {
 
       {/* Tabela - Desktop */}
       {groups.length > 0 && (
-        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-xl overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 <th className="px-4 py-3">Grupo</th>
                 <th className="px-4 py-3">Líder</th>
                 <th className="px-4 py-3">Integrantes</th>
+                <th className="px-4 py-3">Frequência</th>
+                <th className="px-4 py-3">Tendência</th>
+                <th className="px-4 py-3">Em atenção</th>
+                <th className="px-4 py-3">Ações atrasadas</th>
                 <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {groups.map((g) => (
-                <tr key={g.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={g.id} data-testid="grupo-linha" className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <button onClick={() => openMembers(g)} className="flex items-center gap-3 text-left">
                       <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm flex items-center justify-center uppercase">
@@ -159,6 +175,10 @@ export function Grupos() {
                       {g.member_count}
                     </span>
                   </td>
+                  <td className="px-4 py-3"><GroupMetric kind="rate" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></td>
+                  <td className="px-4 py-3"><GroupMetric kind="trend" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></td>
+                  <td className="px-4 py-3"><GroupMetric kind="attention" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></td>
+                  <td className="px-4 py-3"><GroupMetric kind="overdue" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       {canEditGroup(g) && (
@@ -188,9 +208,9 @@ export function Grupos() {
 
       {/* Cards - Mobile */}
       {groups.length > 0 && (
-        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {groups.map((g) => (
-            <li key={g.id}>
+            <li key={g.id} data-testid="grupo-card">
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm flex items-center justify-center uppercase">
                   {g.name.charAt(0)}
@@ -226,6 +246,24 @@ export function Grupos() {
                   </button>
                 </div>
               </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-4 pb-3 pl-[4.25rem] text-xs">
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-gray-500">Frequência</dt>
+                  <dd><GroupMetric kind="rate" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-gray-500">Em atenção</dt>
+                  <dd><GroupMetric kind="attention" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="text-gray-500">Atrasadas</dt>
+                  <dd><GroupMetric kind="overdue" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
+                </div>
+                <div className="col-span-2 flex flex-wrap items-baseline justify-between gap-x-2">
+                  <dt className="text-gray-500">Tendência</dt>
+                  <dd><GroupMetric kind="trend" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
+                </div>
+              </dl>
             </li>
           ))}
         </ul>

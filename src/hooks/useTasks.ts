@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage, toDateInput } from '../lib/format';
+import { appToday, errorMessage } from '../lib/format';
+import { suggestedTaskTitle } from '../lib/labels';
+import { notifyAlertsChanged } from '../lib/alertsBus';
 import { logError } from '../lib/logger';
 import { fetchAll } from '../lib/fetchAll';
 import { searchPattern } from '../lib/pagination';
@@ -12,7 +14,7 @@ import type { Task, TaskInsert, TaskUpdate, AlertStatus, GroupRef } from '../typ
 export async function prefillTaskFromAlert(alertId: string): Promise<Partial<Task> | null> {
   const { data } = await (supabase as any)
     .from('alerts')
-    .select('id, youth_id, group_id, consecutive_absences, youth:youth_id(full_name)')
+    .select('id, youth_id, group_id, type, consecutive_absences, youth:youth_id(full_name)')
     .eq('id', alertId)
     .maybeSingle();
   if (!data) return null;
@@ -21,7 +23,7 @@ export async function prefillTaskFromAlert(alertId: string): Promise<Partial<Tas
     youth_id: data.youth_id,
     group_id: data.group_id,
     priority: 'high',
-    title: `Contatar ${data.youth?.full_name ?? 'jovem'} (${data.consecutive_absences} faltas)`,
+    title: suggestedTaskTitle(data.type, data.youth?.full_name ?? 'jovem', data.consecutive_absences),
   };
 }
 
@@ -50,7 +52,8 @@ export interface TaskOptions {
   assignees: { id: string; full_name: string | null }[];
 }
 
-export type TaskListFilter = 'open' | 'done' | 'all';
+/** 'overdue' = abertas com prazo anterior a hoje (mesma regra do banco, is_task_overdue) */
+export type TaskListFilter = 'open' | 'overdue' | 'done' | 'all';
 
 export interface TaskFilters {
   status: TaskListFilter;
@@ -119,6 +122,7 @@ export function useTasks(filters: TaskFilters) {
           ? sb.from('tasks').select('id', { count: 'exact', head: true })
           : sb.from('tasks').select(SELECT, { count: 'exact' });
         if (statuses) q = q.in('status', statuses);
+        if (filters.status === 'overdue') q = q.lt('due_date', appToday());
         if (filters.onlyMine && userId) q = q.eq('assigned_to', userId);
         if (orFilter) q = q.or(orFilter);
         return q;
@@ -140,7 +144,7 @@ export function useTasks(filters: TaskFilters) {
           .order('id')
           .range(a, b);
 
-      if (filters.status === 'open') {
+      if (filters.status === 'open' || filters.status === 'overdue') {
         const { data, count, error } = await openPage(from, to);
         if (error) throw error;
         return { rows: (data ?? []) as TaskWithRelations[], total: count ?? 0 };
@@ -194,7 +198,7 @@ export function useTasks(filters: TaskFilters) {
     let cancelled = false;
     const sb = supabase as any;
     const open = () => sb.from('tasks').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES);
-    Promise.all([open(), open().lt('due_date', toDateInput(new Date()))])
+    Promise.all([open(), open().lt('due_date', appToday())])
       .then(([o, late]) => {
         if (o.error || late.error) { logError('Erro ao contar tarefas abertas/atrasadas', o.error ?? late.error); return; }
         if (!cancelled) setCounts({ open: o.count ?? 0, overdue: late.count ?? 0 });
@@ -210,6 +214,7 @@ export function useTasks(filters: TaskFilters) {
       .from('tasks')
       .insert({ ...payload, created_by: user.id });
     if (e) { setMutationError(errorMessage(e, 'Erro ao criar tarefa.')); return false; }
+    notifyAlertsChanged(); // tarefa atrasada/concluída pode abrir ou resolver alertas
     refetch();
     return true;
   };
@@ -224,6 +229,7 @@ export function useTasks(filters: TaskFilters) {
       .maybeSingle();
     if (e) { setMutationError(errorMessage(e, 'Erro ao atualizar tarefa.')); return false; }
     if (!data) { setMutationError('Sem permissão para alterar esta tarefa.'); return false; }
+    notifyAlertsChanged();
     refetch();
     return true;
   };
@@ -237,6 +243,7 @@ export function useTasks(filters: TaskFilters) {
       .select('id');
     if (e) { setMutationError(errorMessage(e, 'Erro ao excluir tarefa.')); return false; }
     if (!data || data.length === 0) { setMutationError('Você só pode excluir tarefas criadas por você.'); return false; }
+    notifyAlertsChanged();
     refetch();
     return true;
   };

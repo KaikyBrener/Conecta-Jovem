@@ -6,7 +6,12 @@ import { errorMessage } from '../lib/format';
 import { logError } from '../lib/logger';
 import { fetchAll } from '../lib/fetchAll';
 import { searchPattern } from '../lib/pagination';
+import { parseGroupIndicators } from '../lib/overview';
+import { parseBatchResult } from '../lib/batch';
+import { notifyAlertsChanged } from '../lib/alertsBus';
+import type { GroupIndicator } from '../lib/reportTypes';
 import { usePagedList } from './usePagedList';
+import { useAsyncValue } from './useAsyncValue';
 
 export interface GroupWithLeader extends Group {
   leader_name: string;
@@ -23,6 +28,8 @@ function withLeaderAndCount(groups: RawGroup[]): GroupWithLeader[] {
     member_count: g.youth?.[0]?.count ?? 0,
   }));
 }
+
+const NO_INDICATORS = new Map<string, GroupIndicator>();
 
 export interface GroupFilters {
   search: string;
@@ -64,6 +71,20 @@ export function useGroups(filters: GroupFilters) {
     },
   });
   const fetchGroups = list.refetch;
+
+  // Indicadores (frequência, tendência, jovens em atenção, ações atrasadas) só dos grupos da PÁGINA atual, em uma
+  // chamada à RPC group_indicators. Falha aqui não quebra a lista: a tela mostra a lista sem os indicadores.
+  const pageIds = list.rows.map((g) => g.id);
+  const indicators = useAsyncValue<Map<string, GroupIndicator>>(
+    user && pageIds.length > 0 ? `${pageIds.join(',')}|${list.version}` : null,
+    async () => {
+      const { data, error } = await (supabase as any).rpc('group_indicators', { p_group_ids: pageIds });
+      if (error) throw error;
+      return parseGroupIndicators(data);
+    },
+    NO_INDICATORS,
+    'Erro ao carregar os indicadores dos grupos.',
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -168,14 +189,19 @@ export function useGroups(filters: GroupFilters) {
     return true;
   };
 
-  // Remove jovem do grupo
+  // Remove jovem do grupo. Via RPC (migration 014) e não `.update({ group_id: null })`: com o UPDATE direto o líder
+  // leva "new row violates row-level security policy" (a linha nova, sem grupo, deixa de passar na policy de SELECT).
+  // A RPC aplica o mesmo escopo do RLS (líder: só jovens do seu grupo) e informa os ids ignorados em `skipped`.
   const removeYouthFromGroup = async (youthId: string): Promise<boolean> => {
     setMutationError(null);
-    const { error: e } = await (supabase as any)
-      .from('youth')
-      .update({ group_id: null })
-      .eq('id', youthId);
-    if (e) { setMutationError(errorMessage(e)); return false; }
+    const { data, error: e } = await (supabase as any)
+      .rpc('batch_set_youth_group', { p_youth_ids: [youthId], p_group_id: null });
+    if (e) { setMutationError(errorMessage(e, 'Erro ao remover o jovem do grupo.')); return false; }
+    if (parseBatchResult(data).skipped > 0) {
+      setMutationError('Você não tem permissão para alterar este jovem.');
+      return false;
+    }
+    notifyAlertsChanged();
     fetchGroups();
     return true;
   };
@@ -189,6 +215,9 @@ export function useGroups(filters: GroupFilters) {
     pageSize: list.pageSize,
     totalPages: list.totalPages,
     leaders,
+    indicators: indicators.data,
+    indicatorsLoading: indicators.loading,
+    indicatorsFailed: indicators.error !== null,
     loading: list.loading,
     error: mutationError ?? list.error,
     role,

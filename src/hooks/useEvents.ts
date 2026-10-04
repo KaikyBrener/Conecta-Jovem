@@ -4,6 +4,7 @@ import type { Event, EventInsert, EventUpdate, EventStatus, Group } from '../typ
 import { useAuth } from '../contexts/AuthContext';
 import { errorMessage } from '../lib/format';
 import { logError } from '../lib/logger';
+import { notifyAlertsChanged } from '../lib/alertsBus';
 import { fetchAll } from '../lib/fetchAll';
 import { searchPattern } from '../lib/pagination';
 import { usePagedList } from './usePagedList';
@@ -11,11 +12,13 @@ import { usePagedList } from './usePagedList';
 export interface EventWithGroups extends Event {
   group_ids: string[];
   group_names: string[];
+  /** Nome da série de origem (null = encontro avulso ou série não visível) */
+  series_name: string | null;
 }
 
 type EgRow = { event_id: string; group_id: string; groups: { name: string } | null };
 
-function attachGroups(events: Event[], egRows: EgRow[]): EventWithGroups[] {
+function attachGroups(events: Event[], egRows: EgRow[], seriesNames: Map<string, string> = new Map()): EventWithGroups[] {
   const groupMap: Record<string, { ids: string[]; names: string[] }> = {};
   for (const row of egRows) {
     if (!groupMap[row.event_id]) groupMap[row.event_id] = { ids: [], names: [] };
@@ -26,7 +29,38 @@ function attachGroups(events: Event[], egRows: EgRow[]): EventWithGroups[] {
     ...ev,
     group_ids: groupMap[ev.id]?.ids ?? [],
     group_names: groupMap[ev.id]?.names ?? [],
+    series_name: ev.series_id ? seriesNames.get(ev.series_id) ?? null : null,
   }));
+}
+
+/**
+ * Nomes das séries dos encontros recebidos (uma consulta só se houver encontro de série). Falha aqui não derruba
+ * a lista: o selo "Série: nome" simplesmente não aparece.
+ */
+async function fetchSeriesNames(events: Event[]): Promise<Map<string, string>> {
+  const ids = [...new Set(events.map((e) => e.series_id).filter((id): id is string => !!id))];
+  const names = new Map<string, string>();
+  if (ids.length === 0) return names;
+  const { data, error } = await (supabase as any).from('event_series').select('id, name').in('id', ids);
+  if (error) { logError('Erro ao carregar nomes das séries', error); return names; }
+  for (const s of (data ?? []) as { id: string; name: string }[]) names.set(s.id, s.name);
+  return names;
+}
+
+/**
+ * Busca um encontro por id, independente da página/filtros da lista (deep link `?evento=`). O RLS decide a
+ * visibilidade: inexistente e sem permissão são indistinguíveis (null). Falhas de rede/servidor lançam erro.
+ */
+export async function fetchEventById(id: string): Promise<EventWithGroups | null> {
+  const sb = supabase as any;
+  const { data, error } = await sb.from('events').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const event = data as Event;
+  const eg = await sb.from('event_groups').select('event_id, group_id, groups:group_id(name)').eq('event_id', id);
+  if (eg.error) throw eg.error;
+  const names = await fetchSeriesNames([event]);
+  return attachGroups([event], (eg.data ?? []) as EgRow[], names)[0];
 }
 
 export type EventStatusFilter = 'all' | EventStatus;
@@ -68,7 +102,8 @@ export function useEvents(filters: EventFilters) {
         if (eg.error) throw eg.error;
         egRows = (eg.data ?? []) as EgRow[];
       }
-      return { rows: attachGroups(events, egRows), total: count ?? 0 };
+      const seriesNames = await fetchSeriesNames(events);
+      return { rows: attachGroups(events, egRows, seriesNames), total: count ?? 0 };
     },
   });
   const { refetch } = list;
@@ -111,6 +146,8 @@ export function useEvents(filters: EventFilters) {
       p_group_ids: groupIds,
     });
     if (e) { setMutationError(errorMessage(e)); return null; }
+    // Cancelar (ou remarcar/reabrir) um encontro muda as faltas consecutivas: o banco recalcula os alertas
+    if (id !== null || payload.status === 'cancelled') notifyAlertsChanged();
     refetch();
     return data as Event;
   };
@@ -134,6 +171,7 @@ export function useEvents(filters: EventFilters) {
     setMutationError(null);
     const { error: e } = await (supabase as any).from('events').delete().eq('id', id);
     if (e) { setMutationError(errorMessage(e)); return false; }
+    notifyAlertsChanged(); // a chamada do encontro some junto: alertas são recalculados
     refetch();
     return true;
   };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Loader2, ListChecks, CalendarClock, Play, Check, Pencil, Trash2, AlertTriangle, User as UserIcon } from 'lucide-react';
+import { Plus, Loader2, ListChecks, CalendarClock, Play, Check, Pencil, Trash2, AlertTriangle, HeartHandshake, User as UserIcon } from 'lucide-react';
 import { useTasks, prefillTaskFromAlert, prefillTaskFromYouth, type TaskWithRelations, type TaskListFilter } from '../hooks/useTasks';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useToast } from '../contexts/ToastContext';
@@ -17,6 +17,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { primaryBtnCls } from '../lib/formStyles';
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from '../lib/labels';
 import { formatDateOnly, isOverdue } from '../lib/format';
+import { parseTaskFilterParam } from '../lib/deepLinks';
 import { cn } from '../lib/utils';
 import type { Task, TaskPriority, TaskStatus } from '../types/database.types';
 
@@ -40,7 +41,8 @@ export function Tarefas() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filtros, ordenação e paginação são aplicados no servidor (useTasks)
-  const [filter, setFilter] = useState<TaskListFilter>('open');
+  // /tarefas?filtro=atrasadas (atalho do Dashboard) já abre no filtro correspondente
+  const [filter, setFilter] = useState<TaskListFilter>(() => parseTaskFilterParam(searchParams.get('filtro')) ?? 'open');
   const [onlyMine, setOnlyMine] = useState(false);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search);
@@ -109,6 +111,7 @@ export function Tarefas() {
 
   const filters: { label: string; value: TaskListFilter }[] = [
     { label: `Abertas (${openCount})`, value: 'open' },
+    { label: `Atrasadas (${overdueCount})`, value: 'overdue' },
     { label: 'Encerradas', value: 'done' },
     { label: 'Todas', value: 'all' },
   ];
@@ -155,7 +158,7 @@ export function Tarefas() {
           {tasks.map((t) => {
             const overdue = isOverdue(t.due_date, t.status);
             return (
-              <li key={t.id} className="px-4 py-3 space-y-2">
+              <li key={t.id} data-testid="tarefa-item" data-atrasada={overdue ? 'true' : 'false'} className="px-4 py-3 space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className={`text-sm font-medium truncate ${t.status === 'done' || t.status === 'cancelled' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
@@ -167,7 +170,7 @@ export function Tarefas() {
                       {t.groups && <span>{t.groups.name}</span>}
                       {t.due_date && (
                         <span className={`inline-flex items-center gap-1 ${overdue ? 'text-red-600 font-medium' : ''}`}>
-                          <CalendarClock className="w-3 h-3" /> {formatDateOnly(t.due_date)}{overdue && ' (atrasada)'}
+                          <CalendarClock className="w-3 h-3" /> {formatDateOnly(t.due_date)}
                         </span>
                       )}
                       <span className="inline-flex items-center gap-1">
@@ -182,8 +185,18 @@ export function Tarefas() {
                     </p>
                     {t.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description}</p>}
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1">
                     <Badge color={STATUS_BADGE_COLOR[t.status]}>{TASK_STATUS_LABEL[t.status]}</Badge>
+                    {overdue && (
+                      <span data-testid="badge-atrasada">
+                        <Badge color="red"><AlertTriangle className="w-3 h-3" aria-hidden="true" /> Atrasada</Badge>
+                      </span>
+                    )}
+                    {t.status === 'done' && t.completed_by_follow_up_id && (
+                      <span data-testid="badge-concluida-acompanhamento">
+                        <Badge color="green"><HeartHandshake className="w-3 h-3" aria-hidden="true" /> Por acompanhamento</Badge>
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">

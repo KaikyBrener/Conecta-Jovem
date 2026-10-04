@@ -7,6 +7,7 @@ import { formatDateTime } from '../lib/format';
 import {
   attendanceMarkLabel,
   countAttendance,
+  editedRowsToSave,
   filterBySearchAndGroup,
   filterByState,
   formatAttendanceRate,
@@ -37,7 +38,7 @@ export function Chamada() {
 
   const { role } = useAuth();
   const isCoordinator = role === 'coordinator';
-  const { loading, error, event, attendanceMap, groups, savedCount, saveAttendance, markEventCompleted } = useAttendance(eventId!);
+  const { loading, error, event, attendanceMap, groups, savedCount, saveAttendance, markEventCompleted, refetch } = useAttendance(eventId!);
 
   // Alterações locais (youth_id -> estado) sobrepostas ao que veio do banco; null = não registrado
   const [edits, setEdits] = useState<Record<string, AttendanceMark>>({});
@@ -92,13 +93,15 @@ export function Chamada() {
     });
   };
 
-  const canSave = !saving && !isCancelled && counts.total > 0 && counts.registered > 0;
+  // Só as linhas editadas nesta sessão (e diferentes do carregado) são enviadas, independentemente do
+  // filtro da tela: reenviar linhas intactas poderia sobrescrever a alteração de outra pessoa.
+  const pending = useMemo(() => editedRowsToSave(attendanceMap, edits), [attendanceMap, edits]);
+  const canSave = !saving && !isCancelled && pending.length > 0;
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    // CRÍTICO: salva TODOS os marcados (rows), não apenas os filtrados na tela
-    const res = await saveAttendance(rows);
+    const res = await saveAttendance(pending);
     if (!res) {
       setSaving(false);
       return;
@@ -120,10 +123,23 @@ export function Chamada() {
   if (!event) {
     return (
       <div className="text-center py-16">
-        <p className="text-gray-500">Encontro não encontrado ou sem permissão.</p>
-        <button onClick={() => navigate('/encontros')} className="mt-4 text-blue-600 hover:underline">
-          Voltar
-        </button>
+        <p className="text-gray-500" role={error ? 'alert' : undefined}>
+          {error ?? 'Encontro não encontrado ou sem permissão.'}
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-4">
+          {error && (
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              Tentar novamente
+            </button>
+          )}
+          <button onClick={() => navigate('/encontros')} className="min-h-11 px-4 text-blue-600 hover:underline">
+            Voltar
+          </button>
+        </div>
       </div>
     );
   }
@@ -167,8 +183,14 @@ export function Chamada() {
                   : 'Chamada registrada.'}
               </h3>
               <p className="text-sm text-gray-600 mt-1" data-testid="chamada-resumo-numeros">
-                {summary.total_registered} total · {plural(summary.present, 'presente', 'presentes')} ·{' '}
+                {plural(summary.total_registered, 'registrado', 'registrados')} ·{' '}
+                {plural(summary.present, 'presente', 'presentes')} ·{' '}
                 {plural(summary.absent, 'ausente', 'ausentes')} · {summary.rate}%
+                {counts.total !== summary.total_registered && (
+                  <span className="text-gray-500" data-testid="chamada-resumo-de-total">
+                    {' '}· de {plural(counts.total, 'jovem', 'jovens')}
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -375,6 +397,13 @@ export function Chamada() {
                 : `${counts.unregistered} jovens ficarão sem registro`}
             </p>
           )}
+          <p className="text-xs text-gray-500" id="chamada-salvar-status" data-testid="chamada-alteracoes">
+            {pending.length === 0
+              ? 'Nenhuma alteração para salvar.'
+              : pending.length === 1
+                ? '1 alteração será salva'
+                : `${pending.length} alterações serão salvas`}
+          </p>
           {isCoordinator && event.status === 'scheduled' && !isCancelled && (
             <label className="flex items-center gap-2 text-sm text-gray-700 min-h-8">
               <input
@@ -390,6 +419,7 @@ export function Chamada() {
         <button
           onClick={handleSave}
           disabled={!canSave}
+          aria-describedby="chamada-salvar-status"
           className="w-full md:w-auto min-h-11 px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
           {saving ? (

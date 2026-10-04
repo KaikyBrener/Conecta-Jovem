@@ -1,5 +1,6 @@
 import type { EventStatus } from '../../types/database.types';
 import type { EventWithGroups } from '../../hooks/useEvents';
+import { hasPendingGroups } from '../../lib/series';
 import { Calendar, Users, Tag, FileText, Trash2 } from 'lucide-react';
 import { Badge, type BadgeColor } from '../ui/Badge';
 import { secondaryBtnCls } from '../../lib/formStyles';
@@ -50,6 +51,7 @@ function Row({ icon: Icon, label, value }: { icon: React.ElementType; label: str
 }
 
 export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, actionLoading, onOpenAttendance }: EventDetailProps) {
+  const pendingGroups = hasPendingGroups(event);
   return (
     <div className="space-y-4">
       {/* Title + status */}
@@ -59,6 +61,13 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
           <Badge color={STATUS_BADGE_COLOR[event.status]}>{STATUS_LABEL[event.status]}</Badge>
         </div>
       </div>
+
+      {(event.series_id || pendingGroups) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {event.series_id && <Badge color="indigo">Série: {event.series_name ?? 'sem nome'}</Badge>}
+          {pendingGroups && <Badge color="amber">Grupos pendentes</Badge>}
+        </div>
+      )}
 
       {/* Info rows */}
       <div className="bg-gray-50 rounded-lg px-4 py-1">

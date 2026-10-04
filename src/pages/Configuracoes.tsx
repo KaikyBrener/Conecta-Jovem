@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Loader2, RefreshCw, Save, ShieldCheck, User as UserIcon, SlidersHorizontal, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useAppSettings, useUserManagement, updateOwnName, updateOwnPassword } from '../hooks/useSettings';
 import { ErrorBanner, SuccessBanner } from '../components/ErrorBanner';
 import { PageHeader } from '../components/ui/PageHeader';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
+import { Pagination } from '../components/ui/Pagination';
 import { inputCls, labelCls, primaryBtnCls as primaryBtn, secondaryBtnCls } from '../lib/formStyles';
 import { formatDateTime } from '../lib/format';
+import { validateSettings, type SettingsPayload } from '../lib/settingsForm';
 import type { AppSettings, Role } from '../types/database.types';
 
 function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
@@ -93,11 +96,13 @@ function ProfileSection() {
 
 function SettingsForm({ settings, onSave, onRecalculate }: {
   settings: AppSettings;
-  onSave: (absence: number, low: number) => Promise<boolean>;
+  onSave: (payload: SettingsPayload) => Promise<boolean>;
   onRecalculate: () => Promise<number | null>;
 }) {
   const [absence, setAbsence] = useState(String(settings.absence_alert_threshold));
+  const [critical, setCritical] = useState(String(settings.critical_absence_threshold));
   const [low, setLow] = useState(String(settings.low_attendance_threshold));
+  const [graceDays, setGraceDays] = useState(String(settings.followup_grace_days));
   const [busy, setBusy] = useState<'save' | 'recalc' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
@@ -105,12 +110,10 @@ function SettingsForm({ settings, onSave, onRecalculate }: {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null); setOk(null);
-    const a = Number(absence);
-    const l = Number(low);
-    if (!Number.isInteger(a) || a < 1 || a > 20) { setErr('Faltas consecutivas: informe um número inteiro entre 1 e 20.'); return; }
-    if (!Number.isInteger(l) || l < 0 || l > 100) { setErr('Frequência mínima: informe um número inteiro entre 0 e 100.'); return; }
+    const result = validateSettings({ absence, critical, low, graceDays });
+    if (!result.ok) { setErr(result.error); return; }
     setBusy('save');
-    const saved = await onSave(a, l);
+    const saved = await onSave(result.payload);
     setBusy(null);
     if (saved) setOk('Configurações salvas. Os alertas foram recalculados.');
   };
@@ -134,9 +137,23 @@ function SettingsForm({ settings, onSave, onRecalculate }: {
           <p className="mt-1 text-xs text-gray-500">O alerta é criado automaticamente ao salvar a chamada.</p>
         </div>
         <div>
+          <label className={labelCls} htmlFor="crit">Faltas consecutivas para alerta crítico</label>
+          <input id="crit" type="number" min={1} max={50} className={inputCls} value={critical} onChange={(e) => setCritical(e.target.value)} aria-describedby="crit-help" />
+          <p id="crit-help" className="mt-1 text-xs text-gray-500">
+            A partir de quantas faltas seguidas o alerta passa de “Atenção” para “Crítico”. Deve ser igual ou maior que o limite para gerar alerta.
+          </p>
+        </div>
+        <div>
           <label className={labelCls} htmlFor="low">Frequência mínima esperada (%)</label>
           <input id="low" type="number" min={0} max={100} className={inputCls} value={low} onChange={(e) => setLow(e.target.value)} />
           <p className="mt-1 text-xs text-gray-500">Jovens abaixo deste percentual são destacados no painel e nos relatórios.</p>
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="grace">Prazo de carência do acompanhamento (dias)</label>
+          <input id="grace" type="number" min={1} max={90} className={inputCls} value={graceDays} onChange={(e) => setGraceDays(e.target.value)} aria-describedby="grace-help" />
+          <p id="grace-help" className="mt-1 text-xs text-gray-500">
+            Dias que um alerta aberto pode ficar sem acompanhamento antes de gerar o alerta “Sem acompanhamento” (entre 1 e 90).
+          </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -166,9 +183,8 @@ function SystemSection() {
         <LoadingBlock size="sm" />
       ) : settings ? (
         <SettingsForm
-          key={settings.updated_at}
           settings={settings}
-          onSave={(a, l) => updateSettings({ absence_alert_threshold: a, low_attendance_threshold: l })}
+          onSave={updateSettings}
           onRecalculate={recalculateAlerts}
         />
       ) : (
@@ -181,27 +197,29 @@ function SystemSection() {
 }
 
 function UsersSection() {
+  const toast = useToast();
   const { user } = useAuth();
-  const { users, loading, error, setUserRole } = useUserManagement(true);
+  const { users, total, page, setPage, pageSize, totalPages, loading, error, setUserRole } = useUserManagement(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const change = async (id: string, role: Role) => {
     setBusyId(id);
-    await setUserRole(id, role);
+    const ok = await setUserRole(id, role);
     setBusyId(null);
+    if (ok) toast.success('Papel atualizado.');
   };
 
   return (
     <Section icon={Users} title="Usuários e papéis">
       <p className="text-sm text-gray-500">
-        Novos usuários são cadastrados no painel do Supabase (Authentication → Users) e entram como líderes.
+        Novos usuários são cadastrados pelo administrador do sistema e entram como líderes.
         Aqui você define quem é coordenador.
       </p>
       <ErrorBanner message={error} />
-      {loading ? (
+      {loading && users.length === 0 ? (
         <LoadingBlock size="sm" />
       ) : users.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum usuário encontrado.</p>
+        <p className="text-sm text-gray-500">Nenhum usuário cadastrado.</p>
       ) : (
         <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
           {users.map((u) => (
@@ -229,6 +247,7 @@ function UsersSection() {
           ))}
         </ul>
       )}
+      <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'usuário' : 'usuários'} disabled={loading} />
     </Section>
   );
 }

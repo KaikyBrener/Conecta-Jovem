@@ -1,4 +1,6 @@
+import { useMemo, useState } from 'react';
 import type { Youth } from '../../types/database.types';
+import { RecentActivity } from '../activity/RecentActivity';
 import { useYouthHistory } from '../../hooks/useYouthHistory';
 import { useYouthSituation } from '../../hooks/useYouthSituation';
 import { useAppSettings } from '../../hooks/useSettings';
@@ -8,6 +10,8 @@ import { Badge } from '../ui/Badge';
 import { LoadingBlock } from '../ui/LoadingBlock';
 import { SituationPanel } from './SituationPanel';
 import { FollowUpSection } from '../followups/FollowUpSection';
+import { CommunicationSection } from '../communications/CommunicationSection';
+import type { AlertChoice } from '../communications/CommunicationModal';
 import { secondaryBtnCls } from '../../lib/formStyles';
 import { ALERT_SEVERITY_LABEL, alertDescription } from '../../lib/labels';
 
@@ -53,11 +57,23 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
   const { settings } = useAppSettings();
 
   // Acompanhamento registrado/editado/transferido: situação e alertas (resolvidos pelo banco) mudam
+  const [activityVersion, setActivityVersion] = useState(0);
   const handleFollowUpChanged = () => {
+    setActivityVersion((v) => v + 1);
     refetchSituation();
     refetchHistory();
     onDataChanged?.();
   };
+  // E-mail marcado como enviado entra no histórico operacional; situação e alertas não mudam
+  const [communicationsVersion, setCommunicationsVersion] = useState(0);
+  const handleCommunicationChanged = () => {
+    setCommunicationsVersion((v) => v + 1);
+    setActivityVersion((v) => v + 1);
+  };
+  const alertChoices = useMemo<AlertChoice[]>(
+    () => openAlerts.map((a) => ({ id: a.id, type: a.type, label: alertDescription(a) })),
+    [openAlerts],
+  );
 
   return (
     <div className="space-y-4">
@@ -108,7 +124,16 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
       </div>
 
       {/* Acompanhamento */}
-      <FollowUpSection youth={{ id: youth.id, full_name: youth.full_name }} onChanged={handleFollowUpChanged} />
+      <FollowUpSection
+        youth={{ id: youth.id, full_name: youth.full_name }} groupName={groupName}
+        onChanged={handleFollowUpChanged} onCommunicationChanged={handleCommunicationChanged}
+      />
+
+      {/* Comunicações (e-mail assistido) */}
+      <CommunicationSection
+        youth={{ id: youth.id, full_name: youth.full_name }} groupName={groupName}
+        alertChoices={alertChoices} refreshKey={communicationsVersion} onChanged={handleCommunicationChanged}
+      />
 
       {/* Histórico de Presença */}
       <div className="border-t border-gray-100 pt-4">
@@ -167,6 +192,9 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
           </p>
         )}
       </div>
+
+      {/* Histórico operacional (últimas 10 entradas) */}
+      <RecentActivity youthId={youth.id} version={activityVersion} />
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-gray-100">

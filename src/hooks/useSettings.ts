@@ -1,13 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage } from '../lib/format';
+import { errorMessage, translateAuthError } from '../lib/format';
+import { logError } from '../lib/logger';
+import { notifyAlertsChanged } from '../lib/alertsBus';
+import { usePagedList } from './usePagedList';
 import type { AppSettings, AppSettingsUpdate, Role } from '../types/database.types';
-
-export const DEFAULT_SETTINGS: Pick<AppSettings, 'absence_alert_threshold' | 'low_attendance_threshold'> = {
-  absence_alert_threshold: 3,
-  low_attendance_threshold: 70,
-};
 
 async function loadSettings(): Promise<AppSettings | null> {
   const { data, error } = await (supabase as any).from('app_settings').select('*').maybeSingle();
@@ -44,6 +42,7 @@ export function useAppSettings() {
     // RLS bloqueia silenciosamente (0 linhas) quando não é coordenador
     if (!data) { setError('Sem permissão para alterar as configurações.'); return false; }
     setSettings(data as AppSettings);
+    notifyAlertsChanged(); // mudar limites recalcula alertas no banco
     return true;
   };
 
@@ -51,12 +50,12 @@ export function useAppSettings() {
     setError(null);
     const { data, error: e } = await (supabase as any).rpc('recalculate_all_alerts');
     if (e) { setError(errorMessage(e)); return null; }
+    notifyAlertsChanged();
     return data as number;
   };
 
   return {
     settings,
-    effective: settings ?? { ...DEFAULT_SETTINGS },
     loading,
     error,
     updateSettings,
@@ -71,44 +70,61 @@ export interface ManagedUser {
   created_at: string;
 }
 
-/** Coordenador: lista usuários e altera papéis (via RPC set_user_role) */
+type RawProfile = {
+  id: string;
+  full_name: string | null;
+  created_at: string;
+  // user_roles.user_id é PK → relação 1:1 (objeto); aceita array por segurança
+  user_roles: { role: Role } | { role: Role }[] | null;
+};
+
+/**
+ * Coordenador: lista usuários paginados no servidor e altera papéis (via RPC set_user_role).
+ * Parte de profiles (1 linha por usuário) com o papel embutido, ordenado por nome.
+ */
 export function useUserManagement(enabled: boolean) {
-  const [users, setUsers] = useState<ManagedUser[]>([]);
-  const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
-  // user_roles.user_id referencia profiles(id) diretamente, então uma única
-  // consulta com embed já traz role + perfil (sem precisar juntar no cliente).
-  const load = useCallback(async (): Promise<ManagedUser[]> => {
-    const { data, error: e } = await (supabase as any)
-      .from('user_roles')
-      .select('role, profiles:user_id(id, full_name, created_at)');
-    if (e) throw e;
-    return ((data ?? []) as { role: Role; profiles: Omit<ManagedUser, 'role'> | null }[])
-      .filter((r): r is { role: Role; profiles: Omit<ManagedUser, 'role'> } => r.profiles !== null)
-      .map((r) => ({ ...r.profiles, role: r.role }))
-      .sort((a, b) => (a.full_name ?? '').localeCompare(b.full_name ?? '', 'pt-BR'));
-  }, []);
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    load()
-      .then((u) => { if (!cancelled) setUsers(u); })
-      .catch((err: unknown) => { if (!cancelled) setError(errorMessage(err, 'Erro ao carregar usuários.')); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [enabled, load]);
+  const list = usePagedList<ManagedUser>({
+    enabled,
+    filters: [],
+    errorFallback: 'Erro ao carregar usuários.',
+    fetchPage: async ({ from, to }) => {
+      const { data, count, error } = await (supabase as any)
+        .from('profiles')
+        .select('id, full_name, created_at, user_roles(role)', { count: 'exact' })
+        .order('full_name', { ascending: true, nullsFirst: false })
+        .order('id')
+        .range(from, to);
+      if (error) throw error;
+      const rows = ((data ?? []) as RawProfile[]).map((p): ManagedUser => {
+        const ur = Array.isArray(p.user_roles) ? p.user_roles[0] : p.user_roles;
+        return { id: p.id, full_name: p.full_name, created_at: p.created_at, role: ur?.role ?? 'leader' };
+      });
+      return { rows, total: count ?? 0 };
+    },
+  });
+  const { refetch } = list;
 
   const setUserRole = async (userId: string, role: Role): Promise<boolean> => {
-    setError(null);
+    setMutationError(null);
     const { error: e } = await (supabase as any).rpc('set_user_role', { p_user_id: userId, p_role: role });
-    if (e) { setError(errorMessage(e)); return false; }
-    setUsers(await load());
+    if (e) { setMutationError(errorMessage(e)); return false; }
+    refetch();
     return true;
   };
 
-  return { users, loading, error, setUserRole };
+  return {
+    users: list.rows,
+    total: list.total,
+    page: list.page,
+    setPage: list.setPage,
+    pageSize: list.pageSize,
+    totalPages: list.totalPages,
+    loading: list.loading,
+    error: mutationError ?? list.error,
+    setUserRole,
+  };
 }
 
 /** Qualquer usuário: atualizar o próprio nome e senha */
@@ -119,5 +135,12 @@ export async function updateOwnName(userId: string, fullName: string): Promise<s
 
 export async function updateOwnPassword(password: string): Promise<string | null> {
   const { error } = await supabase.auth.updateUser({ password });
-  return error ? errorMessage(error) : null;
+  if (!error) {
+    // A senha mudou: tenta encerrar as OUTRAS sessões; a atual continua. A troca já deu certo, então uma
+    // falha aqui não vira erro para o usuário: só é registrada.
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+    if (signOutError) logError('Senha alterada, mas não foi possível encerrar as outras sessões.', signOutError);
+  }
+  // texto do GoTrue é em inglês: traduz (e não expõe mensagens internas desconhecidas)
+  return error ? translateAuthError(error, 'Não foi possível alterar a senha. Tente novamente.') : null;
 }

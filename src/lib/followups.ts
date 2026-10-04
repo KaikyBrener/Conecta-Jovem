@@ -71,6 +71,21 @@ export function isNextActionLate(due: string | null, today: string): boolean {
 }
 
 /**
+ * "Próxima ação" vencida, na mesma regra do banco (report_pending_followups, migration 012): só conta se tem prazo
+ * vencido, é do acompanhamento MAIS RECENTE do jovem (um contato novo substitui a próxima ação anterior), não conclui
+ * a ação vinculada e a ação vinculada não está concluída/cancelada.
+ */
+export function isNextActionOverdue(
+  f: { next_action_due: string | null; completes_task: boolean; task: { status: string } | null },
+  today: string,
+  isLatest: boolean,
+): boolean {
+  if (!isLatest || f.completes_task) return false;
+  if (f.task && (f.task.status === 'done' || f.task.status === 'cancelled')) return false;
+  return isNextActionLate(f.next_action_due, today);
+}
+
+/**
  * Quem vê os botões de editar/transferir: coordenador, ou o líder que é o responsável ATUAL (ou o criador,
  * se o responsável foi removido). Só esconde botões: a autorização real é o RLS + transfer_follow_up.
  */

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRightLeft, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, HeartHandshake, ListChecks, Pencil, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowRightLeft, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, HeartHandshake, ListChecks, Mail, Pencil, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { fetchFollowUpPeople, useFollowUps, type FollowUpWithRelations } from '../../hooks/useFollowUps';
 import { useToast } from '../../contexts/ToastContext';
 import { Badge } from '../ui/Badge';
@@ -8,15 +8,20 @@ import { Pagination } from '../ui/Pagination';
 import { ErrorBanner } from '../ErrorBanner';
 import { FollowUpFormModal } from './FollowUpFormModal';
 import { TransferFollowUpModal } from './TransferFollowUpModal';
+import { CommunicationModal } from '../communications/CommunicationModal';
 import { alertDescription, FOLLOW_UP_TYPE_LABEL, TASK_STATUS_LABEL } from '../../lib/labels';
 import { appToday, formatDateOnly } from '../../lib/format';
-import { canManageFollowUp, isNextActionLate, personName, sortTransfers, transferLine } from '../../lib/followups';
+import { canManageFollowUp, isNextActionOverdue, personName, sortTransfers, transferLine } from '../../lib/followups';
 import { logError } from '../../lib/logger';
 
 interface FollowUpSectionProps {
   youth: { id: string; full_name: string };
   /** Chamado quando algo mudou (a situação e os alertas do jovem podem ter mudado) */
   onChanged?: () => void;
+  /** Nome do grupo do jovem (assinatura dos modelos de e-mail) */
+  groupName?: string | null;
+  /** Um e-mail ligado a um acompanhamento mudou (a lista de comunicações precisa recarregar) */
+  onCommunicationChanged?: () => void;
 }
 
 const newBtnCls =
@@ -57,7 +62,7 @@ function TransferHistory({ followUp }: { followUp: FollowUpWithRelations }) {
 }
 
 /** Seção "Acompanhamento" da ficha do jovem: linha do tempo + registrar, editar, transferir e excluir. */
-export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
+export function FollowUpSection({ youth, onChanged, groupName, onCommunicationChanged }: FollowUpSectionProps) {
   const toast = useToast();
   const {
     followUps, total, page, setPage, pageSize, totalPages, loading, error, names, isCoordinator, userId,
@@ -66,6 +71,7 @@ export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<FollowUpWithRelations | null>(null);
   const [transferring, setTransferring] = useState<FollowUpWithRelations | null>(null);
+  const [emailing, setEmailing] = useState<FollowUpWithRelations | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
   const today = appToday();
@@ -80,7 +86,7 @@ export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
     });
 
   const handleDelete = async (f: FollowUpWithRelations) => {
-    if (!window.confirm(`Excluir o acompanhamento de ${formatDateOnly(f.occurred_at)} ("${f.reason}")? O histórico de transferências também será apagado.`)) return;
+    if (!window.confirm(`Excluir o acompanhamento de ${formatDateOnly(f.occurred_at)} ("${f.reason}")? Esta ação não pode ser desfeita.`)) return;
     setBusyId(f.id);
     const ok = await deleteFollowUp(f.id);
     setBusyId(null);
@@ -109,9 +115,10 @@ export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
         </p>
       ) : (
         <ol className="space-y-3" aria-busy={loading}>
-          {followUps.map((f) => {
+          {followUps.map((f, index) => {
             const manage = canManageFollowUp(f, userId, isCoordinator);
-            const late = isNextActionLate(f.next_action_due, today) && !f.completes_task;
+            // A lista vem da mais recente para a mais antiga: o primeiro item da página 1 é o acompanhamento mais recente
+            const late = isNextActionOverdue(f, today, page === 1 && index === 0);
             const hasHistory = f.transfers.length > 0;
             return (
               <li key={f.id} data-testid="acompanhamento-item" className="rounded-lg border border-gray-200 bg-white px-3 py-3">
@@ -169,6 +176,13 @@ export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
                       </button>
                     </>
                   )}
+                  <button
+                    type="button" onClick={() => setEmailing(f)} disabled={busyId !== null} className={smallBtnCls}
+                    data-testid="acompanhamento-escrever-email"
+                    aria-label={`Escrever e-mail sobre o acompanhamento de ${formatDateOnly(f.occurred_at)}`}
+                  >
+                    <Mail className="h-3 w-3" aria-hidden="true" /> E-mail
+                  </button>
                   {hasHistory && (
                     <button
                       type="button" onClick={() => toggleHistory(f.id)} className={smallBtnCls}
@@ -178,7 +192,7 @@ export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
                       Transferências ({f.transfers.length})
                     </button>
                   )}
-                  {isCoordinator && (
+                  {isCoordinator && !hasHistory && (
                     <button
                       type="button" onClick={() => handleDelete(f)} disabled={busyId !== null}
                       className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
@@ -210,6 +224,16 @@ export function FollowUpSection({ youth, onChanged }: FollowUpSectionProps) {
         <FollowUpFormModal
           youthId={youth.id} youthName={youth.full_name} initial={editing}
           onClose={() => setEditing(null)} onSaved={saved}
+        />
+      )}
+      {emailing && (
+        <CommunicationModal
+          youthId={youth.id} youthName={youth.full_name} groupName={groupName}
+          fixedLinks={{
+            alert: emailing.alert ? { id: emailing.alert.id, type: emailing.alert.type, label: alertDescription(emailing.alert) } : null,
+            followUp: { id: emailing.id, label: `${formatDateOnly(emailing.occurred_at)} · ${FOLLOW_UP_TYPE_LABEL[emailing.type]}` },
+          }}
+          onClose={() => setEmailing(null)} onChanged={() => onCommunicationChanged?.()}
         />
       )}
       {transferring && (

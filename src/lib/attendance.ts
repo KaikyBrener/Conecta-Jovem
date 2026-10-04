@@ -93,6 +93,25 @@ export function unregisteredIds(rows: readonly Pick<AttendanceRow, 'youth_id' | 
   return rows.filter((r) => r.present === null).map((r) => r.youth_id);
 }
 
+/**
+ * Linhas a enviar ao salvar: SOMENTE as editadas nesta sessão que realmente diferem do que foi carregado
+ * e têm estado (true/false). Reenviar linhas intactas poderia sobrescrever a alteração de outra pessoa com
+ * dado velho e trocaria o `recorded_by`. Edição que volta ao valor carregado, ou "limpar" (null — o banco
+ * ignora null), não é enviada. Devolve as linhas já com a edição aplicada.
+ */
+export function editedRowsToSave<T extends AttendanceRow>(
+  loaded: Readonly<Record<string, T>>,
+  edits: Readonly<Record<string, AttendanceMark>>,
+): T[] {
+  const out: T[] = [];
+  for (const [youthId, mark] of Object.entries(edits)) {
+    const base = loaded[youthId];
+    if (!base || mark === null || mark === base.present) continue;
+    out.push({ ...base, present: mark });
+  }
+  return out;
+}
+
 export function attendanceMarkLabel(present: AttendanceMark): string {
   if (present === true) return 'Presente';
   if (present === false) return 'Ausente';

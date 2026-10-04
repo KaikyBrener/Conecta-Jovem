@@ -150,7 +150,8 @@ export function useAttendance(eventId: string) {
   }, [eventId]);
 
   /**
-   * Grava só quem foi marcado (present !== null) via RPC `save_attendance` (atômica, RLS vale).
+   * Grava via RPC `save_attendance` (atômica, RLS vale) SOMENTE as linhas recebidas, que devem ser as
+   * editadas na sessão (ver `editedRowsToSave` em lib/attendance.ts) — nunca reenvie linhas intactas.
    * Não registrado = sem linha; null é ignorado pelo banco e nunca apaga um registro existente.
    * Os alertas são recalculados pelo banco. Devolve o resumo do encontro ou null em erro.
    */
@@ -160,7 +161,7 @@ export function useAttendance(eventId: string) {
 
     const marked = states.filter((s) => s.present !== null);
     if (marked.length === 0) {
-      setError('Marque ao menos um jovem antes de salvar.');
+      setError('Nenhuma alteração para salvar.');
       return null;
     }
 

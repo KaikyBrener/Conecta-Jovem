@@ -1,256 +1,152 @@
 import { useMemo, useState } from 'react';
-import { Download, AlertTriangle, BarChart3 } from 'lucide-react';
-import { useReports } from '../hooks/useReports';
-import { useAppSettings } from '../hooks/useSettings';
-import { ErrorBanner } from '../components/ErrorBanner';
+import { useAuth } from '../contexts/AuthContext';
+import { useReportGroups } from '../hooks/useReports';
 import { PageHeader } from '../components/ui/PageHeader';
-import { EmptyState } from '../components/ui/EmptyState';
-import { LoadingBlock } from '../components/ui/LoadingBlock';
-import { addDays, formatDate, formatPercent, toDateInput } from '../lib/format';
-import { toCsv, downloadCsv, type CsvValue } from '../lib/csv';
-import {
-  belowThreshold, overallRate, summarizeByEvent, summarizeByGroup, summarizeByYouth, validRecords,
-} from '../lib/reports';
+import { FilterChips } from '../components/ui/FilterChips';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { GeneralTab } from '../components/reports/GeneralTab';
+import { AttendanceTab } from '../components/reports/AttendanceTab';
+import { FollowUpsTab } from '../components/reports/FollowUpsTab';
+import { AlertsTab } from '../components/reports/AlertsTab';
+import { YouthTab } from '../components/reports/YouthTab';
+import { GroupsTab } from '../components/reports/GroupsTab';
+import type { ReportTabProps } from '../components/reports/ReportShell';
+import { appToday, formatDay } from '../lib/format';
+import { inputCls, labelCls } from '../lib/formStyles';
+import { PERIOD_PRESETS, resolvePeriod, validateRange, type DateRange, type PeriodPreset } from '../lib/periods';
+import { cn } from '../lib/utils';
 
-type Tab = 'groups' | 'events' | 'youth';
+type Tab = 'general' | 'attendance' | 'followups' | 'alerts' | 'youth' | 'groups';
 
-/** Barra fina de percentual (um só tom) com o valor em texto */
-function RateBar({ value }: { value: number | null }) {
-  return (
-    <div className="flex items-center gap-2 min-w-28">
-      <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden" aria-hidden="true">
-        {value !== null && <div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max(value, 2)}%` }} />}
-      </div>
-      <span className="w-10 text-right text-xs font-medium text-gray-700 tabular-nums">{formatPercent(value)}</span>
-    </div>
-  );
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{value}</p>
-      {hint && <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>}
-    </div>
-  );
-}
-
-function exportCsv(name: string, headers: string[], rows: CsvValue[][]) {
-  downloadCsv(`${name}.csv`, toCsv(headers, rows));
-}
-
-const pct = (v: number | null) => (v === null ? '' : Math.round(v));
-
-/** Período [início, fim] (YYYY-MM-DD) terminando hoje */
-function presetRange(days: number | 'year'): [string, string] {
-  const now = new Date();
-  return [days === 'year' ? `${now.getFullYear()}-01-01` : toDateInput(addDays(now, -days)), toDateInput(now)];
-}
+const TABS: { key: Tab; label: string; usesGroupFilter: boolean }[] = [
+  { key: 'general', label: 'Geral', usesGroupFilter: true },
+  { key: 'attendance', label: 'Frequência', usesGroupFilter: true },
+  { key: 'followups', label: 'Acompanhamento', usesGroupFilter: true },
+  { key: 'alerts', label: 'Alertas', usesGroupFilter: true },
+  { key: 'youth', label: 'Individual', usesGroupFilter: false },
+  { key: 'groups', label: 'Grupos', usesGroupFilter: false },
+];
 
 export function Relatorios() {
-  const [start, setStart] = useState(() => presetRange(90)[0]);
-  const [end, setEnd] = useState(() => presetRange(90)[1]);
+  const { role } = useAuth();
+  const today = useMemo(() => appToday(), []);
+  const [tab, setTab] = useState<Tab>('general');
+  const [preset, setPreset] = useState<PeriodPreset>('last30');
+  const [custom, setCustom] = useState<DateRange>(() => resolvePeriod('last30', today));
   const [groupId, setGroupId] = useState('all');
-  const [tab, setTab] = useState<Tab>('groups');
 
-  const { data, loading, error } = useReports({ start, end, groupId });
-  const { effective: settings } = useAppSettings();
-  const minRate = settings.low_attendance_threshold;
+  const { groups, error: groupsError } = useReportGroups();
 
-  const computed = useMemo(() => {
-    if (!data) return null;
-    const records = validRecords(data.records, data.events);
-    const byYouth = summarizeByYouth(records, data.youth, data.groups);
-    return {
-      records,
-      byEvent: summarizeByEvent(records, data.events),
-      byGroup: summarizeByGroup(records, data.groups),
-      byYouth,
-      below: belowThreshold(byYouth, minRate),
-      overall: overallRate(records),
-      heldEvents: data.events.filter((e) => e.status === 'completed').length,
-      openAlerts: data.alerts.filter((a) => a.status === 'open').length,
-      doneTasks: data.tasks.filter((t) => t.status === 'done').length,
-    };
-  }, [data, minRate]);
+  const range = useMemo(() => resolvePeriod(preset, today, custom), [preset, today, custom]);
+  // Só o período personalizado pode ser inválido (os prontos são sempre válidos)
+  const rangeError = preset === 'custom' ? validateRange(range) : null;
+  const validRange = rangeError ? null : range;
 
-  const setPreset = (days: number | 'year') => {
-    const [s0, e0] = presetRange(days);
-    setStart(s0);
-    setEnd(e0);
+  const current = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const allGroupsLabel = role === 'leader' ? 'Todos os seus grupos' : 'Todos os grupos';
+  const selectedGroup = current.usesGroupFilter ? groups.find((g) => g.id === groupId) ?? null : null;
+
+  const tabProps: ReportTabProps = {
+    range: validRange,
+    groupId: selectedGroup ? selectedGroup.id : null,
+    groupName: selectedGroup ? selectedGroup.name : null,
+    allGroupsLabel,
   };
-
-  const periodLabel = `${start}_a_${end}`;
-  const invalidPeriod = start > end;
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'groups', label: 'Por grupo' },
-    { key: 'events', label: 'Por encontro' },
-    { key: 'youth', label: 'Por jovem' },
-  ];
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Relatórios" subtitle="Frequência e acompanhamento no período. Encontros cancelados não contam." />
+      <PageHeader
+        title="Relatórios"
+        subtitle="Frequência, acompanhamento e alertas no período. Encontros cancelados e chamadas não registradas não contam como falta."
+      />
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600" htmlFor="r-start">De</label>
-            <input id="r-start" type="date" value={start} max={end} onChange={(e) => setStart(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" />
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+        <div className="space-y-2">
+          <p className={labelCls} id="rel-periodo-rotulo">Período</p>
+          <div role="group" aria-labelledby="rel-periodo-rotulo" data-testid="rel-periodos">
+            <FilterChips options={PERIOD_PRESETS.map((p) => ({ label: p.label, value: p.value }))} value={preset} onChange={setPreset} />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600" htmlFor="r-end">Até</label>
-            <input id="r-end" type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" />
+        </div>
+
+        {preset === 'custom' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+            <div>
+              <label className={labelCls} htmlFor="rel-de">Data inicial</label>
+              <input
+                id="rel-de"
+                type="date"
+                value={custom.from}
+                onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
+                aria-invalid={rangeError ? true : undefined}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="rel-ate">Data final</label>
+              <input
+                id="rel-ate"
+                type="date"
+                value={custom.to}
+                onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
+                aria-invalid={rangeError ? true : undefined}
+                className={inputCls}
+              />
+            </div>
           </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className="block text-xs font-medium text-gray-600" htmlFor="r-group">Grupo</label>
-            <select id="r-group" value={groupId} onChange={(e) => setGroupId(e.target.value)}
-              className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white">
-              <option value="all">Todos os grupos</option>
-              {data?.groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+        )}
+
+        {current.usesGroupFilter && (
+          <div className="max-w-sm">
+            <label className={labelCls} htmlFor="rel-grupo">Grupo</label>
+            <select id="rel-grupo" value={groupId} onChange={(e) => setGroupId(e.target.value)} className={cn(inputCls, 'bg-white')}>
+              <option value="all">{allGroupsLabel}</option>
+              {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {([[30, 'Últimos 30 dias'], [90, 'Últimos 90 dias'], ['year', 'Este ano']] as const).map(([v, l]) => (
-            <button key={String(v)} onClick={() => setPreset(v)}
-              className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
-              {l}
-            </button>
-          ))}
-        </div>
+        )}
+
+        {validRange && (
+          <p className="text-xs text-gray-500" data-testid="rel-periodo">
+            Período: {validRange.from === validRange.to ? formatDay(validRange.from) : `${formatDay(validRange.from)} a ${formatDay(validRange.to)}`}
+            {current.key === 'youth' || current.key === 'groups' ? '' : selectedGroup ? ` · ${selectedGroup.name}` : ` · ${allGroupsLabel.toLowerCase()}`}
+          </p>
+        )}
       </div>
 
-      {invalidPeriod && <ErrorBanner message="A data inicial deve ser anterior à final." />}
-      <ErrorBanner message={error} />
+      <ErrorBanner message={rangeError} />
+      <ErrorBanner message={groupsError} />
 
-      {loading && !computed && <LoadingBlock />}
-
-      {computed && (
-        <div className={loading ? 'opacity-60 transition-opacity' : ''}>
-          {/* Resumo */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Stat label="Frequência média" value={formatPercent(computed.overall)} hint={`${computed.records.length} registros de chamada`} />
-            <Stat label="Encontros realizados" value={String(computed.heldEvents)} hint={`${computed.byEvent.length} com chamada`} />
-            <Stat label={`Jovens abaixo de ${minRate}%`} value={String(computed.below.length)} hint={`de ${computed.byYouth.length} com chamada`} />
-            <Stat label="Alertas / tarefas concluídas" value={`${data!.alerts.length} / ${computed.doneTasks}`} hint={`${computed.openAlerts} alerta(s) ainda aberto(s)`} />
-          </div>
-
-          {/* Abas */}
-          <div className="flex gap-2 mt-5 border-b border-gray-200">
-            {tabs.map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 ${tab === t.key ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {computed.records.length === 0 ? (
-              <EmptyState icon={BarChart3} title="Nenhuma chamada registrada no período selecionado." bare />
-            ) : (
-              <>
-                <div className="flex justify-end px-4 py-2 border-b border-gray-100">
-                  <button
-                    onClick={() => {
-                      if (tab === 'groups') {
-                        exportCsv(`frequencia_grupos_${periodLabel}`, ['Grupo', 'Encontros', 'Presenças', 'Registros', 'Frequência (%)'],
-                          computed.byGroup.map((g) => [g.name, g.events, g.present, g.total, pct(g.rate)]));
-                      } else if (tab === 'events') {
-                        exportCsv(`frequencia_encontros_${periodLabel}`, ['Encontro', 'Data', 'Presentes', 'Registros', 'Frequência (%)'],
-                          computed.byEvent.map((e) => [e.title, formatDate(e.event_date), e.present, e.total, pct(e.rate)]));
-                      } else {
-                        exportCsv(`frequencia_jovens_${periodLabel}`, ['Jovem', 'Grupo', 'Ativo', 'Presenças', 'Faltas', 'Registros', 'Frequência (%)', `Abaixo de ${minRate}%`],
-                          computed.byYouth.map((y) => [y.name, y.group_name, y.is_active ? 'Sim' : 'Não', y.present, y.absent, y.total, pct(y.rate),
-                            y.rate !== null && y.rate < minRate ? 'Sim' : 'Não']));
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Exportar CSV
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    {tab === 'groups' && (
-                      <>
-                        <thead className="bg-gray-50 text-xs text-gray-500">
-                          <tr><th className="text-left px-4 py-2 font-medium">Grupo</th><th className="px-2 py-2 font-medium">Encontros</th><th className="px-2 py-2 font-medium">Presenças</th><th className="px-4 py-2 font-medium text-left">Frequência</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {computed.byGroup.map((g) => (
-                            <tr key={g.group_id}>
-                              <td className="px-4 py-2.5 text-gray-900">{g.name}</td>
-                              <td className="px-2 py-2.5 text-center text-gray-600 tabular-nums">{g.events}</td>
-                              <td className="px-2 py-2.5 text-center text-gray-600 tabular-nums">{g.present}/{g.total}</td>
-                              <td className="px-4 py-2.5"><RateBar value={g.rate} /></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </>
-                    )}
-                    {tab === 'events' && (
-                      <>
-                        <thead className="bg-gray-50 text-xs text-gray-500">
-                          <tr><th className="text-left px-4 py-2 font-medium">Encontro</th><th className="px-2 py-2 font-medium">Presentes</th><th className="px-4 py-2 font-medium text-left">Frequência</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {computed.byEvent.map((e) => (
-                            <tr key={e.event_id}>
-                              <td className="px-4 py-2.5">
-                                <p className="text-gray-900">{e.title}</p>
-                                <p className="text-xs text-gray-500">{formatDate(e.event_date)}</p>
-                              </td>
-                              <td className="px-2 py-2.5 text-center text-gray-600 tabular-nums">{e.present}/{e.total}</td>
-                              <td className="px-4 py-2.5"><RateBar value={e.rate} /></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </>
-                    )}
-                    {tab === 'youth' && (
-                      <>
-                        <thead className="bg-gray-50 text-xs text-gray-500">
-                          <tr><th className="text-left px-4 py-2 font-medium">Jovem</th><th className="px-2 py-2 font-medium">Faltas</th><th className="px-4 py-2 font-medium text-left">Frequência</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {computed.byYouth.map((y) => {
-                            const low = y.rate !== null && y.rate < minRate;
-                            return (
-                              <tr key={y.youth_id}>
-                                <td className="px-4 py-2.5">
-                                  <p className="text-gray-900">{y.name}{!y.is_active && <span className="text-xs text-gray-400"> (inativo)</span>}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {y.group_name}
-                                    {low && (
-                                      <span className="inline-flex items-center gap-1 ml-2 text-amber-700">
-                                        <AlertTriangle className="w-3 h-3" /> abaixo de {minRate}%
-                                      </span>
-                                    )}
-                                  </p>
-                                </td>
-                                <td className="px-2 py-2.5 text-center text-gray-600 tabular-nums">{y.absent}/{y.total}</td>
-                                <td className="px-4 py-2.5"><RateBar value={y.rate} /></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </>
-                    )}
-                  </table>
-                </div>
-              </>
+      {/* Abas */}
+      <div role="tablist" aria-label="Tipo de relatório" className="flex flex-wrap gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            id={`rel-aba-${t.key}`}
+            aria-selected={tab === t.key}
+            aria-controls="rel-painel"
+            data-testid={`rel-aba-${t.key}`}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              'px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+              tab === t.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
             )}
-          </div>
-        </div>
-      )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div role="tabpanel" id="rel-painel" aria-labelledby={`rel-aba-${tab}`}>
+        {tab === 'general' && <GeneralTab {...tabProps} />}
+        {tab === 'attendance' && <AttendanceTab {...tabProps} />}
+        {tab === 'followups' && <FollowUpsTab {...tabProps} />}
+        {tab === 'alerts' && <AlertsTab {...tabProps} />}
+        {tab === 'youth' && <YouthTab {...tabProps} />}
+        {tab === 'groups' && <GroupsTab {...tabProps} />}
+      </div>
     </div>
   );
 }

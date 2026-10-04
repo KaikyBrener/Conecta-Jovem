@@ -31,6 +31,9 @@ interface Options<T> {
 export function usePagedList<T>({ enabled, fetchPage, filters, errorFallback, pageSize = PAGE_SIZE }: Options<T>) {
   const filterKey = JSON.stringify(filters);
   const [pageState, setPageState] = useState({ page: 1, filterKey });
+  // Filtros mudaram: zera a página NO ESTADO (durante a renderização, sem effect). Só derivar `page` não basta:
+  // voltar a um conjunto de filtros anterior "ressuscitaria" a página que estava guardada para ele.
+  if (pageState.filterKey !== filterKey) setPageState({ page: 1, filterKey });
   const page = pageState.filterKey === filterKey ? pageState.page : 1;
   const setPage = useCallback((p: number) => setPageState({ page: p, filterKey }), [filterKey]);
 
