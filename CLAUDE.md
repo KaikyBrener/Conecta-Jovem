@@ -20,6 +20,7 @@ npm run dev        # servidor de desenvolvimento
 npm run lint       # oxlint
 npm run build      # tsc -b && vite build
 npm test           # vitest run (unit + testes SQL/RLS em PGlite)
+npm run test:e2e   # Playwright (desktop + mobile) contra um Supabase FALSO local; ver tests/e2e/README.md
 ```
 
 Sempre rode `npm run lint`, `npm run build` e `npm test` antes de considerar uma tarefa concluída.
@@ -50,9 +51,12 @@ src/
   contexts/AuthContext sessão, profile, role (coordinator | leader), signOut, refreshProfile
   lib/supabase.ts      cliente Supabase
   lib/format.ts        formatação de datas/percentuais (pt-BR)
-  lib/reports.ts       agregações puras de frequência (testadas em src/lib/*.test.ts)
+  lib/reportExport.ts  documentos de exportação dos relatórios (CSV/PDF); agregação roda no banco (RPCs report_*)
   lib/csv.ts           exportação CSV
-  lib/fetchAll.ts      paginação (PostgREST limita 1000 linhas por resposta) — use em agregações
+  lib/fetchAll.ts      busca TODAS as linhas (PostgREST limita 1000 por resposta) — use em agregações e em
+                       listas que alimentam <select>; nunca para telas de listagem
+  lib/pagination.ts    PAGE_SIZE (25), pageBounds, totalPages, searchPattern (puros, testados)
+  hooks/usePagedList   listagem paginada NO SERVIDOR (range + count exact), com filtros na chave da consulta
   lib/labels.ts        rótulos pt-BR compartilhados (status/prioridade de tarefas)
   hooks/useX.ts        acesso a dados por módulo (useYouth, useGroups, useEvents,
                        useAttendance, useYouthHistory, useAlerts, useTasks,
@@ -64,6 +68,13 @@ src/
 ```
 
 Convenções observadas:
+- **Listagens que podem crescer (Jovens, Encontros, Tarefas, Grupos, Usuários) são paginadas no servidor**
+  com `usePagedList` + `<Pagination/>`: busca (`ilike`), filtros, ordenação (sempre com desempate por `id`)
+  e `range` rodam no PostgREST; contadores de cabeçalho vêm de consultas `head` + `count: 'exact'`.
+  Busca em outra tabela (ex.: nome do líder/jovem) resolve os ids antes e usa `.or(...)`. Texto de busca
+  passa por `searchPattern()` (remove `, ( ) "  * %` — nunca interpole texto cru em `.or`).
+  Mudar filtro volta à página 1 sozinho; se a página atual esvaziar (ex.: concluiu a última tarefa), vai
+  para a última existente. Não filtre/pagine listas grandes no cliente.
 - Hooks retornam `{ dados, loading, error, refetch, ...mutations }`; mutations retornam
   `null`/`false` em erro e preenchem `error`.
 - As consultas usam `(supabase as any).from(...)` porque `Database` em `database.types.ts`
@@ -99,8 +110,31 @@ cancelled)`, `alert_type (consecutive_absences)`, `alert_status (open, resolved,
 - `get_my_role()` — SECURITY DEFINER, evita recursão de RLS em `user_roles`. Use-a nas policies.
 - `set_user_role(p_user_id, p_role)` — só coordenador; impede remover o último coordenador;
   serializado com `pg_advisory_xact_lock` (migration 008) contra corrida entre chamadas concorrentes.
+- `save_event(p_event_id, p_title, p_description, p_event_date, p_status, p_group_ids)` — SECURITY INVOKER (RLS vale);
+  cria (id NULL) ou edita o encontro e sincroniza `event_groups` atomicamente (migration 009). `useEvents`
+  usa só ela; não volte a fazer DELETE/INSERT de `event_groups` em chamadas separadas.
 - `recalculate_all_alerts()` — só coordenador; recalcula alertas de todos os jovens.
 - Internas (sem EXECUTE para clientes): `youth_consecutive_absences`, `refresh_youth_alert`.
+
+### Fase 7 — produto (migrations 010-017; detalhes no cabeçalho de cada migration)
+
+- **Chamada**: 3 estados. "Não registrado" = **sem linha** em `attendance` (nunca é falta). Salvar = RPC `save_attendance`
+  (só as linhas editadas; `group_id` derivado no banco). O histórico de presença **segue o jovem** ao mudar de grupo (012).
+- **Alertas** (`alert_type`): `consecutive_absences`, `low_attendance`, `attendance_drop`, `no_followup`, `overdue_action`; `severity`
+  attention/critical. Resolver/dispensar **nunca** altera presença; só uma presença quebra a sequência; encerrado manualmente não
+  é recriado na mesma sequência. Os de tempo vêm de `sync_time_alerts()` (chamada ao abrir Alertas/Dashboard; throttle 60 s no banco).
+- **Acompanhamento** (`follow_ups`): só o responsável atual é "ativo"; transferência = RPC `transfer_follow_up` + histórico imutável.
+  **Situação do jovem** = `youth_situation(s)` (regra objetiva em comentário no SQL; não é diagnóstico).
+- **Dashboard/Grupos/Relatórios**: agregação no SERVIDOR (`dashboard_overview`, `group_indicators`, `report_*`) respeitando o escopo;
+  nada de "ranking". Exportação CSV/PDF no cliente (`lib/reportExport.ts`, `reportPdf.ts` com `jspdf` carregado sob demanda;
+  `neutralizeFormula` contra injeção de fórmula). Períodos puros em `lib/periods.ts` (fuso America/Sao_Paulo).
+- **Encontros recorrentes** (`event_series`, RPCs de série; sem duplicidade por `(series_id, series_date)`), **busca global**
+  (`global_search`, Ctrl/⌘+K), **lote** (`batch_set_youth_*`, máx 200), **Histórico** (`activity_log`, só escrita por trigger).
+- **E-mail**: único canal; **assistido** (`mailto:` + `communications` + `mark_communication`). Nenhum segredo no frontend.
+  Envio automático = Edge Function futura (dependência externa).
+- Líder desassocia jovem via `batch_set_youth_group([id], null)` (UPDATE direto falha no RLS porque a linha nova não passa no SELECT).
+- Layout: o documento rola (não o `<main>`); `Modal` usa `z-[60]` acima da bottom-nav.
+- CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP dependem do host (ver README).
 
 ### FKs e embeds do PostgREST
 
@@ -163,12 +197,41 @@ conexão lógica sequencial — não reproduz corrida real entre duas transaçõ
 ser fingido. A condição de corrida de `set_user_role()` é mitigada no SQL via
 `pg_advisory_xact_lock` (migration 008), não validada por teste de concorrência real.
 
+## Erros e observabilidade (frontend)
+
+Detalhes e justificativas: `docs/OBSERVABILIDADE.md`.
+- **Mensagem na tela**: sempre `errorMessage(err, 'Erro ao <fazer X>.')` (lib/format.ts). Ela traduz códigos conhecidos
+  (RLS, FK, duplicado, rede, sessão, migration ausente…) para pt-BR e **nunca** devolve o texto cru do servidor
+  (nomes de tabela/constraint, inglês). Só passam mensagens escritas por nós no banco (`P0001`/`P0002`/`42501`
+  customizado). Nunca exiba `error.message` diretamente.
+- **Registro**: `errorMessage` também chama `logError` (lib/logger.ts): uma linha sanitizada no console
+  (`[conecta-jovem] <id> contexto (código): msg`), sem stack, `details`/`hint`, tokens, e-mails ou UUIDs.
+  Para plugar um serviço de monitoramento no futuro: `setErrorReporter(fn)` em `main.tsx` — nenhum call-site muda.
+- **Rede de segurança**: `ErrorBoundary` na raiz e dentro do Layout (`key={rota}`), mais captura global de
+  `error`/`unhandledrejection` (lib/globalErrors.ts). A tela mostra só o *código do incidente*.
+- **Sem erro silencioso**: não escreva `.catch(() => {})`; mostre (`setError`) ou ao menos `logError`.
+- **Sucesso de mutação**: `useToast().success('...')` (contexts/ToastContext.tsx).
+
+## Autenticação (frontend)
+
+- E-mail + senha (Supabase Auth). `AuthContext` expõe `sessionLost` (sessão acabou sem o usuário pedir),
+  `profileError` (perfil/papel não carregaram) e `passwordSetupPending` (veio de link de recuperação/convite).
+- `src/lib/supabase.ts` lê o fragmento da URL (`#...type=recovery|invite`) **antes** de criar o cliente, porque o
+  supabase-js o consome e apaga; `lib/authLink.ts` faz o parse (puro, testado).
+- Rotas públicas: `/login`, `/recuperar-senha`, `/redefinir-senha` (destino dos links de e-mail; título "Defina sua senha"
+  para convite). `PasswordSetupGate` (App.tsx) mantém quem veio de link na tela de senha até concluir.
+- `ProtectedRoute`: sem usuário → login (com aviso se a sessão acabou sozinha); usuário sem papel carregado →
+  `ProfileLoadError` (fail-closed, tentar de novo/sair); `allowedRoles` segue fail-closed.
+- Erros do GoTrue são sempre traduzidos por `translateAuthError(msg, fallback)`; nunca exiba `error.message` cru.
+- **Convite não é feito pelo app** (exigiria `service_role` ou backend novo): usar o painel do Supabase. Configuração de
+  Site URL/Redirect URLs: ver README.
+
 ## Decisões importantes
 
 - Alertas são calculados no banco (triggers) para funcionarem independentemente de quem
   salvou a chamada e para respeitar RLS sem expor dados de outros grupos.
-- Relatórios agregam no cliente dados já filtrados pelo RLS (volume pequeno); a lógica
-  fica em `src/lib/reports.ts` (pura e testada).
+- Relatórios são agregados no banco (RPCs `report_*`, escopo por papel); o cliente só formata e exporta
+  (`src/lib/reportExport.ts`, puro e testado).
 - Criação de usuários é feita no painel do Supabase (Auth); o app gerencia apenas papéis
   (via RPC) e o próprio perfil/senha.
 - `/settings` é acessível a todos: seção "Meu perfil" para todos; parâmetros do sistema e

@@ -40,3 +40,11 @@ Thumbs.db
 .env.*
 !.env.example
 Senha_BD.txt
+
+# Claude Code: config local do usuário (.claude/agents etc. continuam versionados)
+.claude/settings.local.json
+
+# Playwright (E2E)
+test-results
+playwright-report
+blob-report

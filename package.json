@@ -8,11 +8,14 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "clsx": "^2.1.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.49.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
