@@ -59,10 +59,18 @@ export interface SendResult {
 }
 
 /** Relê a comunicação (estado real). Falha aqui é registrada e não impede o resto do fluxo. */
+const REREAD_TIMEOUT_MS = 10_000;
+
 async function fetchRow(id: string): Promise<Communication | null> {
-  const { data, error } = await (supabase as any).from('communications').select('*').eq('id', id).maybeSingle();
-  if (error) { logError('Erro ao reler a comunicação.', error); return null; }
-  return (data ?? null) as Communication | null;
+  const query = (async () => {
+    const { data, error } = await (supabase as any).from('communications').select('*').eq('id', id).maybeSingle();
+    if (error) { logError('Erro ao reler a comunicação.', error); return null; }
+    return (data ?? null) as Communication | null;
+  })().catch((err: unknown) => { logError('Erro ao reler a comunicação.', err); return null; });
+  // A releitura não pode deixar a tela presa em "Enviando…": passou do prazo, segue como "não confirmado"
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), REREAD_TIMEOUT_MS); });
+  try { return await Promise.race([query, timeout]); } finally { clearTimeout(timer); }
 }
 
 /**
@@ -170,6 +178,13 @@ export function useCommunicationMutations(onChanged?: () => void) {
     return { outcome, row };
   };
 
+  /** Relê o estado real da comunicação (botão "Atualizar status"); null se não foi possível. */
+  const reloadCommunication = async (id: string): Promise<Communication | null> => {
+    const row = await fetchRow(id);
+    onChanged?.();
+    return row;
+  };
+
   /** Só o coordenador exclui, e só rascunho ou cancelada (RLS) */
   const deleteCommunication = async (id: string): Promise<boolean> => {
     setError(null);
@@ -185,7 +200,7 @@ export function useCommunicationMutations(onChanged?: () => void) {
   };
 
   return {
-    error, clearError: () => setError(null), createDraft, updateDraft, markCommunication, sendCommunication, deleteCommunication,
+    error, clearError: () => setError(null), createDraft, updateDraft, markCommunication, sendCommunication, reloadCommunication, deleteCommunication,
   };
 }
 

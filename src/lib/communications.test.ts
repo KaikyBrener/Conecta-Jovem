@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BODY_MAX, SENDING_STUCK_MS, SUBJECT_MAX, TEMPLATE_IDS, TEMPLATE_LABEL,
   buildTemplate, fillTemplate, isSingleLineText, isStuckSending, isValidEmail, normalizeBody, normalizeEmail,
-  parseSendError, parseSendResponse, resolveSendView, templateForAlert, textLength, toDraftPayload, toFailureReason,
+  parseSendError, parseSendResponse, resolveSendView, sendRejectedMessage, templateForAlert, textLength, toDraftPayload, toFailureReason,
   toSingleLine, validateCommunicationForm, validateMessage, validateRecipient,
 } from './communications';
 import {
@@ -151,6 +151,30 @@ describe('resposta do envio (Edge Function send-communication)', () => {
   const row = (status: Communication['status'], extra: Partial<Communication> = {}) =>
     ({ status, failure_reason: null, sent_at: null, ...extra });
 
+  it('422 invalid_content/recipient e 429 com janela e espera viram mensagens específicas', () => {
+    const inv = parseSendError(422, { error: 'invalid_content', field: 'recipient' });
+    expect(inv).toEqual({ kind: 'rejected', code: 'invalid_content', field: 'recipient' });
+    expect(sendRejectedMessage(inv as never)).toBe('O destinatário não é permitido para o seu perfil.');
+    expect(sendRejectedMessage(parseSendError(422, { error: 'invalid_content', field: 'subject' }) as never)).toBe(SEND_ERROR_MESSAGE.invalid_content);
+    const hour = parseSendError(429, { error: 'rate_limited', window: 'hour', retry_after_seconds: 1500 });
+    expect(hour).toEqual({ kind: 'rejected', code: 'rate_limited', window: 'hour', retryAfterSeconds: 1500 });
+    expect(sendRejectedMessage(hour as never)).toBe('Limite de envios por hora atingido. Tente novamente em 25 minutos.');
+    expect(sendRejectedMessage(parseSendError(429, { error: 'rate_limited', window: 'day' }) as never)).toBe('Limite de envios por dia atingido.');
+    expect(sendRejectedMessage(parseSendError(429, { error: 'rate_limited', window: 'week', retry_after_seconds: -1 }) as never)).toBe(SEND_ERROR_MESSAGE.rate_limited);
+    expect(resolveSendView(hour, { status: 'draft', failure_reason: null, sent_at: null }))
+      .toEqual({ kind: 'rejected', message: 'Limite de envios por hora atingido. Tente novamente em 25 minutos.' });
+  });
+
+  it('códigos 409 do handler (already_sent, in_progress, not_sendable) e os antigos têm mensagem', () => {
+    for (const c of ['already_sent', 'in_progress', 'already_sent_or_in_progress'] as const) {
+      expect(parseSendError(409, { error: c })).toEqual({ kind: 'rejected', code: c });
+      expect(SEND_ERROR_MESSAGE[c]).toMatch(/já foi enviado ou está sendo enviado/);
+    }
+    expect(parseSendError(409, { error: 'not_sendable' })).toEqual({ kind: 'rejected', code: 'not_sendable' });
+    expect(SEND_ERROR_MESSAGE.not_sendable).toBe('Este e-mail não pode ser enviado agora.');
+    expect(parseSendError(409, { error: 'invalid_communication' }).kind).toBe('rejected');
+  });
+
   it('o estado do banco manda sobre a resposta (e-mail pode ter saído com a resposta perdida)', () => {
     expect(resolveSendView({ kind: 'unconfirmed' }, row('sent', { sent_at: '2026-10-03T12:00:00Z' })))
       .toEqual({ kind: 'sent', sentAt: '2026-10-03T12:00:00Z' });
@@ -161,6 +185,15 @@ describe('resposta do envio (Edge Function send-communication)', () => {
     // falha com motivo antigo/desconhecido no banco não quebra a tela
     expect(resolveSendView({ kind: 'unconfirmed' }, row('failed', { failure_reason: 'bounced' as never })))
       .toEqual({ kind: 'failed', reason: 'unknown' });
+  });
+
+  it('recusa do servidor sobre linha failed mostra a recusa, não o motivo antigo', () => {
+    const limit = parseSendError(429, { error: 'rate_limited', window: 'day' });
+    expect(resolveSendView(limit, row('failed', { failure_reason: 'timeout' }))).toEqual({
+      kind: 'rejected', message: 'Limite de envios por dia atingido.',
+    });
+    const rcpt = parseSendError(422, { error: 'invalid_content', field: 'recipient' });
+    expect(resolveSendView(rcpt, row('failed', { failure_reason: 'network' })).kind).toBe('rejected');
   });
 
   it('sem a linha (ou ainda rascunho) vale a resposta do servidor', () => {

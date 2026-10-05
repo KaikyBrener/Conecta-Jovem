@@ -130,8 +130,7 @@ cancelled)`, `alert_type (consecutive_absences)`, `alert_status (open, resolved,
   `neutralizeFormula` contra injeção de fórmula). Períodos puros em `lib/periods.ts` (fuso America/Sao_Paulo).
 - **Encontros recorrentes** (`event_series`, RPCs de série; sem duplicidade por `(series_id, series_date)`), **busca global**
   (`global_search`, Ctrl/⌘+K), **lote** (`batch_set_youth_*`, máx 200), **Histórico** (`activity_log`, só escrita por trigger).
-- **E-mail**: único canal; **assistido** (`mailto:` + `communications` + `mark_communication`). Nenhum segredo no frontend.
-  Envio automático = Edge Function futura (dependência externa).
+- **E-mail**: único canal; **envio real server-side** (Edge Function `send-communication`, migrations 018/019; `begin/finish_communication_send` só `service_role`). Status draft/sending/sent/failed/cancelled; `sent` só após sucesso do provedor; o cliente nunca define `sending`/`sent`. Líder envia só ao e-mail cadastrado do jovem. Nenhum segredo no frontend. Config do provedor: docs/EMAIL.md.
 - Líder desassocia jovem via `batch_set_youth_group([id], null)` (UPDATE direto falha no RLS porque a linha nova não passa no SELECT).
 - Layout: o documento rola (não o `<main>`); `Modal` usa `z-[60]` acima da bottom-nav.
 - CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP dependem do host (ver README).

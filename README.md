@@ -45,9 +45,11 @@ no SQL Editor do Supabase:
 | `012_attendance_group_sync_dashboard.sql` | O histórico de presença acompanha o jovem quando ele muda de grupo (trigger + backfill); RPCs `dashboard_overview` e `group_indicators` |
 | `013_reports.sql` | Relatórios agregados no servidor: `report_general`, `report_attendance`, `report_followups`, `report_alerts`, `report_youth`, `report_groups` (respeitam o escopo do chamador) |
 | `014_series_search_batch_activity.sql` | Encontros recorrentes (`event_series`, RPCs `create_event_series`/`set_series_groups`/`extend_event_series`/`cancel_event_series_future`), busca global (`global_search`), ações em lote (`batch_set_youth_group`/`batch_set_youth_active`) e histórico operacional imutável (`activity_log`) |
-| `015_communications_email.sql` | Comunicações por e-mail **assistidas** (`communications`, RPC `mark_communication`, `suggest_communication_recipients`): o sistema registra o que o usuário confirma ter enviado; não envia e-mail sozinho |
+| `015_communications_email.sql` | Comunicações por e-mail (`communications`, `mark_communication` só para cancelar/reabrir, `suggest_communication_recipients`) |
 | `016_security_hardening.sql` | Throttle de `sync_time_alerts` no banco, relatórios do líder sem título de encontro alheio, histórico de transferências protegido contra exclusão, e-mail sem `%`, REVOKE de TRUNCATE/REFERENCES/TRIGGER e de qualquer acesso do `anon`, `pg_temp` no `search_path` das funções DEFINER |
 | `017_final_fixes.sql` | Grupo com jovens ou histórico de chamada não pode ser excluído (e o log de atividade nunca grava grupo inexistente); nota correta ao resolver `no_followup`; funções-trigger sem EXECUTE para clientes. O cabeçalho traz a checagem de e-mails legados com `%` a rodar **antes** da 016 |
+| `018_communications_server_send.sql` | **Envio real de e-mail pelo servidor**: status `sending`, colunas `provider`/`provider_message_id`/`attempts`/`last_attempt_at`, RPCs `begin_communication_send` e `finish_communication_send` (**só `service_role`**), rate limit; o cliente nunca marca `sending`/`sent` |
+| `019_communications_hardening.sql` | Líder só envia ao e-mail cadastrado do próprio jovem; limites (líder 10/h e 30/dia, coordenador 20/h e 100/dia); log de envios sobrevive à exclusão da comunicação |
 
 A 006 termina calculando os alertas para o histórico de chamadas já existente.
 
@@ -58,12 +60,15 @@ A 006 termina calculando os alertas para o histórico de chamadas já existente.
 > **Alertas por tempo** (`no_followup`, `overdue_action`) são calculados quando alguém abre Alertas ou o Dashboard
 > (`sync_time_alerts`, com throttle de 60 s); não há `pg_cron`. Opcional: agendar `pg_cron` chamando essa função.
 
-### E-mail (envio assistido) e dependências externas
+### E-mail (envio real pelo servidor) e dependências externas
 
-O app **não** envia e-mail e **não** guarda nenhum segredo/`service_role`. Fluxo: alerta/acompanhamento → rascunho →
-revisão → "Abrir no aplicativo de e-mail" (`mailto:`) → o usuário confirma "Enviei" / "Não consegui" → histórico.
-O sistema só registra como enviado o que o usuário confirmar. Envio automático exigiria uma **Edge Function com segredo
-no servidor** (provedor de e-mail/SMTP, domínio com SPF/DKIM) — dependência externa **não implementada**.
+Fluxo: alerta/acompanhamento → compor → revisar → **Enviar** → resultado real do provedor → histórico. O envio é feito pela
+**Edge Function `send-communication`** (`supabase/functions/send-communication/`); o frontend só chama a função com o JWT do
+usuário e **não guarda nenhum segredo**. A comunicação só vira **Enviado** após sucesso real do provedor; falha fica **Falhou**.
+Envio manual (um clique), sem automação de alertas. **Nada disso funciona até configurar o provedor** — sem configuração todo envio
+vira `Falhou` (`provider_not_configured`). Passo a passo, secrets e limites: **docs/EMAIL.md** (aplicar as migrations 018 e 019,
+`supabase functions deploy send-communication`, `supabase secrets set RESEND_API_KEY MAIL_FROM ALLOWED_ORIGIN MAIL_PROVIDER`,
+domínio verificado com SPF/DKIM).
 Dados de menores: `communications` retém destinatário e corpo (o histórico sobrevive à exclusão do jovem) e
 `activity_log` não tem teto — **retenção/expurgo (LGPD) ainda não implementado**.
 

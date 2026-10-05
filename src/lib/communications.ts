@@ -119,7 +119,11 @@ export type SendErrorCode =
   | 'unauthorized'
   | 'not_found'
   | 'already_sent_or_in_progress'
+  | 'already_sent'
+  | 'in_progress'
+  | 'not_sendable'
   | 'invalid_communication'
+  | 'invalid_content'
   | 'rate_limited'
   | 'unknown';
 
@@ -127,7 +131,7 @@ export type SendErrorCode =
 export type SendOutcome =
   | { kind: 'sent'; sentAt: string | null }
   | { kind: 'failed'; reason: FailureReason }
-  | { kind: 'rejected'; code: SendErrorCode }
+  | { kind: 'rejected'; code: SendErrorCode; field?: string; window?: 'hour' | 'day'; retryAfterSeconds?: number }
   /** Sem resposta utilizável (rede, relay): não sabemos se o e-mail saiu */
   | { kind: 'unconfirmed' };
 
@@ -139,7 +143,9 @@ export type SendView =
   | { kind: 'unconfirmed' }
   | { kind: 'rejected'; message: string };
 
-const SEND_ERROR_CODES = Object.keys(SEND_ERROR_MESSAGE).filter((c) => c !== 'unknown') as SendErrorCode[];
+const SEND_ERROR_CODES: SendErrorCode[] = [
+  'invalid_request', 'unauthorized', 'not_found', 'already_sent_or_in_progress', 'already_sent', 'in_progress', 'not_sendable', 'invalid_communication', 'invalid_content', 'rate_limited',
+];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
@@ -170,10 +176,38 @@ export function parseSendResponse(data: unknown): SendOutcome {
 export function parseSendError(status: number | null, data: unknown): SendOutcome {
   const raw = asJsonBody(data)?.error;
   const code = SEND_ERROR_CODES.find((c) => c === raw);
-  if (code) return { kind: 'rejected', code };
+  if (code) {
+    const b = asJsonBody(data);
+    const out: Extract<SendOutcome, { kind: 'rejected' }> = { kind: 'rejected', code };
+    if (code === 'invalid_content' && typeof b?.field === 'string') out.field = b.field;
+    if (code === 'rate_limited') {
+      if (b?.window === 'hour' || b?.window === 'day') out.window = b.window;
+      if (typeof b?.retry_after_seconds === 'number' && b.retry_after_seconds > 0) out.retryAfterSeconds = b.retry_after_seconds;
+    }
+    return out;
+  }
   if (status === 401) return { kind: 'rejected', code: 'unauthorized' };
   if (status === 429) return { kind: 'rejected', code: 'rate_limited' };
   return { kind: 'rejected', code: 'unknown' };
+}
+
+/** Tempo de espera legível ("5 minutos"); arredonda para cima, sem inventar precisão. */
+function waitText(seconds: number): string {
+  if (seconds < 90) return 'alguns instantes';
+  const min = Math.ceil(seconds / 60);
+  if (min < 60) return `${min} minutos`;
+  const h = Math.ceil(min / 60);
+  return h === 1 ? '1 hora' : `${h} horas`;
+}
+
+/** Mensagem pt-BR de uma recusa da requisição de envio (campo/janela/espera quando o servidor informa). */
+export function sendRejectedMessage(o: Extract<SendOutcome, { kind: 'rejected' }>): string {
+  if (o.code === 'invalid_content' && o.field === 'recipient') return SEND_ERROR_MESSAGE.invalid_recipient;
+  if (o.code === 'rate_limited' && o.window) {
+    const base = o.window === 'hour' ? SEND_ERROR_MESSAGE.rate_limited_hour : SEND_ERROR_MESSAGE.rate_limited_day;
+    return o.retryAfterSeconds ? `${base} Tente novamente em ${waitText(o.retryAfterSeconds)}.` : base;
+  }
+  return SEND_ERROR_MESSAGE[o.code];
 }
 
 /**
@@ -185,12 +219,14 @@ export function resolveSendView(
   row: Pick<Communication, 'status' | 'failure_reason' | 'sent_at'> | null,
 ): SendView {
   if (row?.status === 'sent') return { kind: 'sent', sentAt: row.sent_at };
+  // Recusa do servidor (429, 422, 404...) numa linha que não está enviada nem em envio: a recusa é o que importa,
+  // não o motivo antigo da falha anterior
+  if (outcome.kind === 'rejected') return { kind: 'rejected', message: sendRejectedMessage(outcome) };
   if (row?.status === 'failed') return { kind: 'failed', reason: toFailureReason(row.failure_reason) };
   if (row?.status === 'sending') return { kind: 'in_progress' };
   switch (outcome.kind) {
     case 'sent': return { kind: 'sent', sentAt: outcome.sentAt };
     case 'failed': return { kind: 'failed', reason: outcome.reason };
-    case 'rejected': return { kind: 'rejected', message: SEND_ERROR_MESSAGE[outcome.code] };
     case 'unconfirmed': return { kind: 'unconfirmed' };
   }
 }

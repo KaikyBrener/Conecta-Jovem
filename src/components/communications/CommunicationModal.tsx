@@ -58,6 +58,8 @@ const STEPS: { id: Step; label: string }[] = [
 
 const NO_CHOICES: AlertChoice[] = [];
 
+const LEADER_NO_EMAIL = 'Este jovem não tem e-mail cadastrado. Peça à coordenação para cadastrar ou enviar.';
+
 const footerCls = 'flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end sm:gap-3';
 
 /**
@@ -69,7 +71,9 @@ export function CommunicationModal({
   youthId, youthName, groupName, fixedLinks, alertChoices = NO_CHOICES, initial, onClose, onChanged,
 }: CommunicationModalProps) {
   const toast = useToast();
-  const { profile } = useAuth();
+  const { profile, role } = useAuth();
+  // Líder só escreve ao e-mail cadastrado do jovem (o servidor também recusa outro destinatário)
+  const isLeader = role === 'leader';
   const mutations = useCommunicationMutations();
   const suggestions = useRecipientSuggestions(youthId);
 
@@ -210,6 +214,18 @@ export function CommunicationModal({
     }
   };
 
+  /** Não confirmado / em andamento: relê o estado real no banco */
+  const refreshView = async () => {
+    if (!draft) return;
+    setBusy(true);
+    const row = await mutations.reloadCommunication(draft.id);
+    setBusy(false);
+    if (!row) { setView({ kind: 'unconfirmed' }); return; }
+    setDraft(row);
+    setView(resolveSendView({ kind: 'unconfirmed' }, row));
+    if (row.status === 'sent') toast.success('E-mail enviado.');
+  };
+
   /** Falhou: volta a ser rascunho para corrigir a mensagem e tentar de novo */
   const editAfterFailure = async () => {
     if (!draft) return;
@@ -229,6 +245,10 @@ export function CommunicationModal({
 
   const stepIndex = STEPS.findIndex((s) => s.id === step);
   const noYouthEmail = kind === 'youth' && !suggestions.loading && !suggestions.error && !suggestion;
+  const leaderNoEmail = isLeader && !suggestions.loading && !suggestions.error && !suggestion;
+  // Rascunho antigo de líder com destinatário alheio: o envio será recusado; dá para voltar ao e-mail do jovem
+  const leaderCanReset = isLeader && !!suggestion && (kind !== 'youth' || email !== suggestion.email);
+  const resetToYouth = () => { setKind('youth'); setEmailEdit(null); setNameEdit(null); };
 
   const sendingStatus = (
     <p
@@ -271,23 +291,43 @@ export function CommunicationModal({
 
         {!view && step === 'recipient' && (
           <form onSubmit={goMessage} noValidate className="space-y-4" aria-label="Destinatário do e-mail">
-            <div>
-              <label className={labelCls} htmlFor="com-kind">Tipo de destinatário</label>
-              <select
-                id="com-kind" data-testid="comunicacao-tipo" value={kind}
-                onChange={(e) => changeKind(e.target.value as RecipientKind)} className={inputCls}
-              >
-                {RECIPIENT_KINDS.map((k) => <option key={k} value={k}>{RECIPIENT_KIND_LABEL[k]}</option>)}
-              </select>
-            </div>
+            {!isLeader && (
+              <div>
+                <label className={labelCls} htmlFor="com-kind">Tipo de destinatário</label>
+                <select
+                  id="com-kind" data-testid="comunicacao-tipo" value={kind}
+                  onChange={(e) => changeKind(e.target.value as RecipientKind)} className={inputCls}
+                >
+                  {RECIPIENT_KINDS.map((k) => <option key={k} value={k}>{RECIPIENT_KIND_LABEL[k]}</option>)}
+                </select>
+              </div>
+            )}
 
-            {noYouthEmail && (
+            {isLeader && (
+              <p className="flex items-start gap-2 text-xs text-gray-500">
+                <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+                <span>Você envia ao e-mail cadastrado do jovem.</span>
+              </p>
+            )}
+            {leaderCanReset && (
+              <button type="button" onClick={resetToYouth} data-testid="comunicacao-usar-email-jovem" className={secondaryBtnCls}>
+                Usar o e-mail cadastrado do jovem
+              </button>
+            )}
+
+            {leaderNoEmail && (
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <span>{LEADER_NO_EMAIL}</span>
+              </p>
+            )}
+            {!isLeader && noYouthEmail && (
               <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>Este jovem não tem e-mail cadastrado. Digite um endereço para continuar ou atualize o cadastro do jovem.</span>
               </p>
             )}
-            {kind !== 'youth' && (
+            {!isLeader && kind !== 'youth' && (
               <p className="flex items-start gap-2 text-xs text-gray-500">
                 <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
                 <span>O sistema não guarda o e-mail de responsáveis, líderes ou coordenadores: digite o endereço.</span>
@@ -297,14 +337,14 @@ export function CommunicationModal({
             <div>
               <label className={labelCls} htmlFor="com-name">Nome do destinatário (opcional)</label>
               <input
-                id="com-name" data-testid="comunicacao-nome" type="text" value={name} maxLength={RECIPIENT_NAME_MAX}
+                id="com-name" data-testid="comunicacao-nome" type="text" value={name} maxLength={RECIPIENT_NAME_MAX} readOnly={isLeader}
                 onChange={(e) => setNameEdit(e.target.value)} className={inputCls} autoComplete="off"
               />
             </div>
             <div>
               <label className={labelCls} htmlFor="com-email">E-mail do destinatário *</label>
               <input
-                id="com-email" data-testid="comunicacao-email" type="email" inputMode="email" value={email}
+                id="com-email" data-testid="comunicacao-email" type="email" inputMode="email" value={email} readOnly={isLeader}
                 onChange={(e) => setEmailEdit(e.target.value)} className={inputCls} autoComplete="off"
                 placeholder="nome@exemplo.com"
               />
@@ -315,7 +355,7 @@ export function CommunicationModal({
 
             <div className={footerCls}>
               <button type="button" onClick={close} className={secondaryBtnCls}>Cancelar</button>
-              <button type="submit" data-testid="comunicacao-proximo" className={primaryBtnCls}>Continuar</button>
+              {!leaderNoEmail && <button type="submit" data-testid="comunicacao-proximo" className={primaryBtnCls}>Continuar</button>}
             </div>
           </form>
         )}
@@ -413,6 +453,12 @@ export function CommunicationModal({
               </span>
             </p>
 
+            {leaderNoEmail && (
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <span>{LEADER_NO_EMAIL}</span>
+              </p>
+            )}
             {sendErr && <p role="alert" data-testid="comunicacao-erro-envio" className={formErrorCls}>{sendErr}</p>}
             {sendingStatus}
 
@@ -426,10 +472,12 @@ export function CommunicationModal({
               <button type="button" onClick={saveDraft} disabled={working} data-testid="comunicacao-salvar-rascunho" className={secondaryBtnCls}>
                 Salvar rascunho
               </button>
-              <button type="button" onClick={send} disabled={working} aria-busy={sending} data-testid="comunicacao-enviar" className={primaryBtnCls}>
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Mail className="h-4 w-4" aria-hidden="true" />}
-                {sending ? 'Enviando…' : 'Enviar e-mail'}
-              </button>
+              {!leaderNoEmail && (
+                <button type="button" onClick={send} disabled={working} aria-busy={sending} data-testid="comunicacao-enviar" className={primaryBtnCls}>
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Mail className="h-4 w-4" aria-hidden="true" />}
+                  {sending ? 'Enviando…' : 'Enviar e-mail'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -465,9 +513,15 @@ export function CommunicationModal({
               </div>
             )}
 
+            {sendErr && <p role="alert" data-testid="comunicacao-erro-envio" className={formErrorCls}>{sendErr}</p>}
             {sendingStatus}
 
             <div className={footerCls}>
+              {(view.kind === 'unconfirmed' || view.kind === 'in_progress') && draft && (
+                <button type="button" onClick={refreshView} disabled={working} data-testid="comunicacao-atualizar-status" className={secondaryBtnCls}>
+                  Atualizar status
+                </button>
+              )}
               {view.kind === 'failed' && (
                 <>
                   <button type="button" onClick={editAfterFailure} disabled={working} data-testid="comunicacao-editar-mensagem" className={secondaryBtnCls}>

@@ -40,9 +40,18 @@ async function mkYouth(group: string | null, email: string | null = null): Promi
 
 /** Cria um rascunho como `user`. Campos podem ser sobrescritos. */
 async function draft(user: string, youth: string, over: Record<string, unknown> = {}): Promise<Comm> {
+  // Migration 019: LÍDER só grava como destinatário o e-mail cadastrado do próprio jovem (kind 'youth').
+  let auto: { recipient_email: string; recipient_kind: string } | null = null;
+  if (user !== coord && over.recipient_email === undefined && over.recipient_kind === undefined) {
+    await t.q(`UPDATE public.youth SET email = COALESCE(email, 'j-' || id || '@exemplo.com') WHERE id = $1`, [youth]);
+    auto = {
+      recipient_email: (await t.q<{ e: string }>(`SELECT lower(btrim(email)) AS e FROM public.youth WHERE id = $1`, [youth]))[0].e,
+      recipient_kind: 'youth',
+    };
+  }
   const v = {
     recipient_email: 'destino@exemplo.com', recipient_name: 'Destino', recipient_kind: 'guardian',
-    subject: 'Assunto normal', body: 'Corpo da mensagem\ncom duas linhas', ...over,
+    subject: 'Assunto normal', body: 'Corpo da mensagem\ncom duas linhas', ...(auto ?? {}), ...over,
   };
   return t.as(user, async () => (await t.q<Comm>(
     `INSERT INTO public.communications (youth_id, alert_id, follow_up_id, recipient_email, recipient_name, recipient_kind, subject, body)
@@ -74,18 +83,29 @@ beforeAll(async () => {
 
 describe('criação e normalização', () => {
   it('líder cria rascunho para jovem do seu grupo; servidor força created_by, status draft e normaliza e-mail', async () => {
-    const c = await draft(leaderA, yA, { recipient_email: '  Pai.Do.Jovem@Exemplo.COM ', subject: '  Oi  ' });
+    const c = await draft(leaderA, yA, { recipient_email: '  JOVEM.A@Exemplo.COM ', recipient_kind: 'youth', subject: '  Oi  ' });
     expect(c).toMatchObject({
-      channel: 'email', status: 'draft', created_by: leaderA, recipient_email: 'pai.do.jovem@exemplo.com',
+      channel: 'email', status: 'draft', created_by: leaderA, recipient_email: 'jovem.a@exemplo.com',
       subject: 'Oi', sent_at: null, sent_by: null, failure_reason: null, youth_id: yA,
     });
   });
 
+  it('migration 019: líder não grava destinatário diferente do e-mail do jovem (INSERT e UPDATE); coordenador é livre', async () => {
+    await expect(draft(leaderA, yA, { recipient_email: 'pai@exemplo.com', recipient_kind: 'youth' })).rejects.toThrow(/e-mail cadastrado do próprio jovem/);
+    await expect(draft(leaderA, yA, { recipient_email: 'jovem.a@exemplo.com', recipient_kind: 'guardian' })).rejects.toThrow(/próprio jovem/);
+    const c = await draft(leaderA, yA);
+    await expect(upd(leaderA, c.id, `recipient_email = 'pai@exemplo.com'`)).rejects.toThrow(/próprio jovem/);
+    await expect(upd(leaderA, c.id, `recipient_kind = 'guardian'`)).rejects.toThrow(/próprio jovem/);
+    await upd(leaderA, c.id, `subject = 'ok'`);   // outros campos seguem editáveis
+    const free = await draft(coord, yA, { recipient_email: 'pai@exemplo.com', recipient_kind: 'guardian' });
+    expect(free.recipient_email).toBe('pai@exemplo.com');
+  });
+
   it('created_by forjado é sobrescrito; criar já como "sent"/com carimbos é recusado ou zerado', async () => {
     const forged = await t.as(leaderA, async () => (await t.q<Comm>(
-      `INSERT INTO public.communications (youth_id, created_by, recipient_email, subject, body, sent_by, sent_at, failure_reason,
-                                          provider, attempts, last_attempt_at)
-       VALUES ($1, $2, 'a@b.com', 's', 'b', $2, now(), 'bounced', 'resend', 7, now()) RETURNING *`, [yA, leaderB]))[0]);
+      `INSERT INTO public.communications (youth_id, created_by, recipient_email, recipient_kind, subject, body, sent_by, sent_at,
+                                          failure_reason, provider, attempts, last_attempt_at)
+       VALUES ($1, $2, 'jovem.a@exemplo.com', 'youth', 's', 'b', $2, now(), 'bounced', 'resend', 7, now()) RETURNING *`, [yA, leaderB]))[0]);
     expect(forged).toMatchObject({
       created_by: leaderA, sent_at: null, sent_by: null, failure_reason: null, status: 'draft',
       provider: null, provider_message_id: null, attempts: 0, last_attempt_at: null,
@@ -101,7 +121,7 @@ describe('criação e normalização', () => {
   it('só e-mail como canal; kind fora da lista é recusado', async () => {
     await expect(t.q(`INSERT INTO public.communications (channel, youth_id, recipient_email, subject, body)
                       VALUES ('sms', $1, 'a@b.com', 's', 'b')`, [yA])).rejects.toThrow(/channel/);
-    await expect(draft(leaderA, yA, { recipient_kind: 'vizinho' })).rejects.toThrow(/recipient_kind/);
+    await expect(draft(coord, yA, { recipient_kind: 'vizinho' })).rejects.toThrow(/recipient_kind/);
   });
 
   it('exige jovem (cliente) e limita assunto (1..200) e corpo (1..5000)', async () => {
@@ -156,9 +176,9 @@ describe('validação de e-mail e injeção de cabeçalho', () => {
 describe('edição de rascunho e máquina de estados', () => {
   it('rascunho é editável por UPDATE direto; updated_at é atualizado', async () => {
     const c = await draft(leaderA, yA);
-    await upd(leaderA, c.id, `subject = 'Novo assunto', body = 'Novo corpo', recipient_email = 'NOVO@Exemplo.com'`);
+    await upd(leaderA, c.id, `subject = 'Novo assunto', body = 'Novo corpo', recipient_email = '  JOVEM.A@Exemplo.com '`);
     const r = await rowOf(c.id);
-    expect(r).toMatchObject({ subject: 'Novo assunto', body: 'Novo corpo', recipient_email: 'novo@exemplo.com', status: 'draft' });
+    expect(r).toMatchObject({ subject: 'Novo assunto', body: 'Novo corpo', recipient_email: 'jovem.a@exemplo.com', status: 'draft' });
     expect(new Date(r.updated_at).getTime()).toBeGreaterThanOrEqual(new Date(c.updated_at).getTime());
   });
 
@@ -443,9 +463,9 @@ describe('suggest_communication_recipients', () => {
 
 describe('activity_log', () => {
   it('o envio pelo servidor grava UMA entrada fixa (atribuída a quem enviou), sem assunto/corpo/e-mail/nome', async () => {
-    const c = await draft(leaderA, yA, {
+    const ySecret = await mkYouth(groupA, `${SECRET.toLowerCase()}@exemplo.com`);
+    const c = await draft(leaderA, ySecret, {
       subject: `Assunto ${SECRET}`, body: `Corpo ${SECRET}`, recipient_name: `Nome ${SECRET}`,
-      recipient_email: `${SECRET.toLowerCase()}@exemplo.com`,
     });
     await svc.sendOk(c.id, leaderA);
     const rows = await t.q<{ actor_id: string; actor_name: string; entity_type: string; youth_id: string; group_id: string; summary: string; meta: unknown }>(
@@ -453,10 +473,10 @@ describe('activity_log', () => {
         WHERE action = 'communication_sent' AND entity_id = $1`, [c.id]);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
-      actor_id: leaderA, actor_name: 'Líder A', entity_type: 'communication', youth_id: yA, group_id: groupA,
+      actor_id: leaderA, actor_name: 'Líder A', entity_type: 'communication', youth_id: ySecret, group_id: groupA,
       summary: 'Comunicação por e-mail enviada.',
     });
-    expect(rows[0].meta).toMatchObject({ channel: 'email', recipient_kind: 'guardian', provider: 'resend' });
+    expect(rows[0].meta).toMatchObject({ channel: 'email', recipient_kind: 'youth', provider: 'resend' });
 
     const all = await t.q<{ j: string }>(`SELECT to_jsonb(a)::text AS j FROM public.activity_log a`);
     expect(all.some((r) => r.j.toLowerCase().includes(SECRET.toLowerCase()))).toBe(false);
