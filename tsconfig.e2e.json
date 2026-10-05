@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["playwright.config.ts", "tests/e2e", "tests/db/harness.ts"]
+  "include": ["playwright.config.ts", "tests/e2e", "tests/db/harness.ts", "tests/db/communications-helpers.ts", "tests/functions", "supabase/functions/send-communication/handler.ts", "supabase/functions/send-communication/provider.ts"]
 }

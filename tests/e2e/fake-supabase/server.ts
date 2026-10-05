@@ -10,6 +10,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createHmac, randomUUID } from 'node:crypto';
 import { createTestDb, type Role } from '../../db/harness.ts';
+import { handleRequest as handleSendCommunication, type Db as SendDb } from '../../../supabase/functions/send-communication/handler.ts';
+import { createResendProvider, type MailProvider } from '../../../supabase/functions/send-communication/provider.ts';
 import { handleRest, loadCatalog, type HttpResult } from './postgrest.ts';
 import { ANON_KEY, APP_URL, CONTROL_TOKEN, FAKE_SUPABASE_PORT } from '../env.ts';
 
@@ -140,6 +142,100 @@ async function handleAuth(req: IncomingMessage, url: URL, body: any): Promise<Ht
 }
 
 // ---------------------------------------------------------------------------
+// Edge Function send-communication (handler REAL sobre o PGlite) + PROVEDOR DE E-MAIL FALSO
+// ---------------------------------------------------------------------------
+// O handler é o mesmo código que roda no Deno; só as dependências mudam:
+//   getUser  -> valida o JWT do GoTrue falso e confere que o usuário existe;
+//   canRead  -> SELECT em communications com a role `authenticated` + sub do usuário (RLS de verdade);
+//   begin/finish -> RPCs com a role `service_role` (sem sub), como a função faz com a service key.
+// O provedor é o createResendProvider REAL com um `fetch` falso (nenhuma rede): o que sai para o "Resend" é registrado
+// e o comportamento é controlado por /__test/mail-config. Nenhum e-mail real é enviado.
+type MailMode = 'success' | 'http4xx' | 'http5xx' | 'network' | 'timeout' | 'unconfigured';
+const MAIL_API_KEY = 'fake-provider-key-e2e';
+const MAIL_FROM = 'Conecta Jovem <no-reply@e2e.test>';
+const PROVIDER_RAW_TEXT = 'RAW-PROVIDER-ERROR-TEXT-do-not-leak';
+const mail = { mode: 'success' as MailMode, delayMs: 0, timeoutMs: 400 };
+const mailCalls: { url: string; headers: Record<string, string>; payload: Record<string, unknown> }[] = [];
+let mailSeq = 0;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+const fakeFetch = async (url: string, init: { headers: Record<string, string>; body: string; signal?: AbortSignal }) => {
+  mailCalls.push({ url, headers: { ...init.headers }, payload: JSON.parse(init.body) });
+  if (mail.delayMs > 0) await sleep(mail.delayMs);
+  switch (mail.mode) {
+    case 'http4xx': return { status: 422, json: async () => ({ message: PROVIDER_RAW_TEXT }) };
+    case 'http5xx': return { status: 503, json: async () => ({ message: PROVIDER_RAW_TEXT }) };
+    case 'network': throw new TypeError(`fetch failed: ${PROVIDER_RAW_TEXT}`);
+    case 'timeout':   // fica pendurado até o AbortController do provedor disparar
+      return new Promise<never>((_, reject) => {
+        init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+      });
+    default: return { status: 200, json: async () => ({ id: `re_fake_${++mailSeq}` }) };
+  }
+};
+
+const currentProvider = (): MailProvider | null =>
+  mail.mode === 'unconfigured' ? null : createResendProvider({ apiKey: MAIL_API_KEY, from: MAIL_FROM, fetch: fakeFetch, timeoutMs: mail.timeoutMs });
+
+/** Roda `fn` numa transação com a role pedida (e o sub, quando houver), como o PostgREST/Supabase fazem. */
+function asRole<T>(role: 'authenticated' | 'service_role', sub: string, fn: () => Promise<T>): Promise<T> {
+  return serial(async () => {
+    await db.exec('RESET ROLE');
+    await db.exec('BEGIN');
+    try {
+      await db.exec(`SET LOCAL ROLE ${role}`);
+      await db.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [sub]);
+      const out = await fn();
+      await db.exec('COMMIT');
+      return out;
+    } catch (err) {
+      await db.exec('ROLLBACK').catch(() => {});
+      throw err;
+    }
+  });
+}
+
+const sendDb: SendDb = {
+  async getUser(jwt) {
+    const who = principalFrom(`Bearer ${jwt}`);
+    if (who.kind !== 'user') return null;
+    return (await serial(() => userRecord(who.id))) ? { id: who.id } : null;
+  },
+  async canRead(jwt, id) {
+    const who = principalFrom(`Bearer ${jwt}`);
+    if (who.kind !== 'user') return false;
+    const res = await asRole('authenticated', who.id, () => db.query(`SELECT id FROM public.communications WHERE id = $1`, [id]));
+    return res.rows.length > 0;
+  },
+  async begin(id, userId) {
+    const res = await asRole('service_role', '', () =>
+      db.query<{ r: any }>(`SELECT public.begin_communication_send($1, $2) AS r`, [id, userId]));
+    return res.rows[0].r;
+  },
+  async finish(a) {
+    const res = await asRole('service_role', '', () =>
+      db.query<{ r: any }>(`SELECT public.finish_communication_send($1, $2, $3, $4, $5) AS r`,
+        [a.communicationId, a.ok, a.provider, a.providerMessageId, a.failureReason]));
+    return res.rows[0].r;
+  },
+};
+
+async function handleFunction(req: IncomingMessage, url: URL, raw: string, res: ServerResponse) {
+  const headers = new Headers();
+  for (const [k, v] of Object.entries(req.headers)) if (v !== undefined) headers.set(k, Array.isArray(v) ? v.join(',') : v);
+  const hasBody = req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS';
+  const request = new Request(url, { method: req.method, headers, body: hasBody ? raw : undefined });
+  const response = await handleSendCommunication(request, {
+    db: sendDb,
+    provider: currentProvider(),
+    allowedOrigin: APP_URL,
+    log: () => {},   // a função real só registra evento + id curto; nada a observar aqui
+  });
+  res.writeHead(response.status, Object.fromEntries(response.headers));
+  res.end(await response.text());
+}
+
+// ---------------------------------------------------------------------------
 // Controle de testes
 // ---------------------------------------------------------------------------
 async function resetData() {
@@ -156,6 +252,10 @@ async function resetData() {
   passwords.clear();
   refreshTokens.clear();
   recoverRequests.length = 0;
+  mail.mode = 'success';
+  mail.delayMs = 0;
+  mail.timeoutMs = 400;
+  mailCalls.length = 0;
 }
 
 async function createUser(email: string, password: string, fullName: string, role: Role) {
@@ -189,6 +289,15 @@ async function handleControl(url: URL, method: string, body: any): Promise<HttpR
       return { status: 200, body: { hash: `#${hash}` } };
     }
     case '/__test/recover-requests': return { status: 200, body: recoverRequests };
+    case '/__test/mail-config': {
+      // {mode, delayMs?}: comportamento do provedor de e-mail falso (a partir da próxima chamada)
+      const modes: MailMode[] = ['success', 'http4xx', 'http5xx', 'network', 'timeout', 'unconfigured'];
+      if (!modes.includes(body?.mode)) return { status: 400, body: { error: 'mode inválido' } };
+      mail.mode = body.mode;
+      mail.delayMs = Number(body.delayMs ?? 0);
+      return { status: 200, body: { ok: true } };
+    }
+    case '/__test/mail-calls': return { status: 200, body: mailCalls };
     case '/__test/sql': {
       await db.exec('RESET ROLE');
       const res = await db.query(String(body.sql), body.params ?? []);
@@ -217,19 +326,23 @@ function send(res: ServerResponse, result: HttpResult, requestedHeaders?: string
   res.end(result.body === undefined ? undefined : JSON.stringify(result.body));
 }
 
-async function readBody(req: IncomingMessage): Promise<any> {
+async function readRaw(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
-  const text = Buffer.concat(chunks).toString('utf8');
-  return text ? JSON.parse(text) : undefined;
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 createServer(async (req, res) => {
   const requested = req.headers['access-control-request-headers'] as string | undefined;
   try {
-    if (req.method === 'OPTIONS') return send(res, { status: 204 }, requested);
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
-    const body = await readBody(req);
+    // A Edge Function responde ao próprio preflight/CORS (é o que o navegador enfrenta em produção)
+    if (url.pathname === '/functions/v1/send-communication') {
+      return await handleFunction(req, url, await readRaw(req), res);
+    }
+    if (req.method === 'OPTIONS') return send(res, { status: 204 }, requested);
+    const raw = await readRaw(req);
+    const body = raw ? JSON.parse(raw) : undefined;
     let result: HttpResult;
 
     if (url.pathname.startsWith('/__test/')) {

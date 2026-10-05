@@ -1,7 +1,9 @@
-// Helpers dos specs de comunicação por e-mail assistido (Fase 7, bloco 10). Dados 100% fictícios.
-// O envio é ASSISTIDO: o app só faz `location.assign('mailto:...')`. Nos testes essa navegação é interceptada
-// (Navigation API) para NUNCA abrir um cliente de e-mail real, e o href é registrado para conferência.
+// Helpers dos specs de comunicação por e-mail (migration 018: ENVIO REAL pelo servidor). Dados 100% fictícios.
+// O navegador chama a Edge Function send-communication (handler real no servidor falso); quem "envia" é um PROVEDOR
+// FALSO controlado por /__test/mail-config e inspecionado por /__test/mail-calls. Nenhum e-mail real sai.
+import { createHash } from 'node:crypto';
 import type { Page } from '@playwright/test';
+import { ANON_KEY, AUTH_STORAGE_KEY, CONTROL_TOKEN, SUPABASE_URL } from './env.ts';
 import { daysFromNow, expect, type TestDb, type TestUser } from './fixtures.ts';
 import { seedPeople, type People } from './phase7-helpers.ts';
 
@@ -30,34 +32,6 @@ export async function seedWorld(db: TestDb): Promise<World> {
   }
   const [alert] = await db.sql<{ id: string }>(`SELECT id FROM alerts WHERE youth_id = $1 AND type = 'consecutive_absences'`, [ana]);
   return { ...p, ana, zeca, alertId: alert.id };
-}
-
-/**
- * Intercepta navegações para `mailto:` ANTES de o app carregar: registra o href em `window.__mailtos` e cancela a
- * navegação (nenhum aplicativo de e-mail é aberto). Cobre `location.assign` e cliques em `<a href="mailto:...">`.
- * Devolve uma função que lê os hrefs registrados na página atual.
- */
-export async function captureMailto(page: Page): Promise<() => Promise<string[]>> {
-  await page.addInitScript(() => {
-    const w = window as unknown as { __mailtos: string[] };
-    w.__mailtos = [];
-    const nav = (window as unknown as { navigation?: EventTarget }).navigation;
-    nav?.addEventListener('navigate', (e: any) => {
-      const url: string = e.destination?.url ?? '';
-      if (url.startsWith('mailto:')) {
-        w.__mailtos.push(url);
-        if (e.cancelable) e.preventDefault();
-      }
-    });
-    document.addEventListener('click', (ev) => {
-      const a = (ev.target as Element | null)?.closest?.('a[href^="mailto:"]') as HTMLAnchorElement | null;
-      if (a) {
-        w.__mailtos.push(a.getAttribute('href') ?? '');
-        ev.preventDefault();
-      }
-    }, true);
-  });
-  return () => page.evaluate(() => (window as unknown as { __mailtos: string[] }).__mailtos.slice());
 }
 
 /** Tudo que o app escreve no console e nos avisos (toasts) — para provar que não vaza e-mail/assunto/corpo. */
@@ -108,46 +82,120 @@ export async function composeToReview(page: Page, msg?: Message, to: { email?: s
   await goToReview(page, msg);
 }
 
-/** Na revisão: abre o e-mail (grava rascunho + navega para o mailto interceptado) e espera a confirmação. */
-export async function openMail(page: Page) {
+/** Na revisão: um clique em "Enviar e-mail" e espera o resultado (enviado ou falhou) aparecer. */
+export async function sendMail(page: Page) {
   const m = modalCom(page);
-  await m.getByTestId('comunicacao-abrir-email').click();
-  await expect(m).toHaveAttribute('data-etapa', 'confirm');
-  await expect(m.getByTestId('comunicacao-confirmacao')).toBeVisible();
+  await m.getByTestId('comunicacao-enviar').click();
+  await expect(m).toHaveAttribute('data-etapa', 'resultado');
 }
 
 export const MSG: Message = {
   subject: 'Olá & até já: 100% ok?',
-  body: 'Linha 1 com acentos çã\nLinha 2\n\nLinha 4 & mais = ? #x',
+  body: 'Linha 1 com acentos çã\nLinha 2\n\nLinha 4 & mais = ? #x <b>não é html</b>',
 };
 
+// ---------------------------------------------------------------------------
+// Provedor de e-mail FALSO (controle no servidor falso)
+// ---------------------------------------------------------------------------
+export type MailMode = 'success' | 'http4xx' | 'http5xx' | 'network' | 'timeout' | 'unconfigured';
+
+async function control<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-e2e-token': CONTROL_TOKEN }, body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) throw new Error(`${path} falhou (${res.status}): ${await res.text()}`);
+  return (await res.json()) as T;
+}
+
+/** Comportamento do provedor falso a partir de agora (o reset de cada teste volta para 'success'). */
+export const setMail = (mode: MailMode, delayMs = 0) => control('/__test/mail-config', { mode, delayMs });
+
+export interface MailCall {
+  url: string;
+  headers: Record<string, string>;
+  payload: { from: string; to: string[]; subject: string; text: string; reply_to?: string; html?: unknown };
+}
+/** Tudo que chegou ao provedor falso (uma entrada por tentativa de envio). */
+export const mailCalls = () => control<MailCall[]>('/__test/mail-calls');
+
+/** Texto cru que o provedor falso devolve nos erros: NUNCA pode aparecer na tela, no console nem nas respostas. */
+export const PROVIDER_RAW_TEXT = 'RAW-PROVIDER-ERROR-TEXT-do-not-leak';
+export const FAKE_PROVIDER_KEY = 'fake-provider-key-e2e';
+
+/** Idempotency-Key esperada (calculada de forma independente): `<id>:<sha256(JSON [to, subject, body]) 16 hex>`. */
+export const idemKey = (id: string, to: string, subject: string, body: string) =>
+  `${id}:${createHash('sha256').update(JSON.stringify([to, subject, body])).digest('hex').slice(0, 16)}`;
+
+export interface SendCall { status: number; body: any; text: string; retryAfter: string | null }
+
+/**
+ * Chama a Edge Function direto do navegador (adulteração/concorrência). `token`: padrão = sessão do app;
+ * `null` = sem Authorization; string = esse JWT. `raw` substitui o corpo; `extra` acrescenta campos ao corpo.
+ */
+export async function callSend(
+  page: Page, communicationId: string | null,
+  o: { token?: string | null; method?: string; raw?: string; extra?: Record<string, unknown> } = {},
+): Promise<SendCall> {
+  return page.evaluate(
+    async ([key, base, anon, id, tokenOpt, hasToken, method, raw, extra]) => {
+      const session = JSON.parse(localStorage.getItem(key as string)!);
+      const token = hasToken ? (tokenOpt as string | null) : session.access_token;
+      const headers: Record<string, string> = { 'content-type': 'application/json', apikey: anon as string };
+      if (token) headers.authorization = `Bearer ${token}`;
+      const body = raw !== null ? (raw as string) : JSON.stringify({ communication_id: id, ...(extra as object) });
+      const res = await fetch(`${base}/functions/v1/send-communication`, {
+        method: method as string, headers, body: method === 'GET' ? undefined : body,
+      });
+      const text = await res.text();
+      let json: unknown = null;
+      try { json = text ? JSON.parse(text) : null; } catch { json = text; }
+      return { status: res.status, body: json, text, retryAfter: res.headers.get('retry-after') };
+    },
+    [AUTH_STORAGE_KEY, SUPABASE_URL, ANON_KEY, communicationId, o.token ?? null, o.token !== undefined, o.method ?? 'POST',
+      o.raw ?? null, o.extra ?? {}] as const,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Banco
+// ---------------------------------------------------------------------------
 export type CommRow = {
   id: string; status: string; subject: string; body: string; recipient_email: string; recipient_name: string | null;
   recipient_kind: string; failure_reason: string | null; sent_at: string | null; sent_by: string | null;
   created_by: string | null; youth_id: string | null; alert_id: string | null; follow_up_id: string | null;
+  provider: string | null; provider_message_id: string | null; attempts: number; last_attempt_at: string | null;
 };
 
 export const commRows = (db: TestDb) =>
   db.sql<CommRow>(`SELECT id, status::text AS status, subject, body, recipient_email, recipient_name, recipient_kind,
-    failure_reason, sent_at::text AS sent_at, sent_by, created_by, youth_id, alert_id, follow_up_id
+    failure_reason, sent_at::text AS sent_at, sent_by, created_by, youth_id, alert_id, follow_up_id,
+    provider, provider_message_id, attempts, last_attempt_at::text AS last_attempt_at
     FROM communications ORDER BY created_at, id`);
 
-/** Insere uma comunicação direto no banco (como superusuário), já no status pedido. */
+/**
+ * Insere uma comunicação direto no banco (como superusuário), já no status pedido. `sending`: `minutesAgo` define
+ * quando a tentativa começou (> 5 min = envio preso, retomável); `sent_by` = quem iniciou.
+ */
 export async function seedComm(
   db: TestDb,
-  o: { youthId: string | null; createdBy: TestUser; status?: 'draft' | 'sent' | 'failed' | 'cancelled'; subject?: string;
-    body?: string; email?: string; alertId?: string | null; followUpId?: string | null; kind?: string },
+  o: { youthId: string | null; createdBy: TestUser; status?: 'draft' | 'sending' | 'sent' | 'failed' | 'cancelled'; subject?: string;
+    body?: string; email?: string; alertId?: string | null; followUpId?: string | null; kind?: string;
+    failureReason?: string; minutesAgo?: number },
 ): Promise<string> {
   const status = o.status ?? 'draft';
   const [row] = await db.sql<{ id: string }>(
     `INSERT INTO communications (youth_id, alert_id, follow_up_id, recipient_email, recipient_kind, subject, body, status,
-                                 failure_reason, sent_at, sent_by, created_by)
+                                 failure_reason, sent_at, sent_by, created_by, attempts, last_attempt_at, provider)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text::communication_status,
-             CASE WHEN $8::text = 'failed' THEN 'other' END,
+             CASE WHEN $8::text = 'failed' THEN $10::text END,
              CASE WHEN $8::text = 'sent' THEN now() END,
-             CASE WHEN $8::text = 'sent' THEN $9::uuid END, $9::uuid)
+             CASE WHEN $8::text IN ('sent', 'sending') THEN $9::uuid END, $9::uuid,
+             CASE WHEN $8::text IN ('sent', 'sending', 'failed') THEN 1 ELSE 0 END,
+             CASE WHEN $8::text IN ('sent', 'sending', 'failed') THEN now() - make_interval(mins => $11::int) END,
+             CASE WHEN $8::text IN ('sent', 'failed') THEN 'resend' END)
      RETURNING id`,
     [o.youthId, o.alertId ?? null, o.followUpId ?? null, o.email ?? ANA_EMAIL, o.kind ?? 'youth',
-      o.subject ?? 'Assunto de teste', o.body ?? 'Corpo de teste', status, o.createdBy.id]);
+      o.subject ?? 'Assunto de teste', o.body ?? 'Corpo de teste', status, o.createdBy.id,
+      o.failureReason ?? 'provider_rejected', o.minutesAgo ?? 0]);
   return row.id;
 }

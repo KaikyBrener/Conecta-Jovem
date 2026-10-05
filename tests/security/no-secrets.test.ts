@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -35,6 +35,11 @@ describe('segredos não vão para o código do navegador', () => {
     ['string de conexão do Postgres', /postgres(ql)?:\/\/[^\s'"`]*:[^\s'"`]*@/i],
     ['JWT embutido (eyJ…)', /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
     ['variável de ambiente que não é VITE_', /process\.env\./],
+    // envio de e-mail é server-side (Edge Function): nada do provedor/SMTP no navegador
+    ['chave/variável do provedor de e-mail (RESEND)', /RESEND/],
+    ['remetente fixo do servidor (MAIL_FROM)', /MAIL_FROM/],
+    ['API do provedor de e-mail', /api\.resend\.com/i],
+    ['SMTP', /smtp/i],
   ])('nenhum arquivo de src/ contém %s', (_name, pattern) => {
     const hits = sources.filter((s) => pattern.test(s.text)).map((s) => s.file);
     expect(hits).toEqual([]);
@@ -57,5 +62,36 @@ describe('segredos não vão para o código do navegador', () => {
     expect(lines).toContain('.env.*');
     expect(lines).toContain('Senha_BD.txt');
     expect(lines).toContain('!.env.example');
+  });
+});
+
+// O bundle gerado por `npm run build` (dist/) é o que de fato chega ao navegador. Só roda quando o build existe
+// (o `npm run build` do fluxo de qualidade vem antes de `npm test` no CI; sem dist/ é ignorado).
+function walkDist(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) walkDist(full, out);
+    else if (/\.(js|css|html|json|map|svg)$/.test(name)) out.push(full);
+  }
+  return out;
+}
+
+describe.skipIf(!existsSync(join(ROOT, 'dist')))('segredos de e-mail não vão para o bundle (dist/)', () => {
+  const files = existsSync(join(ROOT, 'dist')) ? walkDist(join(ROOT, 'dist')) : [];
+  const dist = files.map((f) => ({ file: relative(ROOT, f).replaceAll('\\', '/'), text: readFileSync(f, 'utf8') }));
+
+  it('há arquivos para varrer', () => {
+    expect(dist.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['RESEND', /RESEND/],
+    ['MAIL_FROM', /MAIL_FROM/],
+    ['service_role', /service[_-]?role/i],
+    ['api.resend.com', /api\.resend\.com/i],
+    ['smtp', /smtp/i],
+    // (sb_secret_ fica de fora: o próprio supabase-js cita o prefixo ao RECUSAR chaves secretas no navegador)
+  ])('nenhum arquivo de dist/ contém %s', (_name, pattern) => {
+    expect(dist.filter((d) => pattern.test(d.text)).map((d) => d.file)).toEqual([]);
   });
 });

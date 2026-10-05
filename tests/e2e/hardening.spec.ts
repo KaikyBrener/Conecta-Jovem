@@ -153,8 +153,9 @@ test.describe('Relatórios do líder: encontro de outro grupo após o jovem troc
     await expect(page.locator('body')).not.toContainText('Culto E5');
     await expect(page.locator('body')).not.toContainText('Culto E6');
     // o estado do Caio nesses encontros continua nas contagens (a Lia vê 1 falta e 1 presença do outro grupo)
-    await expect(byEvent.getByRole('row', { name: /Encontro de outro grupo.*0\/1/ })).toBeVisible(); // E5: Caio ausente
-    await expect(byEvent.getByRole('row', { name: /Encontro de outro grupo.*1\/1/ })).toBeVisible(); // E6: Caio presente
+    // (a contagem é ancorada: sem isso "1/1" casaria dentro de datas como "01/10/2026", dependente do dia do teste)
+    await expect(byEvent.getByRole('row', { name: /Encontro de outro grupo.*(?<![\d/])0\/1(?![\d/])/ })).toBeVisible(); // E5: Caio ausente
+    await expect(byEvent.getByRole('row', { name: /Encontro de outro grupo.*(?<![\d/])1\/1(?![\d/])/ })).toBeVisible(); // E6: Caio presente
 
     // a mesma resposta pela API: event_id NULL e nada do título/id originais em lugar nenhum do JSON
     const range = { p_from: spDay(-29), p_to: spDay(0), p_group_id: null, p_min_absences: 3 };

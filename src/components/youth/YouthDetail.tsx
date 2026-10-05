@@ -129,7 +129,7 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
         onChanged={handleFollowUpChanged} onCommunicationChanged={handleCommunicationChanged}
       />
 
-      {/* Comunicações (e-mail assistido) */}
+      {/* Comunicações (e-mail) */}
       <CommunicationSection
         youth={{ id: youth.id, full_name: youth.full_name }} groupName={groupName}
         alertChoices={alertChoices} refreshKey={communicationsVersion} onChanged={handleCommunicationChanged}

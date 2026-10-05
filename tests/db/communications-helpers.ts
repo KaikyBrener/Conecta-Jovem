@@ -1,6 +1,6 @@
 // Auxiliares dos testes de comunicações (migração 018): chamadas como service_role (a identidade da Edge Function).
 // Não é um arquivo de teste (não termina em .test.ts).
-import type { TestDb } from './harness';
+import type { TestDb } from './harness.ts';
 
 export interface BeginOk {
   ok: true; id: string; attempts: number; recipient_email: string; recipient_name: string | null;
