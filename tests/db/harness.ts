@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../supabase/migrations/', import.meta.url));
 
-const SUPABASE_STUB = `
+export const SUPABASE_STUB = `
   CREATE ROLE anon NOLOGIN;
   CREATE ROLE authenticated NOLOGIN;
   CREATE ROLE service_role NOLOGIN BYPASSRLS;
