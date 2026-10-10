@@ -9,6 +9,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Pagination } from '../components/ui/Pagination';
 import { inputCls, labelCls, primaryBtnCls as primaryBtn, secondaryBtnCls } from '../lib/formStyles';
 import { formatDateTime } from '../lib/format';
+import { MIN_PASSWORD_LENGTH } from '../lib/passwordPolicy';
 import { validateSettings, type SettingsPayload } from '../lib/settingsForm';
 import type { AppSettings, Role } from '../types/database.types';
 
@@ -49,7 +50,7 @@ function ProfileSection() {
   const savePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr(null); setOk(null);
-    if (password.length < 6) { setErr('A senha deve ter pelo menos 6 caracteres.'); return; }
+    if (password.length < MIN_PASSWORD_LENGTH) { setErr(`A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`); return; }
     if (password !== confirm) { setErr('As senhas não conferem.'); return; }
     setBusy('password');
     const error = await updateOwnPassword(password);

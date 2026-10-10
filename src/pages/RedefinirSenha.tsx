@@ -10,8 +10,8 @@ import { authLinkCls, authPrimaryBtnCls } from '../lib/authStyles';
 import { AuthShell } from '../components/auth/AuthShell';
 import { AuthAlert } from '../components/auth/AuthAlert';
 import { PasswordInput } from '../components/auth/PasswordInput';
+import { MIN_PASSWORD_LENGTH } from '../lib/passwordPolicy';
 
-const MIN_LENGTH = 6; // mesmo mínimo de Configurações; o Supabase aplica a política real do projeto
 const SAVE_FALLBACK = 'Não foi possível salvar a nova senha. Tente novamente.';
 
 /**
@@ -68,8 +68,8 @@ export function RedefinirSenha() {
     e.preventDefault();
     setError('');
     // Após um erro o foco vai ao primeiro campo inválido (o botão desabilitado durante o envio o tira do lugar)
-    if (password.length < MIN_LENGTH) {
-      setError(`A senha deve ter pelo menos ${MIN_LENGTH} caracteres.`);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
       passwordRef.current?.focus();
       return;
     }
@@ -117,7 +117,7 @@ export function RedefinirSenha() {
           invalid={!!error}
           describedBy={error ? errorId : `${uid}-hint`}
         />
-        <p id={`${uid}-hint`} className="-mt-3 text-xs text-gray-500">Mínimo de {MIN_LENGTH} caracteres.</p>
+        <p id={`${uid}-hint`} className="-mt-3 text-xs text-gray-500">Mínimo de {MIN_PASSWORD_LENGTH} caracteres.</p>
         <PasswordInput
           id={`${uid}-pw2`}
           inputRef={confirmRef}

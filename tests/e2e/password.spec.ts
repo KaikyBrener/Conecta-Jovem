@@ -160,16 +160,16 @@ test.describe('Link de recuperação — definir nova senha', () => {
     const confirm = page.getByLabel('Confirmar senha');
     const save = page.getByRole('button', { name: 'Salvar nova senha' });
 
-    await pw.fill('abcdef');
-    await confirm.fill('abcdeg');
+    await pw.fill('abcdefghij');
+    await confirm.fill('abcdefghik');
     await save.click();
     await expect(page.getByRole('alert')).toHaveText('As senhas não conferem.');
     await expect(pw).toHaveAttribute('aria-invalid', 'true');
 
-    await pw.fill('abc');
-    await confirm.fill('abc');
+    await pw.fill('abcdefghi');
+    await confirm.fill('abcdefghi');
     await save.click();
-    await expect(page.getByRole('alert')).toHaveText('A senha deve ter pelo menos 6 caracteres.');
+    await expect(page.getByRole('alert')).toHaveText('A senha deve ter pelo menos 10 caracteres.');
 
     // regra do servidor, traduzida
     await pw.fill(user.password);
@@ -186,20 +186,20 @@ test.describe('Link de recuperação — definir nova senha', () => {
     const confirm = page.getByLabel('Confirmar senha');
     const save = page.getByRole('button', { name: 'Salvar nova senha' });
 
-    await pw.fill('abc');
-    await confirm.fill('abc');
+    await pw.fill('abcdefghi');
+    await confirm.fill('abcdefghi');
     await save.click();
-    await expect(page.getByRole('alert')).toHaveText('A senha deve ter pelo menos 6 caracteres.');
+    await expect(page.getByRole('alert')).toHaveText('A senha deve ter pelo menos 10 caracteres.');
     await expect(pw).toBeFocused();
 
-    await pw.fill('abcdef');
-    await confirm.fill('abcdeg');
+    await pw.fill('abcdefghij');
+    await confirm.fill('abcdefghik');
     await save.click();
     await expect(page.getByRole('alert')).toHaveText('As senhas não conferem.');
     await expect(confirm).toBeFocused();
 
     // erros do servidor (a requisição só ocorre com os campos válidos)
-    await confirm.fill('abcdef');
+    await confirm.fill('abcdefghij');
     await page.route('**/auth/v1/user', (route) =>
       route.request().method() === 'PUT'
         ? route.fulfill({
