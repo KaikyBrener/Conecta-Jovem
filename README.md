@@ -50,6 +50,13 @@ no SQL Editor do Supabase:
 | `017_final_fixes.sql` | Grupo com jovens ou histórico de chamada não pode ser excluído (e o log de atividade nunca grava grupo inexistente); nota correta ao resolver `no_followup`; funções-trigger sem EXECUTE para clientes. O cabeçalho traz a checagem de e-mails legados com `%` a rodar **antes** da 016 |
 | `018_communications_server_send.sql` | **Envio real de e-mail pelo servidor**: status `sending`, colunas `provider`/`provider_message_id`/`attempts`/`last_attempt_at`, RPCs `begin_communication_send` e `finish_communication_send` (**só `service_role`**), rate limit; o cliente nunca marca `sending`/`sent` |
 | `019_communications_hardening.sql` | Líder só envia ao e-mail cadastrado do próprio jovem; limites (líder 10/h e 30/dia, coordenador 20/h e 100/dia); log de envios sobrevive à exclusão da comunicação |
+| `020_series_idempotency_and_event_delete_guard.sql` | `create_event_series` não duplica série idêntica (reenvio/duplo clique); encontro com chamada registrada não pode ser excluído (cancele-o) |
+| `021_anonymize_youth.sql` | RPC `anonymize_youth(id)` (só coordenador, irreversível): limpa dados pessoais do jovem e o texto residual em presença, alertas, tarefas, acompanhamentos e e-mails, mantendo id, grupo e estatísticas. Prazos de retenção e base legal: validar com o responsável da organização |
+| `023_cron_time_alerts.sql` | **Opcional, não aplicada**: varredura diária dos alertas temporais via `pg_cron` (06:00 de Brasília). Habilite `pg_cron` no painel antes; o agendamento é pulado se a extensão não existir. Desfazer: `cron.unschedule` (ver cabeçalho) |
+| `024_set_user_role_recheck_after_lock.sql` | `set_user_role` refaz a checagem de coordenador **depois** do lock: quem acabou de ser rebaixado por uma chamada concorrente não consegue mais rebaixar outro (achado do teste de concorrência em Postgres real) |
+
+**Ordem de aplicação pendente no SQL Editor: 020, 021, 024.** A 023 (pg_cron) só depois de habilitar a extensão `pg_cron` no
+painel; ela não depende da 024 nem as demais dela. A 022 (retenção) ainda não existe.
 
 A 006 termina calculando os alertas para o histórico de chamadas já existente.
 
@@ -106,6 +113,13 @@ app o mantém em "Defina sua senha" até concluir. Isso é guia de experiência:
 **Por que não PKCE:** o link de e-mail costuma abrir em outro dispositivo ou webview (leitor de e-mail), onde o
 *code verifier* guardado no navegador de origem não existe, e o fluxo quebraria; além disso o convite não usa PKCE.
 
+### `supabase/config.toml` (somente local) e `config push` proibido
+
+O `supabase/config.toml` serve só para desenvolvimento local (`supabase start`), **fica fora do Git** (`.gitignore`) e traz
+`site_url`/redirects como placeholders. **Não rode `supabase config push` neste projeto**: ele sobrescreveria a
+configuração de Auth de produção (Site URL, Redirect URLs, cadastro, senha mínima). Ajuste o Auth de produção **só pelo painel**
+do Supabase. Migrations e `supabase/functions/` continuam versionadas.
+
 ### CSP e headers
 
 - **Aplicado pelo app (só no `npm run build`)**: um plugin em `vite.config.ts` injeta no `dist/index.html` uma
@@ -113,9 +127,11 @@ app o mantém em "Defina sua senha" até concluir. Isso é guia de experiência:
   inline de tema (calculado no build); `style-src`/`font-src`/`manifest-src` `'self'`; `img-src 'self' data:`;
   `connect-src 'self'` + a origem de `VITE_SUPABASE_URL`; `object-src 'none'`; `base-uri`/`form-action` `'self'`.
   O build **falha** se `VITE_SUPABASE_URL` não estiver definida. `npm run dev` e o E2E não recebem CSP.
-- **Depende do host (ainda não definido)**, pois não funciona via `<meta>`: `frame-ancestors` (ou `X-Frame-Options`),
-  `Strict-Transport-Security` (HSTS), `X-Content-Type-Options: nosniff` e `Referrer-Policy`. Configure-os como
-  headers HTTP no host/CDN quando ele for escolhido. Se mudar o script inline do `index.html`, rebuild (o hash é recalculado).
+- **Headers HTTP no host**: `public/_headers` (HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
+  `frame-ancestors 'none'`/`X-Frame-Options`, `Permissions-Policy`) e `public/_redirects` (fallback de SPA para o
+  `BrowserRouter`: `/*  /index.html  200`) usam o formato do **Netlify e do Cloudflare Pages** e são copiados para o `dist/`.
+  Em outro host, reproduza os mesmos headers. Antes de ativar HSTS com `includeSubDomains`, confirme que os subdomínios têm HTTPS.
+  Se mudar o script inline do `index.html`, rebuild (o hash é recalculado).
 
 ### Papéis
 
@@ -148,3 +164,20 @@ Depois disso, os papéis são geridos pela tela **Configurações**.
   as migrations e verifica RLS, triggers de alertas, tarefas e RPCs simulando coordenador, líderes e anônimo.
 
 Os testes de banco não substituem um teste no Supabase real (PostgREST/Auth não são simulados).
+
+### Concorrência em Postgres real (opcional, fora do `npm test`)
+
+`tests/concurrency/*.pgtest.ts` usam um Postgres **descartável** (`embedded-postgres`, sem Docker) com duas conexões para
+provar os locks de `set_user_role`, `begin_communication_send`, `create_event_series` e `anonymize_youth`; cada cenário
+tem um controle negativo (a função sem o lock) que precisa quebrar. Nunca aponte para o Supabase real.
+
+```
+# bash / Git Bash
+CONCURRENCY_TESTS=1 npm run test:concurrency
+# PowerShell
+$env:CONCURRENCY_TESTS = "1"; npm run test:concurrency
+```
+
+Sem `CONCURRENCY_TESTS=1` (ou `CONCURRENCY_DATABASE_URL`, superusuário de um Postgres descartável de outra versão, ex.: Docker no
+CI) tudo é pulado com uma mensagem. A versão do Postgres embutido é a do pacote `embedded-postgres` (17.10); para outra versão,
+use `CONCURRENCY_DATABASE_URL`. Não cobre o pooler (Supavisor) nem o PostgREST.
