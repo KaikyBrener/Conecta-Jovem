@@ -167,6 +167,9 @@ dois e vão para o `dist/`.
 - [ ] `npm run smoke -- https://SEU-DOMINIO`: todos os itens `OK`.
 - [ ] **Líder sem acesso a grupo alheio**: logado como líder, ele vê só os próprios grupos, jovens e encontros. Abrir a URL
       de um encontro ou jovem de outro grupo não mostra os dados.
+- [ ] (Opcional) **Anonimização**: testar com um jovem de **TESTE**, criado só para isso (**nunca com dado real**: é
+      irreversível). Como coordenador: ficha do jovem → "Anonimizar dados" → digitar o nome → confirmar. O jovem deve
+      virar "Jovem anonimizado", inativo, no mesmo grupo. Como líder, a ação não deve aparecer. Exige a 021 aplicada.
 
 ## 11. Pós-lançamento
 

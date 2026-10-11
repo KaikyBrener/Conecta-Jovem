@@ -65,7 +65,7 @@ Os operadores podem manter logs técnicos e backups conforme as políticas deles
 |---|---|
 | Confirmação e acesso | o coordenador vê a ficha e o relatório individual do jovem (com exportação). Não há área de acesso direto para o próprio jovem. |
 | Correção | coordenador e líder do grupo editam a ficha |
-| Anonimização ou eliminação | a RPC `anonymize_youth` (migration 021, só coordenador, **irreversível**) apaga os dados pessoais do jovem e o texto residual em presença, alertas, tarefas, acompanhamentos e e-mails, mantendo id, grupo e estatísticas. A migration **ainda não foi aplicada** no banco real e **ainda não há botão na interface**: hoje só existe a desativação. Limites na seção 6. |
+| Anonimização ou eliminação | a RPC `anonymize_youth` (migration 021, só coordenador, **irreversível**) apaga os dados pessoais do jovem e o texto residual em presença, alertas, tarefas, acompanhamentos e e-mails, mantendo id, grupo e estatísticas. É feita **pela tela do coordenador**: ficha do jovem → "Anonimizar dados", com aviso de irreversível e confirmação digitando o nome do jovem; líderes não veem a ação. Só funciona depois que a migration 021 for **aplicada no banco real** (ainda pendente); até lá, só existe a desativação. Limites na seção 6. |
 | Portabilidade | só pela exportação do relatório individual (CSV/PDF). Formato e suficiência: `[DEFINIR]` |
 | Informação sobre compartilhamento | seção 4 deste aviso |
 | Revogação de consentimento | sem registro de consentimento no sistema. Ver seção 3. |
