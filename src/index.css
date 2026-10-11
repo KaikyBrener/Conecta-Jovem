@@ -105,3 +105,8 @@
 }
 .dark input::placeholder,
 .dark textarea::placeholder { color: var(--color-navy-400); }
+
+/* Logo: telas claras usam a variante "claro"; no modo escuro entra a de fundo escuro (ver components/ui/Logo.tsx) */
+.logo-tema-escuro { display: none; }
+.dark .logo-tema-claro { display: none; }
+.dark .logo-tema-escuro { display: inline-flex; }
