@@ -7,6 +7,8 @@ import { logError } from '../lib/logger';
 import { fetchAll } from '../lib/fetchAll';
 import { searchPattern } from '../lib/pagination';
 import { parseBatchResult, type BatchResult } from '../lib/batch';
+import { notifyAlertsChanged } from '../lib/alertsBus';
+import type { AnonymizeResult } from '../lib/anonymize';
 import { usePagedList } from './usePagedList';
 
 export type YouthStatusFilter = 'all' | 'active' | 'inactive';
@@ -130,6 +132,18 @@ export function useYouth(filters: YouthFilters) {
     runBatch('batch_set_youth_active', { p_youth_ids: ids, p_active: active },
       active ? 'Erro ao ativar os jovens.' : 'Erro ao desativar os jovens.');
 
+  // Irreversível (migration 021). Só coordenador: a RPC também recusa outros papéis (42501).
+  // "Há um e-mail em envio..." é P0001 do banco e chega como está (errorMessage deixa passar).
+  const anonymizeYouth = async (id: string): Promise<AnonymizeResult | null> => {
+    if (role !== 'coordinator') { setMutationError('Apenas coordenadores podem anonimizar jovens.'); return null; }
+    setMutationError(null);
+    const { data, error: rpcError } = await (supabase as any).rpc('anonymize_youth', { p_youth_id: id });
+    if (rpcError) { setMutationError(errorMessage(rpcError, 'Erro ao anonimizar os dados do jovem.')); return null; }
+    refetch();
+    notifyAlertsChanged(); // o jovem fica inativo: alertas abertos são resolvidos pelo banco
+    return data as AnonymizeResult;
+  };
+
   const deactivateYouth = async (id: string): Promise<boolean> => (await updateYouth(id, { is_active: false })) !== null;
   const activateYouth = async (id: string): Promise<boolean> => (await updateYouth(id, { is_active: true })) !== null;
 
@@ -153,6 +167,7 @@ export function useYouth(filters: YouthFilters) {
     activateYouth,
     batchSetGroup,
     batchSetActive,
+    anonymizeYouth,
     clearError: () => setMutationError(null),
   };
 }

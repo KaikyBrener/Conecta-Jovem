@@ -15,6 +15,8 @@ import { useToast } from '../contexts/ToastContext';
 import { Modal } from '../components/Modal';
 import { YouthForm } from '../components/youth/YouthForm';
 import { YouthDetail } from '../components/youth/YouthDetail';
+import { AnonymizeYouthForm } from '../components/youth/AnonymizeYouthForm';
+import { isAnonymizedYouth } from '../lib/anonymize';
 import { SituationBadge } from '../components/youth/SituationBadge';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SearchInput } from '../components/ui/SearchInput';
@@ -38,13 +40,13 @@ export function Jovens() {
   const {
     youth, groups, total, page, setPage, pageSize, totalPages, activeCount, inactiveCount,
     loading, error, role, createYouth, updateYouth, deactivateYouth, activateYouth,
-    batchSetGroup, batchSetActive, clearError,
+    batchSetGroup, batchSetActive, anonymizeYouth, clearError,
   } = useYouth({ search: debouncedSearch, status: filterStatus, groupId: groupFilter });
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const groupName = useMemo(() => new Map(groups.map((g) => [g.id, g.name])), [groups]);
   const [selectedYouth, setSelectedYouth] = useState<Youth | null>(null);
-  const [mode, setMode] = useState<'view' | 'create' | 'edit'>('view');
+  const [mode, setMode] = useState<'view' | 'create' | 'edit' | 'anonymize'>('view');
   const [formLoading, setFormLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -218,6 +220,19 @@ export function Jovens() {
     }
     setActionLoading(false);
     closeModal();
+  };
+
+  const openAnonymize = () => { clearError(); setMode('anonymize'); };
+  const handleAnonymize = async () => {
+    if (!selectedYouth) return;
+    setActionLoading(true);
+    const result = await anonymizeYouth(selectedYouth.id);
+    setActionLoading(false);
+    if (result) {
+      setSituationVersion((v) => v + 1);
+      closeModal();
+      toast.success('Dados do jovem anonimizados.');
+    }
   };
 
   return (
@@ -462,6 +477,20 @@ export function Jovens() {
             onClose={closeModal}
             actionLoading={actionLoading}
             onDataChanged={() => setSituationVersion((v) => v + 1)}
+            onAnonymize={role === 'coordinator' && !isAnonymizedYouth(selectedYouth.full_name) ? openAnonymize : undefined}
+          />
+        </Modal>
+      )}
+
+      {/* Modal: Anonimizar (só coordenador; irreversível) */}
+      {selectedYouth && mode === 'anonymize' && role === 'coordinator' && (
+        <Modal title="Anonimizar dados" onClose={() => { clearError(); setMode('view'); }}>
+          <AnonymizeYouthForm
+            youthName={selectedYouth.full_name}
+            loading={actionLoading}
+            error={error}
+            onConfirm={handleAnonymize}
+            onCancel={() => { clearError(); setMode('view'); }}
           />
         </Modal>
       )}
