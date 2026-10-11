@@ -26,6 +26,8 @@ interface YouthDetailProps {
   actionLoading: boolean;
   /** Avisa a tela pai que a situação do jovem pode ter mudado (acompanhamento registrado, etc.) */
   onDataChanged?: () => void;
+  /** Só passado para coordenador e jovem ainda não anonimizado: sem ele, o botão não aparece. */
+  onAnonymize?: () => void;
 }
 
 const GENDER_LABEL: Record<string, string> = {
@@ -50,7 +52,7 @@ function Row({ label, value }: { label: string; value: string | null | undefined
   );
 }
 
-export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, onToggleStatus, onClose, actionLoading, onDataChanged }: YouthDetailProps) {
+export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, onToggleStatus, onClose, actionLoading, onDataChanged, onAnonymize }: YouthDetailProps) {
   const isActive = youth.is_active;
   const { loading: histLoading, error: histErr, stats, openAlerts, refetch: refetchHistory } = useYouthHistory(youth.id);
   const { situation, loading: situationLoading, error: situationError, refetch: refetchSituation } = useYouthSituation(youth.id);
@@ -198,6 +200,15 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-gray-100">
+        {onAnonymize && (
+          <button
+            onClick={onAnonymize}
+            disabled={actionLoading}
+            className="sm:mr-auto px-3 py-2 text-sm font-medium text-red-700 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            Anonimizar dados
+          </button>
+        )}
         <button onClick={onClose} className={secondaryBtnCls}>
           Fechar
         </button>
