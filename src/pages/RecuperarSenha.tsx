@@ -3,15 +3,14 @@ import { Link, Navigate } from 'react-router-dom';
 import { KeyRound, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { translateAuthError } from '../lib/format';
+import { RECOVER_NEUTRAL_MESSAGE, recoverErrorMessage } from '../lib/format';
+import { logError } from '../lib/logger';
 import { cn } from '../lib/utils';
 import {
   authLinkCls, authPrimaryBtnCls, fieldCls, fieldIconCls, fieldInvalidCls, fieldWithIconCls, labelCls,
 } from '../lib/authStyles';
 import { AuthShell } from '../components/auth/AuthShell';
 import { AuthAlert } from '../components/auth/AuthAlert';
-
-const SEND_FALLBACK = 'Não foi possível enviar o e-mail agora. Tente novamente em instantes.';
 
 /** "Esqueci minha senha": pede ao Supabase Auth o e-mail com o link de redefinição. */
 export function RecuperarSenha() {
@@ -35,12 +34,16 @@ export function RecuperarSenha() {
       redirectTo: `${window.location.origin}/redefinir-senha`,
     });
     setLoading(false);
-    if (err) {
-      setError(translateAuthError(err, SEND_FALLBACK));
+    const message = recoverErrorMessage(err);
+    if (message) {
+      // registro sanitizado (sem e-mail nem token; ver lib/logger.ts) para diagnosticar falha de envio
+      logError('Pedido de redefinição de senha falhou.', err);
+      setError(message);
       // o botão desabilitado durante o envio tirou o foco: devolve ao campo de e-mail
       emailRef.current?.focus();
       return;
     }
+    // sucesso OU conta inexistente: a mesma tela, com a mesma mensagem
     setSent(true);
   };
 
@@ -51,10 +54,10 @@ export function RecuperarSenha() {
       <AuthShell title="Verifique seu e-mail">
         <div className="mt-4 space-y-5">
           {/* Mesma resposta exista ou não a conta: não revela quem tem cadastro */}
-          <AuthAlert tone="success">
-            Se <strong>{email.trim()}</strong> estiver cadastrado, enviamos um link para redefinir a senha.
-            Ele vale por tempo limitado. Confira também a caixa de spam.
-          </AuthAlert>
+          <AuthAlert tone="success">{RECOVER_NEUTRAL_MESSAGE}</AuthAlert>
+          <p className="text-sm text-gray-600">
+            O link vale por tempo limitado e só pode ser usado uma vez. Confira também a caixa de spam.
+          </p>
           <Link to="/login" className={cn(authPrimaryBtnCls, 'no-underline')}>Voltar ao login</Link>
         </div>
       </AuthShell>

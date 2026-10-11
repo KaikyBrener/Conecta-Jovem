@@ -19,7 +19,7 @@ test.describe('Login', () => {
 
     await loginViaForm(page, user.email, 'senha-errada');
 
-    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
+    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByLabel('E-mail')).toHaveAttribute('aria-invalid', 'true');
     await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('aria-invalid', 'true');
@@ -30,7 +30,7 @@ test.describe('Login', () => {
 
   test('e-mail inexistente recebe a mesma mensagem (não revela se a conta existe)', async ({ page }) => {
     await loginViaForm(page, 'ninguem@e2e.test', 'qualquer-senha');
-    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
+    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.');
   });
 
   test('campos obrigatórios: formulário vazio não dispara requisição de login', async ({ page }) => {
@@ -87,7 +87,7 @@ test.describe('Login', () => {
     const alert = page.getByRole('alert');
     await expect(alert).toHaveText('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
     // rede não é senha errada: nem a mensagem de credencial nem texto técnico do navegador
-    await expect(alert).not.toContainText('E-mail ou senha inválidos');
+    await expect(alert).not.toContainText('E-mail ou senha incorretos');
     await expect(page.getByText(/failed to fetch|ERR_|AuthRetryableFetchError/i)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Entrar' })).toBeEnabled();
     await expect(page).toHaveURL(/\/login$/);
@@ -107,7 +107,7 @@ test.describe('Login', () => {
 
     const alert = page.getByRole('alert');
     await expect(alert).toHaveText('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
-    await expect(alert).not.toContainText('E-mail ou senha inválidos');
+    await expect(alert).not.toContainText('E-mail ou senha incorretos');
     await expect(page.getByText('Request rate limit reached')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Entrar' })).toBeEnabled();
     await expect(page).toHaveURL(/\/login$/);
@@ -134,7 +134,7 @@ test.describe('Login', () => {
 
     await loginViaForm(page, user.email, 'senha-errada');
 
-    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
+    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.');
     const password = page.getByLabel('Senha', { exact: true });
     await expect(password).toBeFocused();
     // texto selecionado: digitar substitui a senha errada em vez de acrescentar a ela

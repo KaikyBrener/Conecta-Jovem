@@ -76,11 +76,14 @@ export function errorMessage(err: unknown, fallback = 'Ocorreu um erro inesperad
 // textos internos do provedor de autenticação ao usuário final.
 const RATE_LIMIT_MESSAGE = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
 
+// A MESMA mensagem para e-mail inexistente e para senha errada: não revela quem tem conta.
+const INVALID_CREDENTIALS_MESSAGE = 'E-mail ou senha incorretos.';
+
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
-  'Invalid login credentials': 'E-mail ou senha inválidos.',
+  'Invalid login credentials': INVALID_CREDENTIALS_MESSAGE,
   'Email not confirmed': 'E-mail ainda não confirmado. Verifique sua caixa de entrada.',
   'Email rate limit exceeded': RATE_LIMIT_MESSAGE,
-  'User not found': 'E-mail ou senha inválidos.',
+  'User not found': INVALID_CREDENTIALS_MESSAGE,
   'New password should be different from the old password.': 'A nova senha deve ser diferente da senha atual.',
   'Auth session missing!': 'Sua sessão expirou. Entre novamente.',
   'Password is known to be weak and easy to guess, please choose a different one.':
@@ -119,4 +122,35 @@ export function translateAuthError(input: AuthErrorInput, fallback: string = LOG
   const minLength = /password should be at least (\d+)/i.exec(message);
   if (minLength) return `A senha deve ter pelo menos ${minLength[1]} caracteres.`;
   return fallback;
+}
+
+// ---- Pedido de redefinição de senha ("Esqueci minha senha") ----
+
+/** Resposta única do pedido de redefinição: igual exista ou não a conta (não revela quem tem cadastro). */
+export const RECOVER_NEUTRAL_MESSAGE = 'Se o e-mail estiver cadastrado, você receberá um link em instantes.';
+
+const RECOVER_SEND_FAILED_MESSAGE = 'Não foi possível enviar o e-mail agora. Aguarde um minuto e tente novamente.';
+const RECOVER_RATE_LIMIT_MESSAGE = 'Muitas tentativas. Aguarde um pouco.';
+
+/**
+ * Mensagem de erro do pedido de redefinição, ou `null` quando a tela deve mostrar a resposta neutra
+ * (`RECOVER_NEUTRAL_MESSAGE`): sucesso OU "usuário não encontrado". Nunca devolve o texto do servidor.
+ */
+export function recoverErrorMessage(input: AuthErrorInput): string | null {
+  if (!input) return null;
+  const obj = typeof input === 'object' ? input : null;
+  const message = (typeof input === 'string' ? input : obj?.message) ?? '';
+  const status = typeof obj?.status === 'number' ? obj.status : 0;
+  const code = typeof obj?.code === 'string' ? obj.code : '';
+
+  if (isNetworkError(input)) return MESSAGES.network;
+  // conta inexistente não pode ser distinguida de sucesso
+  if (code === 'user_not_found' || /user not found/i.test(message)) return null;
+  if (code === 'email_address_invalid' || /unable to validate email address/i.test(message)) return 'Informe um e-mail válido.';
+  // "For security purposes, you can only request this after 52 seconds."
+  const wait = /after (\d+) seconds?/i.exec(message);
+  if (wait) return `Por segurança, aguarde ${wait[1]} segundos antes de tentar novamente.`;
+  if (status === 429 || /^over_.+_rate_limit$/.test(code) || /rate limit/i.test(message)) return RECOVER_RATE_LIMIT_MESSAGE;
+  // 500 do /recover (o servidor de autenticação não conseguiu enviar) e qualquer erro desconhecido
+  return RECOVER_SEND_FAILED_MESSAGE;
 }
