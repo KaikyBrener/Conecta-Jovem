@@ -1,4 +1,4 @@
-// Subconjunto de PostgREST suficiente para o que o frontend do Conecta Jovem usa
+// Subconjunto de PostgREST suficiente para o que o frontend do ConectJovem usa
 // (supabase-js: select com embeds, filtros, order, limit/range, count, insert/upsert,
 // update, delete, rpc). Roda sobre o PGlite com as migrations reais, então RLS,
 // triggers e constraints são os de verdade — só o "tradutor HTTP" é simulado.

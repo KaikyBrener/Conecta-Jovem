@@ -38,7 +38,7 @@ test.describe('Relatórios — exportação CSV', () => {
     expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // BOM para o Excel abrir com acentos corretos
 
     const l = lines(bytes);
-    expect(l[0]).toBe('Conecta Jovem;Relatório geral');
+    expect(l[0]).toBe('ConectJovem;Relatório geral');
     expect(l).toContain(`Período;${br(spDay(-29))} a ${br(spDay(0))}`);
     expect(l).toContain('Grupo;Todos os grupos');
     expect(l.some((x) => x.startsWith('Gerado em;'))).toBe(true);
@@ -83,7 +83,7 @@ test.describe('Relatórios — exportação CSV', () => {
     let f = await grab(page, page.getByTestId('exportar-csv'));
     expect(f.name).toBe(`relatorio-frequencia_${range}.csv`);
     let l = lines(f.bytes);
-    expect(l[0]).toBe('Conecta Jovem;Relatório de frequência');
+    expect(l[0]).toBe('ConectJovem;Relatório de frequência');
     expect(l).toContain('Data;Encontro;Situação;Presentes;Faltas;Registros;Frequência');
     expect(l.some((x) => /;Culto E8 Sem Chamada;Realizado;0;0;0;—$/.test(x))).toBe(true);
     expect(l).toContain('Grupo;Encontros;Presentes;Faltas;Registros;Frequência');

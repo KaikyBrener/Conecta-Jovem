@@ -56,7 +56,7 @@ function incidentId(): string {
 
 const consoleReporter: ErrorReporter = (r) => {
   console.error(
-    `[conecta-jovem] ${r.id} ${r.context}${r.code ? ` (${r.code})` : ''}${r.status ? ` [${r.status}]` : ''}: ${r.message}`,
+    `[conectjovem] ${r.id} ${r.context}${r.code ? ` (${r.code})` : ''}${r.status ? ` [${r.status}]` : ''}: ${r.message}`,
   );
 };
 

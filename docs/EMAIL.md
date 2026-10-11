@@ -19,7 +19,7 @@ Só e-mail. Nada é automático: nenhum alerta dispara envio. "Enviada" só exis
 ## Configuração (NADA disso está configurado por este repositório)
 ```
 supabase functions deploy send-communication
-supabase secrets set RESEND_API_KEY=... MAIL_FROM="Conecta Jovem <no-reply@seudominio>" \
+supabase secrets set RESEND_API_KEY=... MAIL_FROM="ConectJovem <no-reply@seudominio>" \
   ALLOWED_ORIGIN=https://seu-app MAIL_PROVIDER=resend
 ```
 - Aplicar a migration 018 no SQL Editor (após a 017).

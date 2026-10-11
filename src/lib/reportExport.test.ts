@@ -210,7 +210,7 @@ describe('docToCsv', () => {
   it('tem cabeçalho, carimbo, resumo, tabelas e neutraliza fórmulas', () => {
     const csv = docToCsv(buildAttendanceDoc(attendance, { groupName: 'Grupo Ação' }), at);
     const lines = csv.split('\r\n');
-    expect(lines[0]).toBe('Conecta Jovem;Relatório de frequência');
+    expect(lines[0]).toBe('ConectJovem;Relatório de frequência');
     expect(lines).toContain('Período;04/09/2026 a 03/10/2026');
     expect(lines).toContain('Grupo;Grupo Ação');
     expect(lines).toContain('Gerado em;03/10/2026 10:05');

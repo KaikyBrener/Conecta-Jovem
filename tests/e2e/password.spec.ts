@@ -278,7 +278,7 @@ test.describe('Convite — definição inicial de senha', () => {
 
     await expect(page).toHaveURL(/\/redefinir-senha$/);
     await expect(page.getByRole('heading', { name: 'Defina sua senha' })).toBeVisible();
-    await expect(page.getByText('Bem-vindo ao Conecta Jovem!')).toBeVisible();
+    await expect(page.getByText('Bem-vindo ao ConectJovem!')).toBeVisible();
 
     await page.getByLabel('Nova senha').fill('MinhaSenha#1');
     await page.getByLabel('Confirmar senha').fill('MinhaSenha#1');

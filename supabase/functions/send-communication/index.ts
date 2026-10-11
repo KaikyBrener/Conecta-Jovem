@@ -2,7 +2,7 @@
 // resultado REAL do provedor. Lógica em handler.ts (testada em Node); este arquivo só liga o ambiente.
 //
 // DEPLOY:   supabase functions deploy send-communication      (verify_jwt padrão = true: o gateway já exige um JWT válido)
-// SECRETS:  supabase secrets set RESEND_API_KEY=... MAIL_FROM="Conecta Jovem <no-reply@seudominio>" \
+// SECRETS:  supabase secrets set RESEND_API_KEY=... MAIL_FROM="ConectJovem <no-reply@seudominio>" \
 //                                ALLOWED_ORIGIN=https://seu-app MAIL_PROVIDER=resend
 //   SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY são injetadas pelo Supabase (NUNCA no frontend/repositório).
 //   ALLOWED_ORIGIN: origem EXATA do app (ex.: https://app.exemplo.com). Sem ela nenhuma origem recebe CORS (restrito).

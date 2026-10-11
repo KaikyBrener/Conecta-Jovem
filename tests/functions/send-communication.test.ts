@@ -47,7 +47,7 @@ function setup(over: {
         : { ok: true, changed: true, status: 'failed', failure_reason: a.failureReason };
     },
   };
-  const env = over.configured === false ? {} : { RESEND_API_KEY: API_KEY, MAIL_FROM: 'Conecta Jovem <no-reply@exemplo.com>', ...over.extraEnv };
+  const env = over.configured === false ? {} : { RESEND_API_KEY: API_KEY, MAIL_FROM: 'ConectJovem <no-reply@exemplo.com>', ...over.extraEnv };
   const deps: Deps = {
     db,
     provider: providerFromEnv((k) => (env as Record<string, string>)[k], fetchSpy as never),
@@ -93,7 +93,7 @@ describe('envio com sucesso', () => {
     expect(init.headers['Idempotency-Key']).toMatch(new RegExp(`^${ID}:[0-9a-f]{16}$`));
     const payload = JSON.parse(init.body);
     expect(payload).toEqual({
-      from: 'Conecta Jovem <no-reply@exemplo.com>', to: [RECIPIENT], subject: SUBJECT, text: BODY, reply_to: SENDER,
+      from: 'ConectJovem <no-reply@exemplo.com>', to: [RECIPIENT], subject: SUBJECT, text: BODY, reply_to: SENDER,
     });
     expect(payload.html).toBeUndefined();
     expect(s.calls.finish).toEqual([{

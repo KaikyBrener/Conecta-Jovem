@@ -47,7 +47,7 @@ describe('buildReportPdf', () => {
     const text = latin1(pdf.output('arraybuffer'));
     expect(text.startsWith('%PDF-')).toBe(true);
     expect(pdf.getNumberOfPages()).toBe(1);
-    expect(text).toContain('Conecta Jovem');
+    expect(text).toContain('ConectJovem');
     expect(text).toContain('Gerado em: 03/10/2026 10:05');
     expect(text).toContain('P\xE1gina 1 de 1'); // á em Latin-1
     expect(text).toContain('Relat\xF3rio de frequ\xEAncia'); // ó, ê

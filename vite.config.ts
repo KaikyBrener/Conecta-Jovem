@@ -13,7 +13,7 @@ import tailwindcss from '@tailwindcss/vite';
  */
 function cspPlugin(supabaseUrl: string | undefined): Plugin {
   return {
-    name: 'conecta-jovem-csp',
+    name: 'conectjovem-csp',
     apply: 'build',
     transformIndexHtml: {
       order: 'post',

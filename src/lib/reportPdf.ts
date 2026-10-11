@@ -25,7 +25,7 @@ const t = toPdfText;
 /** Monta o PDF (documento jsPDF) a partir do documento de exportação. */
 export function buildReportPdf(doc: ExportDoc, generatedAt: Date): jsPDF {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-  pdf.setProperties({ title: t(`${doc.title} - Conecta Jovem`), author: 'Conecta Jovem', creator: 'Conecta Jovem' });
+  pdf.setProperties({ title: t(`${doc.title} - ConectJovem`), author: 'ConectJovem', creator: 'ConectJovem' });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const contentW = pageW - MARGIN_X * 2;
@@ -33,7 +33,7 @@ export function buildReportPdf(doc: ExportDoc, generatedAt: Date): jsPDF {
   // ── Cabeçalho (primeira página) ──
   let y = TOP_FIRST;
   pdf.setFont('helvetica', 'bold').setFontSize(10).setTextColor(...BLUE);
-  pdf.text('Conecta Jovem', MARGIN_X, y);
+  pdf.text('ConectJovem', MARGIN_X, y);
   y += 8;
   pdf.setFont('helvetica', 'bold').setFontSize(18).setTextColor(...INK);
   pdf.text(t(doc.title), MARGIN_X, y);
@@ -145,7 +145,7 @@ export function buildReportPdf(doc: ExportDoc, generatedAt: Date): jsPDF {
     pdf.setPage(page);
     if (page > 1) {
       pdf.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...MUTED);
-      pdf.text(t(`Conecta Jovem · ${doc.title}`), MARGIN_X, 12);
+      pdf.text(t(`ConectJovem · ${doc.title}`), MARGIN_X, 12);
       pdf.setDrawColor(...LINE).setLineWidth(0.2).line(MARGIN_X, 14.5, pageW - MARGIN_X, 14.5);
     }
     pdf.setDrawColor(...LINE).setLineWidth(0.2).line(MARGIN_X, pageH - 14, pageW - MARGIN_X, pageH - 14);

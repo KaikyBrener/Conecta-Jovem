@@ -1,4 +1,4 @@
-# Conecta Jovem
+# ConectJovem
 
 Sistema web mobile-first para gestão de ministério jovem: jovens, grupos, encontros,
 chamada (presença), histórico, alertas de faltas, tarefas de acompanhamento, relatórios e configurações.
@@ -101,8 +101,8 @@ frontend, e criar um backend/Edge Function só para isso foge da arquitetura (se
 atribuídos em Configurações depois do primeiro acesso.
 
 **Configuração obrigatória no painel do Supabase** (*Authentication → URL Configuration*), senão os links de e-mail falham:
-- **Site URL**: a URL de produção do app (ex.: `https://conectajovem.exemplo.com`). É para onde o link de convite aponta.
-- **Redirect URLs**: inclua `https://<seu-dominio>/redefinir-senha` (e `http://localhost:5173/redefinir-senha` em desenvolvimento).
+- **Site URL**: a URL de produção do app (`https://conectjovem.com.br`). É para onde o link de convite aponta.
+- **Redirect URLs**: inclua `https://conectjovem.com.br/redefinir-senha` (e `http://localhost:5173/redefinir-senha` em desenvolvimento).
 - *Authentication → Email Templates*: revise os textos de "Invite user" e "Reset password" (podem ser traduzidos para pt-BR).
 - *Authentication → Providers → Email*: ajuste o tamanho mínimo da senha para **10** (o app valida 10 no cliente, `MIN_PASSWORD_LENGTH` em `src/lib/passwordPolicy.ts`; o Supabase aplica a política do projeto).
 - O envio padrão do Supabase tem limite de e-mails por hora; para uso real configure um SMTP próprio (*Project Settings → Auth → SMTP*).
@@ -127,10 +127,14 @@ do Supabase. Migrations e `supabase/functions/` continuam versionadas.
   inline de tema (calculado no build); `style-src`/`font-src`/`manifest-src` `'self'`; `img-src 'self' data:`;
   `connect-src 'self'` + a origem de `VITE_SUPABASE_URL`; `object-src 'none'`; `base-uri`/`form-action` `'self'`.
   O build **falha** se `VITE_SUPABASE_URL` não estiver definida. `npm run dev` e o E2E não recebem CSP.
+- **Hospedagem: Cloudflare Workers (arquivos estáticos)**, configurada em `wrangler.jsonc`: publica o `dist/` e usa
+  `not_found_handling: "single-page-application"` como fallback de SPA para o `BrowserRouter` (qualquer rota devolve o
+  `index.html`). Domínio de produção: `https://conectjovem.com.br`. O `"name"` do `wrangler.jsonc` é o nome do Worker
+  ao qual o domínio está ligado: **não renomeie** (criaria outro Worker).
 - **Headers HTTP no host**: `public/_headers` (HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
-  `frame-ancestors 'none'`/`X-Frame-Options`, `Permissions-Policy`) e `public/_redirects` (fallback de SPA para o
-  `BrowserRouter`: `/*  /index.html  200`) usam o formato do **Netlify e do Cloudflare Pages** e são copiados para o `dist/`.
-  Em outro host, reproduza os mesmos headers. Antes de ativar HSTS com `includeSubDomains`, confirme que os subdomínios têm HTTPS.
+  `frame-ancestors 'none'`/`X-Frame-Options`, `Permissions-Policy`) é copiado para o `dist/`. Confira que chegam ao
+  navegador com `npm run smoke -- https://conectjovem.com.br`. Em outro host, reproduza os mesmos headers. Antes de ativar
+  HSTS com `includeSubDomains`, confirme que os subdomínios têm HTTPS.
   Se mudar o script inline do `index.html`, rebuild (o hash é recalculado).
 
 ### Papéis

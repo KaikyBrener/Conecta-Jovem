@@ -1,6 +1,6 @@
 # Testes E2E (Playwright)
 
-Validam o comportamento real do Conecta Jovem no navegador. **Nenhum dado real é usado** e o
+Validam o comportamento real do ConectJovem no navegador. **Nenhum dado real é usado** e o
 Supabase de produção/desenvolvimento nunca é tocado.
 
 ```bash

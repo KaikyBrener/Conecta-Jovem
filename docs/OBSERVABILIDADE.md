@@ -2,7 +2,7 @@
 
 > **Status: implementado** (proposta aprovada e executada nesta fase; ver a seção 5 para o que mudou).
 
-Escopo: como o Conecta Jovem trata erros hoje, o que está errado e o que vamos (e **não** vamos) fazer.
+Escopo: como o ConectJovem trata erros hoje, o que está errado e o que vamos (e **não** vamos) fazer.
 Sem plataforma externa de monitoramento: o objetivo é uma base local pequena, com um único ponto de
 extensão para plugar uma ferramenta no futuro.
 

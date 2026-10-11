@@ -1,4 +1,4 @@
-# Aviso de privacidade — Conecta Jovem
+# Aviso de privacidade — ConectJovem
 
 > **RASCUNHO — validar com jurídico/responsável antes de publicar.**
 > Este texto descreve o que o sistema trata e permite, a partir do código e das migrations. Ele **não** define base legal,

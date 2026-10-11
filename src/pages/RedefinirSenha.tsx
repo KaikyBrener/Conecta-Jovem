@@ -100,7 +100,7 @@ export function RedefinirSenha() {
       title={isInvite ? 'Defina sua senha' : 'Redefinir senha'}
       subtitle={
         isInvite
-          ? 'Bem-vindo ao Conecta Jovem! Escolha uma senha para acessar o sistema nas próximas vezes.'
+          ? 'Bem-vindo ao ConectJovem! Escolha uma senha para acessar o sistema nas próximas vezes.'
           : 'Escolha uma nova senha para a sua conta.'
       }
     >

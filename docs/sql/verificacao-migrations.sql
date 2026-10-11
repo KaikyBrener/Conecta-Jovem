@@ -1,5 +1,5 @@
 -- =====================================================================================================================
--- Conecta Jovem — verificação das migrations no banco REAL (SQL Editor do Supabase)
+-- ConectJovem — verificação das migrations no banco REAL (SQL Editor do Supabase)
 -- =====================================================================================================================
 -- SOMENTE LEITURA: cada consulta é um único SELECT; nada é gravado e nenhuma função do app é executada.
 -- Rode UMA consulta por vez (selecione do "-- Qn" até o "order by 1, 2;") e guarde o resultado.

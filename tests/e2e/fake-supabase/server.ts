@@ -152,7 +152,7 @@ async function handleAuth(req: IncomingMessage, url: URL, body: any): Promise<Ht
 // e o comportamento é controlado por /__test/mail-config. Nenhum e-mail real é enviado.
 type MailMode = 'success' | 'http4xx' | 'http5xx' | 'network' | 'timeout' | 'unconfigured';
 const MAIL_API_KEY = 'fake-provider-key-e2e';
-const MAIL_FROM = 'Conecta Jovem <no-reply@e2e.test>';
+const MAIL_FROM = 'ConectJovem <no-reply@e2e.test>';
 const PROVIDER_RAW_TEXT = 'RAW-PROVIDER-ERROR-TEXT-do-not-leak';
 const mail = { mode: 'success' as MailMode, delayMs: 0, timeoutMs: 400 };
 const mailCalls: { url: string; headers: Record<string, string>; payload: Record<string, unknown> }[] = [];
