@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogIn, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { translateAuthError } from '../lib/format';
 import { cn } from '../lib/utils';
-import { authLinkCls, authPrimaryBtnCls, fieldCls, fieldInvalidCls, labelCls } from '../lib/authStyles';
+import {
+  authLinkCls, authPrimaryBtnCls, fieldCls, fieldIconCls, fieldInvalidCls, fieldWithIconCls, labelCls,
+} from '../lib/authStyles';
 import { AuthShell } from '../components/auth/AuthShell';
 import { AuthAlert } from '../components/auth/AuthAlert';
 import { PasswordInput } from '../components/auth/PasswordInput';
@@ -61,6 +63,7 @@ export const Login = () => {
   return (
     <AuthShell
       title="Entrar"
+      icon={LogIn}
       subtitle="Acesse o sistema com seu e-mail e senha."
       footer="Acesso restrito a membros da equipe."
     >
@@ -73,23 +76,26 @@ export const Login = () => {
       <form className="mt-6 space-y-5" onSubmit={handleLogin} aria-busy={loading}>
         <div>
           <label htmlFor={emailId} className={labelCls}>E-mail</label>
-          <input
-            id={emailId}
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            inputMode="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            placeholder="nome@exemplo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            readOnly={loading}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={describedBy}
-            className={cn(fieldCls, 'mt-1.5', error && fieldInvalidCls)}
-          />
+          <div className="relative mt-1.5">
+            <Mail className={fieldIconCls} aria-hidden="true" />
+            <input
+              id={emailId}
+              type="email"
+              name="email"
+              required
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="nome@exemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              readOnly={loading}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={describedBy}
+              className={cn(fieldCls, fieldWithIconCls, error && fieldInvalidCls)}
+            />
+          </div>
         </div>
 
         <div>
@@ -98,6 +104,7 @@ export const Login = () => {
             inputRef={passwordRef}
             name="password"
             label="Senha"
+            placeholder="Digite sua senha"
             autoComplete="current-password"
             value={password}
             onChange={setPassword}

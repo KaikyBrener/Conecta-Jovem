@@ -1,11 +1,13 @@
 import { useId, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { KeyRound, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { translateAuthError } from '../lib/format';
 import { cn } from '../lib/utils';
-import { authLinkCls, authPrimaryBtnCls, fieldCls, fieldInvalidCls, labelCls } from '../lib/authStyles';
+import {
+  authLinkCls, authPrimaryBtnCls, fieldCls, fieldIconCls, fieldInvalidCls, fieldWithIconCls, labelCls,
+} from '../lib/authStyles';
 import { AuthShell } from '../components/auth/AuthShell';
 import { AuthAlert } from '../components/auth/AuthAlert';
 
@@ -62,29 +64,33 @@ export function RecuperarSenha() {
   return (
     <AuthShell
       title="Recuperar senha"
+      icon={KeyRound}
       subtitle="Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha."
     >
       <form className="mt-6 space-y-5" onSubmit={handleSubmit} aria-busy={loading}>
         <div>
           <label htmlFor={emailId} className={labelCls}>E-mail</label>
-          <input
-            ref={emailRef}
-            id={emailId}
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            inputMode="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            placeholder="nome@exemplo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            readOnly={loading}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
-            className={cn(fieldCls, 'mt-1.5', error && fieldInvalidCls)}
-          />
+          <div className="relative mt-1.5">
+            <Mail className={fieldIconCls} aria-hidden="true" />
+            <input
+              ref={emailRef}
+              id={emailId}
+              type="email"
+              name="email"
+              required
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="nome@exemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              readOnly={loading}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
+              className={cn(fieldCls, fieldWithIconCls, error && fieldInvalidCls)}
+            />
+          </div>
         </div>
 
         {error && <AuthAlert tone="error" id={errorId}>{error}</AuthAlert>}
