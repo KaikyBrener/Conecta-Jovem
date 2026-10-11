@@ -118,11 +118,11 @@ test.describe('Registro de erros (logger) — sanitizado e com código de incide
     await page.goto('/grupos');
     await expect(page.getByText('Erro ao carregar grupos.')).toBeVisible();
 
-    const app = logs.filter((l) => l.startsWith('[conecta-jovem]'));
+    const app = logs.filter((l) => l.startsWith('[conectjovem]'));
     expect(app.length).toBeGreaterThan(0);
     const all = app.join('\n');
     expect(all).toContain('Erro ao carregar grupos.');
-    expect(all).toMatch(/\[conecta-jovem\] [0-9a-f]{8} /);
+    expect(all).toMatch(/\[conectjovem\] [0-9a-f]{8} /);
     expect(all).not.toContain(coord.email);
     expect(all).not.toMatch(/eyJ[\w-]{8,}\./);
     expect(all).not.toContain('DETALHE-SECRETO');

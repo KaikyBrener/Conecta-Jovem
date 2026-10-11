@@ -155,7 +155,7 @@ export function Historico() {
 
       {/* Tabela - Desktop */}
       {rows.length > 0 && (
-        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm" data-testid="historico-tabela">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">

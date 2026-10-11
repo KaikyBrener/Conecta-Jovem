@@ -1,4 +1,4 @@
-# Runbook de go-live — Conecta Jovem
+# Runbook de go-live — ConectJovem
 
 Quem executa: o responsável pelo projeto. **Nada deste runbook é executado pelo assistente**; ele só interpreta os
 resultados trazidos.
@@ -6,8 +6,9 @@ resultados trazidos.
 Regras: nunca cole chaves, senhas ou tokens em chat, issue ou commit (cite só o **nome** do segredo). Comandos proibidos
 neste projeto: `supabase db push`, `db reset`, `db pull`, `migration up`, `config push`.
 
-Placeholders: `https://SEU-DOMINIO` é o domínio final do app; `SEU-DOMINIO` sozinho é o domínio sem `https://`.
-Substitua só no momento de executar e não invente valores.
+Domínio de produção do app: `https://conectjovem.com.br`. Placeholder: `DOMINIO-DE-ENVIO` é o domínio **verificado no
+Resend** para enviar e-mail (pode ser `conectjovem.com.br` ou um subdomínio dedicado). Substitua só no momento de
+executar e não invente valores.
 
 Legenda:
 - `[x] feito, conforme o responsável` — declarado pelo responsável; **não verificado** pelo assistente.
@@ -85,9 +86,9 @@ Se qualquer migration falhar no meio: **pare, não reexecute**, traga o erro (ve
 
 ## 4. Domínio de envio no Resend
 
-- [ ] Adicionar o domínio de envio no painel do Resend (ex.: `SEU-DOMINIO` ou um subdomínio dedicado a e-mail).
+- [ ] Adicionar o domínio de envio no painel do Resend (ex.: `conectjovem.com.br` ou um subdomínio dedicado a e-mail).
 - [ ] Publicar no DNS os registros **SPF** e **DKIM** que o Resend mostrar, copiados do painel, sem alterar.
-- [ ] Publicar **DMARC** inicial em modo observação: registro TXT `_dmarc.SEU-DOMINIO` com `v=DMARC1; p=none`
+- [ ] Publicar **DMARC** inicial em modo observação: registro TXT `_dmarc.DOMINIO-DE-ENVIO` com `v=DMARC1; p=none`
       (o endereço de relatórios `rua=mailto:...` é opcional e fica a critério do responsável).
 - [ ] Esperar o domínio aparecer como **verificado** no Resend. Sem isso, o Resend só entrega para o dono da conta.
 
@@ -96,13 +97,13 @@ Se qualquer migration falhar no meio: **pare, não reexecute**, traga o erro (ve
 Definir com o CLI ou no painel (Edge Functions → Secrets), **sem colar valores em chat**:
 
 ```bash
-npx supabase secrets set MAIL_FROM="Conecta Jovem <no-reply@SEU-DOMINIO>" ALLOWED_ORIGIN=https://SEU-DOMINIO MAIL_PROVIDER=resend
-npx supabase secrets set REPLY_TO_EMAIL=contato@SEU-DOMINIO
+npx supabase secrets set MAIL_FROM="ConectJovem <no-reply@DOMINIO-DE-ENVIO>" ALLOWED_ORIGIN=https://conectjovem.com.br MAIL_PROVIDER=resend
+npx supabase secrets set REPLY_TO_EMAIL=contato@DOMINIO-DE-ENVIO
 ```
 
 - [x] `RESEND_API_KEY`: chave nova, **feito, conforme o responsável**.
 - [ ] `MAIL_FROM`: remetente **no domínio verificado** do item 4.
-- [ ] `ALLOWED_ORIGIN`: a URL **exata** do app, **sem barra final** (`https://SEU-DOMINIO`). A função normaliza barra e
+- [ ] `ALLOWED_ORIGIN`: a URL **exata** do app, **sem barra final** (`https://conectjovem.com.br`). A função normaliza barra e
       caminho, mas mantenha o valor limpo. Errada ou ausente = o navegador bloqueia o envio (CORS).
 - [ ] `MAIL_PROVIDER=resend`.
 - [ ] `REPLY_TO_EMAIL` (opcional, recomendado): endereço único da organização. Esconde o e-mail pessoal de quem envia.
@@ -118,24 +119,37 @@ Detalhes: [`docs/EMAIL.md`](EMAIL.md).
 
 ## 7. Host e DNS do app
 
-Escolher **um**: Netlify ou Cloudflare Pages. Os arquivos `public/_headers` e `public/_redirects` já estão no formato dos
-dois e vão para o `dist/`.
+Hospedagem: **Cloudflare Workers (arquivos estáticos)**, configurada em `wrangler.jsonc` na raiz do repositório:
+publica o `dist/` e usa `not_found_handling: "single-page-application"` como fallback de SPA (qualquer rota do app
+devolve o `index.html`). O `public/_headers` vai para o `dist/` e define os headers de segurança.
 
-- [ ] Criar o site ligado a este repositório e branch.
+- [ ] Worker `conecta-jovem` ligado a este repositório e à branch de produção. **Não mude o `"name"` do
+      `wrangler.jsonc`**: o domínio está ligado a esse Worker, e outro nome criaria um Worker novo.
 - [ ] Comando de build: `npm run build`.
-- [ ] Pasta publicada: `dist`.
+- [ ] Pasta publicada: `dist` (já definida em `wrangler.jsonc`).
 - [ ] Variáveis de ambiente definidas **antes** do primeiro build:
       `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, só a chave **publicável**, nunca a `service_role`.
       Sem `VITE_SUPABASE_URL` o build **falha** de propósito (a CSP precisa dela).
 - [ ] Versão do Node no host: a mesma versão principal usada no desenvolvimento (hoje, Node 24).
-- [ ] DNS: apontar `SEU-DOMINIO` para o host, conforme as instruções do próprio host.
+- [ ] Domínio `conectjovem.com.br` ligado ao Worker (Workers & Pages → o Worker → Settings → Domains & Routes).
 - [ ] HTTPS ativo no domínio.
 - [ ] HSTS: `public/_headers` envia `includeSubDomains`. Confirme antes que **todos** os subdomínios têm HTTPS.
 
+### Logs e monitoramento
+
+- **Worker:** o `wrangler.jsonc` liga `observability`. O Worker só entrega arquivos estáticos (não roda código do app),
+  então os logs do Workers mostram pouco: servem para ver se o site está respondendo, não o que o usuário fez.
+- **Visitas:** ligar o **Cloudflare Web Analytics** no painel (Analytics & Logs → Web Analytics → `conectjovem.com.br`).
+  Não exige alterar o app.
+- **Erros do navegador:** hoje ficam só no console de quem usa (ver `docs/OBSERVABILIDADE.md`). Para recebê-los seria
+  preciso um monitor de erros, como o Sentry. **Não está instalado.**
+- **Edge Function:** Supabase → Edge Functions → `send-communication` → Logs.
+- **E-mails (entregue, devolvido, reclamação):** painel do Resend.
+
 ## 8. Supabase Auth
 
-- [ ] Em Authentication → URL Configuration, **Site URL** = `https://SEU-DOMINIO`.
-- [ ] **Redirect URLs** incluindo `https://SEU-DOMINIO/redefinir-senha`.
+- [ ] Em Authentication → URL Configuration, **Site URL** = `https://conectjovem.com.br`.
+- [ ] **Redirect URLs** incluindo `https://conectjovem.com.br/redefinir-senha`.
 - [ ] Senha mínima **10** no Auth (o app já valida 10 na tela). Se fizer parte dos "ajustes de Auth" já declarados, só confira.
 - [ ] **SMTP próprio** no Auth (Project Settings → Auth → SMTP). O envio padrão do Supabase tem limite baixo de e-mails
       por hora, o que afeta convites e recuperação de senha.
@@ -164,7 +178,7 @@ dois e vão para o `dist/`.
   select left(id::text, 8) as comunicacao, status::text, failure_reason, provider_message_id is not null as tem_id_provedor
     from public.communications order by last_attempt_at desc nulls last limit 5;
   ```
-- [ ] `npm run smoke -- https://SEU-DOMINIO`: todos os itens `OK`.
+- [ ] `npm run smoke -- https://conectjovem.com.br`: todos os itens `OK`.
 - [ ] **Líder sem acesso a grupo alheio**: logado como líder, ele vê só os próprios grupos, jovens e encontros. Abrir a URL
       de um encontro ou jovem de outro grupo não mostra os dados.
 - [ ] (Opcional) **Anonimização**: testar com um jovem de **TESTE**, criado só para isso (**nunca com dado real**: é
@@ -179,8 +193,8 @@ dois e vão para o `dist/`.
 
 ## 12. Como voltar atrás
 
-- **Frontend:** no painel do host, republicar o deploy anterior (o próprio histórico de deploys do Netlify ou do
-  Cloudflare Pages). Não exige mexer no banco.
+- **Frontend:** no painel da Cloudflare, voltar para a versão anterior do Worker (Workers & Pages → o Worker →
+  Deployments → Rollback). Não exige mexer no banco.
 - **Edge Function:** fazer o deploy de novo a partir da versão anterior do código (por exemplo, a partir da `main`),
   com `npx supabase functions deploy send-communication`.
 - **Banco:** **só pelo backup** do item 1. As migrations não têm "desfazer". A exceção é o agendamento da `023`, que

@@ -6,9 +6,9 @@ export const inputCls =
 export const labelCls = 'block text-sm font-medium text-gray-700';
 
 export const primaryBtnCls =
-  'inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm';
+  'inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm md:min-h-0';
 
 export const secondaryBtnCls =
-  'inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors';
+  'inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors md:min-h-0';
 
 export const formErrorCls = 'text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg';

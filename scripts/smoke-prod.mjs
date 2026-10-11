@@ -12,7 +12,7 @@ async function get(url) {
   const res = await fetch(url, {
     method: 'GET',
     redirect: 'follow',
-    headers: { accept: 'text/html', 'user-agent': 'conecta-jovem-smoke/1' },
+    headers: { accept: 'text/html', 'user-agent': 'conectjovem-smoke/1' },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   return { status: res.status, headers: res.headers, body: await res.text(), url: res.url };

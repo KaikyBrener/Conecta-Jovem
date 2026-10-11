@@ -100,7 +100,7 @@ export function RedefinirSenha() {
       title={isInvite ? 'Defina sua senha' : 'Redefinir senha'}
       subtitle={
         isInvite
-          ? 'Bem-vindo ao Conecta Jovem! Escolha uma senha para acessar o sistema nas próximas vezes.'
+          ? 'Bem-vindo ao ConectJovem! Escolha uma senha para acessar o sistema nas próximas vezes.'
           : 'Escolha uma nova senha para a sua conta.'
       }
     >
@@ -110,6 +110,7 @@ export function RedefinirSenha() {
           inputRef={passwordRef}
           name="new-password"
           label="Nova senha"
+          placeholder="Crie uma senha"
           autoComplete="new-password"
           value={password}
           onChange={setPassword}
@@ -123,6 +124,7 @@ export function RedefinirSenha() {
           inputRef={confirmRef}
           name="confirm-password"
           label="Confirmar senha"
+          placeholder="Repita a senha"
           autoComplete="new-password"
           value={confirm}
           onChange={setConfirm}

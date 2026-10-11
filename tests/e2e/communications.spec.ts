@@ -854,7 +854,7 @@ test.describe('Falhas do servidor (PostgREST) durante o fluxo', () => {
 
     const consoleText = leaks.console.join('\n');
     for (const secret of [ANA_EMAIL, 'Olá & até já', 'Linha 1', 'Linha 4', 'stack: boom']) expect(consoleText).not.toContain(secret);
-    expect(consoleText).toContain('[conecta-jovem]'); // o erro foi registrado (sanitizado)
+    expect(consoleText).toContain('[conectjovem]'); // o erro foi registrado (sanitizado)
     expect(consoleText).toContain('[e-mail]');
   });
 

@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import { ErrorBoundary } from './ErrorBoundary';
 import { GlobalSearch } from './search/GlobalSearch';
 import { isSearchShortcut } from '../lib/globalSearch';
+import { Logo } from './ui/Logo';
 
 interface NavItem {
   name: string;
@@ -44,7 +45,7 @@ const ThemeToggleButton = ({ className }: { className?: string }) => {
       aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
       title={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
       className={cn(
-        'rounded-lg p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+        'inline-flex h-11 w-11 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:h-8 md:w-8',
         className
       )}
     >
@@ -58,7 +59,7 @@ const SidebarToggleButton = ({ collapsed, onClick }: { collapsed: boolean; onCli
     onClick={onClick}
     aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
     title={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-    className="flex-shrink-0 rounded-lg p-1.5 text-navy-200 hover:bg-navy-800 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    className="flex-shrink-0 rounded-lg p-1.5 text-navy-200 hover:bg-navy-800 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
   >
     {collapsed ? <PanelLeftOpen className="w-[18px] h-[18px]" /> : <PanelLeftClose className="w-[18px] h-[18px]" />}
   </button>
@@ -135,16 +136,14 @@ export const Layout = () => {
           sidebarCollapsed ? 'w-16' : 'w-64'
         )}
       >
-        <div className={cn('border-b border-white/10', sidebarCollapsed ? 'px-2 py-4' : 'px-6 py-5')}>
-          <div className={cn('flex items-center', sidebarCollapsed ? 'justify-center' : 'justify-between')}>
-            {!sidebarCollapsed && (
-              <h1 className="text-xl font-bold text-white tracking-tight truncate">
-                Conecta <span className="text-blue-400">Jovem</span>
-              </h1>
-            )}
+        <div className={cn('border-b border-white/10', sidebarCollapsed ? 'px-2 py-4' : 'py-5 pl-4 pr-3')}>
+          <div className={cn('flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'justify-between gap-2')}>
+            <h1 className="flex min-w-0 items-center">
+              {sidebarCollapsed ? <Logo variant="icone" tamanho="sm" /> : <Logo variant="escuro" tamanho="md" />}
+            </h1>
             <SidebarToggleButton collapsed={sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)} />
           </div>
-          <div className={cn('mt-3 flex items-center gap-2', sidebarCollapsed && 'justify-center')}>
+          <div className={cn('mt-3 flex items-center gap-2', sidebarCollapsed ? 'justify-center' : 'pl-2')}>
             <div
               className="w-7 h-7 rounded-full bg-navy-700 text-navy-100 text-xs font-semibold flex items-center justify-center uppercase flex-shrink-0"
               title={sidebarCollapsed ? profile?.full_name || 'Usuário' : undefined}
@@ -171,7 +170,7 @@ export const Layout = () => {
                 to={item.path}
                 title={sidebarCollapsed ? item.name : undefined}
                 className={cn(
-                  'relative flex items-center rounded-lg text-sm transition-colors',
+                  'relative flex items-center rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
                   sidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2',
                   isActive
                     ? 'bg-blue-600 text-white font-medium shadow-sm'
@@ -197,7 +196,7 @@ export const Layout = () => {
             onClick={handleLogout}
             title={sidebarCollapsed ? 'Encerrar sessão' : undefined}
             className={cn(
-              'flex items-center w-full text-sm text-navy-200 hover:bg-navy-800 hover:text-white rounded-lg transition-colors',
+              'flex items-center w-full text-sm text-navy-200 hover:bg-navy-800 hover:text-white rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
               sidebarCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'
             )}
           >
@@ -212,22 +211,26 @@ export const Layout = () => {
           rolagem que nunca rola (altura = conteúdo) e quebraria todo `sticky` das páginas. */}
       <main className="flex-1 min-w-0 overflow-x-clip pb-20 md:pb-0">
         {/* Header Mobile */}
-        <header className="md:hidden bg-navy-900 px-4 py-3 flex justify-between items-center sticky top-0 z-10">
-          <h1 className="text-lg font-bold text-white">
-            Conecta <span className="text-blue-400">Jovem</span>
+        <header className="md:hidden bg-navy-900 pl-2 pr-2 py-1.5 flex justify-between items-center sticky top-0 z-10">
+          <h1 className="flex items-center">
+            <Logo variant="escuro" tamanho="md" />
           </h1>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
               aria-label="Abrir busca global"
               data-testid="busca-global-abrir-mobile"
-              className="rounded-lg p-1.5 text-navy-200 hover:bg-navy-800 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-navy-200 hover:bg-navy-800 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             >
-              <Search className="w-[18px] h-[18px]" />
+              <Search className="w-5 h-5" />
             </button>
             <ThemeToggleButton className="text-navy-200 hover:bg-navy-800 hover:text-white" />
-            <button onClick={handleLogout} className="text-navy-200 p-1" aria-label="Encerrar sessão">
+            <button
+              onClick={handleLogout}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-navy-200 hover:bg-navy-800 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+              aria-label="Encerrar sessão"
+            >
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -265,8 +268,8 @@ export const Layout = () => {
           <ErrorBoundary key={location.pathname} variant="page">
             <Suspense
               fallback={
-                <div className="flex justify-center py-16">
-                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                <div className="flex justify-center py-16" role="status" aria-label="Carregando">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin motion-reduce:animate-none" aria-hidden="true" />
                 </div>
               }
             >
@@ -296,7 +299,7 @@ export const Layout = () => {
                   to={item.path}
                   onClick={() => setMoreOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-3 rounded-lg',
+                    'flex items-center gap-3 px-3 py-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
                     isActivePath(location.pathname, item.path) ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
                   )}
                 >
@@ -305,7 +308,7 @@ export const Layout = () => {
                 </Link>
               );
             })}
-            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 w-full text-red-600 rounded-lg">
+            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 w-full text-red-600 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
               <LogOut className="w-5 h-5" />
               <span>Encerrar sessão</span>
             </button>
@@ -324,7 +327,7 @@ export const Layout = () => {
               to={item.path}
               onClick={() => setMoreOpen(false)}
               className={cn(
-                'relative flex flex-col items-center justify-center w-full h-full space-y-1',
+                'relative flex flex-col items-center justify-center w-full h-full space-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500',
                 isActive ? 'text-blue-600' : 'text-gray-500'
               )}
             >
@@ -341,7 +344,7 @@ export const Layout = () => {
         <button
           onClick={() => setMoreOpen((o) => !o)}
           className={cn(
-            'flex flex-col items-center justify-center w-full h-full space-y-1',
+            'flex flex-col items-center justify-center w-full h-full space-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500',
             moreOpen || moreActive ? 'text-blue-600' : 'text-gray-500'
           )}
           aria-expanded={moreOpen}

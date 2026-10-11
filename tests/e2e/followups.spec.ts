@@ -451,7 +451,7 @@ test.describe('Situação do jovem', () => {
     await expect(painel.getByTestId('metrica-ultimo-acompanhamento')).toHaveText('Nenhum');
     await expect(painel.getByTestId('situacao-criterio')).toContainText('Crítico = 6 ou mais faltas seguidas');
     await expect(painel.getByTestId('situacao-criterio')).toContainText('Atenção = 3 ou mais faltas seguidas');
-    await sheet.getByRole('button', { name: 'Fechar' }).click();
+    await sheet.getByRole('button', { name: 'Fechar', exact: true }).click();
 
     // Crítico
     sheet = await openYouthSheet(page, 'Caio Dias', 'Todos');
@@ -459,7 +459,7 @@ test.describe('Situação do jovem', () => {
     await expect(sheet.getByTestId('situacao-motivos').locator('li')).toHaveText(['6 faltas seguidas']);
     await expect(sheet.getByTestId('metrica-frequencia')).toHaveText('0%');
     await expect(sheet.getByTestId('metrica-acoes')).toHaveText('Nenhuma aberta');
-    await sheet.getByRole('button', { name: 'Fechar' }).click();
+    await sheet.getByRole('button', { name: 'Fechar', exact: true }).click();
 
     // Normal
     sheet = await openYouthSheet(page, 'Bia Lima', 'Todos');
@@ -467,7 +467,7 @@ test.describe('Situação do jovem', () => {
     await expect(sheet.getByText('Nenhum sinal de atenção no momento.')).toBeVisible();
     await expect(sheet.getByTestId('situacao-motivos')).toHaveCount(0);
     await expect(sheet.getByTestId('metrica-frequencia')).toHaveText('100%');
-    await sheet.getByRole('button', { name: 'Fechar' }).click();
+    await sheet.getByRole('button', { name: 'Fechar', exact: true }).click();
 
     // Inativo: não é avaliado (não aparece como "Normal")
     sheet = await openYouthSheet(page, 'Dani Rocha', 'Todos');

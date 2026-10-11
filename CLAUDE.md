@@ -1,4 +1,4 @@
-# CLAUDE.md — Conecta Jovem
+# CLAUDE.md — ConectJovem
 
 Sistema web **mobile-first** para gestão de ministério jovem: jovens, grupos, encontros,
 chamada (presença), alertas de faltas, tarefas/ações de acompanhamento, relatórios e configurações.
@@ -133,7 +133,7 @@ cancelled)`, `alert_type (consecutive_absences)`, `alert_status (open, resolved,
 - **E-mail**: único canal; **envio real server-side** (Edge Function `send-communication`, migrations 018/019; `begin/finish_communication_send` só `service_role`). Status draft/sending/sent/failed/cancelled; `sent` só após sucesso do provedor; o cliente nunca define `sending`/`sent`. Líder envia só ao e-mail cadastrado do jovem. Nenhum segredo no frontend. Config do provedor: docs/EMAIL.md.
 - Líder desassocia jovem via `batch_set_youth_group([id], null)` (UPDATE direto falha no RLS porque a linha nova não passa no SELECT).
 - Layout: o documento rola (não o `<main>`); `Modal` usa `z-[60]` acima da bottom-nav.
-- CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP e fallback de SPA em `public/_headers` e `public/_redirects` (Netlify/Cloudflare Pages; ver README).
+- CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP em `public/_headers`. Hospedagem: Cloudflare Workers (assets) via `wrangler.jsonc`; o fallback de SPA é `not_found_handling: "single-page-application"` (não existe `public/_redirects`; ver README).
 - **020**: `create_event_series` recusa série ativa idêntica; trigger bloqueia excluir encontro com chamada (cancelar é o caminho). **021**: `anonymize_youth(id)` (coordenador, irreversível; mantém id/grupo/presença).
 
 ### FKs e embeds do PostgREST
@@ -205,7 +205,7 @@ Detalhes e justificativas: `docs/OBSERVABILIDADE.md`.
   (nomes de tabela/constraint, inglês). Só passam mensagens escritas por nós no banco (`P0001`/`P0002`/`42501`
   customizado). Nunca exiba `error.message` diretamente.
 - **Registro**: `errorMessage` também chama `logError` (lib/logger.ts): uma linha sanitizada no console
-  (`[conecta-jovem] <id> contexto (código): msg`), sem stack, `details`/`hint`, tokens, e-mails ou UUIDs.
+  (`[conectjovem] <id> contexto (código): msg`), sem stack, `details`/`hint`, tokens, e-mails ou UUIDs.
   Para plugar um serviço de monitoramento no futuro: `setErrorReporter(fn)` em `main.tsx` — nenhum call-site muda.
 - **Rede de segurança**: `ErrorBoundary` na raiz e dentro do Layout (`key={rota}`), mais captura global de
   `error`/`unhandledrejection` (lib/globalErrors.ts). A tela mostra só o *código do incidente*.

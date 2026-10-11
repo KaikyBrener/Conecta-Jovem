@@ -274,7 +274,7 @@ test.describe('Função send-communication: autenticação e escopo (API direta)
     const [call] = await mailCalls();
     expect(call.payload).toMatchObject({ to: [ANA_EMAIL], subject: 'Assunto API', text: 'Corpo API' });
     expect(JSON.stringify(call.payload)).not.toMatch(/atacante|Forjado|ceo@exemplo/);
-    expect(call.payload.from).toBe('Conecta Jovem <no-reply@e2e.test>');
+    expect(call.payload.from).toBe('ConectJovem <no-reply@e2e.test>');
   });
 
   test('escopo: líder só envia o que criou, do jovem do seu grupo; alheio, de outro grupo ou jovem que mudou de grupo -> 404', async ({ page, db, loginAs }) => {

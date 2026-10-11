@@ -439,7 +439,7 @@ export function docToCsv(doc: ExportDoc, generatedAt: Date): string {
   const blocks: string[] = [];
   const put = (headers: string[], rows: CsvValue[][]) => blocks.push(toCsv(headers, rows));
 
-  put(['Conecta Jovem', doc.title], [...doc.meta.map((m): CsvValue[] => [m.label, m.value]), ['Gerado em', generatedAtLabel(generatedAt)]]);
+  put(['ConectJovem', doc.title], [...doc.meta.map((m): CsvValue[] => [m.label, m.value]), ['Gerado em', generatedAtLabel(generatedAt)]]);
   if (doc.summary.length) put(['Resumo', ''], doc.summary.map((s): CsvValue[] => [s.label, s.value]));
   for (const t of doc.tables) {
     const lines: CsvValue[][] = t.rows.length ? t.rows : t.emptyText ? [[t.emptyText]] : [];
