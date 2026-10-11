@@ -104,7 +104,7 @@ atribuídos em Configurações depois do primeiro acesso.
 - **Site URL**: a URL de produção do app (ex.: `https://conectajovem.exemplo.com`). É para onde o link de convite aponta.
 - **Redirect URLs**: inclua `https://<seu-dominio>/redefinir-senha` (e `http://localhost:5173/redefinir-senha` em desenvolvimento).
 - *Authentication → Email Templates*: revise os textos de "Invite user" e "Reset password" (podem ser traduzidos para pt-BR).
-- *Authentication → Providers → Email*: ajuste o tamanho mínimo da senha (o app valida 6 no cliente; o Supabase aplica a política do projeto).
+- *Authentication → Providers → Email*: ajuste o tamanho mínimo da senha para **10** (o app valida 10 no cliente, `MIN_PASSWORD_LENGTH` em `src/lib/passwordPolicy.ts`; o Supabase aplica a política do projeto).
 - O envio padrão do Supabase tem limite de e-mails por hora; para uso real configure um SMTP próprio (*Project Settings → Auth → SMTP*).
 
 Quem chega por um link de recuperação/convite fica autenticado pela sessão do link (comportamento padrão do Supabase) e o
