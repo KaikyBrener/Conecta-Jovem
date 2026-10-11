@@ -31,6 +31,16 @@ export interface ResendOptions {
   from: string;
   fetch: FetchLike;
   timeoutMs?: number;
+  /** REPLY_TO_EMAIL já validado: SEMPRE substitui o e-mail da pessoa que enviou (não expõe o e-mail pessoal). */
+  replyTo?: string;
+}
+
+/** Mesma regra de public.is_valid_email (migration 016): um único endereço simples, sem nome nem CR/LF. */
+export function isValidReplyToEmail(value: string): boolean {
+  return value.length <= 254
+    && /^[A-Za-z0-9._+-]{1,64}@([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24}$/.test(value)
+    && !/\.\./.test(value)
+    && !/^\.|\.@/.test(value);
 }
 
 const RESEND_URL = 'https://api.resend.com/emails';
@@ -49,7 +59,8 @@ export function createResendProvider(opts: ResendOptions): MailProvider {
         subject: msg.subject,
         text: msg.text,
       };
-      if (msg.replyTo) payload.reply_to = msg.replyTo;
+      const replyTo = opts.replyTo ?? msg.replyTo;
+      if (replyTo) payload.reply_to = replyTo;
       try {
         const res = await opts.fetch(RESEND_URL, {
           method: 'POST',
@@ -97,5 +108,9 @@ export function providerFromEnv(
   if (!apiKey || !from) return null;
   // `from` é fixo e vem do ambiente; ainda assim recusa quebras de linha (defesa em profundidade).
   if (/[\r\n]/.test(from) || /[\r\n]/.test(apiKey)) return null;
-  return createResendProvider({ apiKey, from, fetch: fetchImpl });
+  // REPLY_TO_EMAIL (opcional): ausente/vazio mantém o e-mail de quem enviou. Definido e inválido = não envia (fail-closed),
+  // para um erro de digitação não expor o e-mail pessoal justamente onde se pediu para escondê-lo.
+  const rawReplyTo = env('REPLY_TO_EMAIL')?.trim();
+  if (rawReplyTo && !isValidReplyToEmail(rawReplyTo)) return null;
+  return createResendProvider({ apiKey, from, fetch: fetchImpl, ...(rawReplyTo ? { replyTo: rawReplyTo } : {}) });
 }

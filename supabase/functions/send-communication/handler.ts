@@ -50,6 +50,17 @@ export interface Deps {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_BODY_CHARS = 1000;
 
+/** ALLOWED_ORIGIN -> origem pura (sem barra final nem caminho). Valor inválido, "*" ou sem http(s) = null (restrito). */
+export function normalizeOrigin(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.origin : null;
+  } catch {
+    return null;
+  }
+}
+
 function corsHeaders(req: Request, allowedOrigin: string | null): Record<string, string> {
   const h: Record<string, string> = {
     Vary: 'Origin',
@@ -58,7 +69,8 @@ function corsHeaders(req: Request, allowedOrigin: string | null): Record<string,
     'Access-Control-Max-Age': '600',
   };
   const origin = req.headers.get('origin');
-  if (allowedOrigin && origin && origin === allowedOrigin) h['Access-Control-Allow-Origin'] = origin;
+  const allowed = normalizeOrigin(allowedOrigin);
+  if (allowed && origin && origin === allowed) h['Access-Control-Allow-Origin'] = origin;
   return h;
 }
 

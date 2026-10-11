@@ -48,3 +48,6 @@ Senha_BD.txt
 test-results
 playwright-report
 blob-report
+
+# Supabase CLI: config.toml e SO local (config push e proibido neste projeto; ver README)
+supabase/config.toml

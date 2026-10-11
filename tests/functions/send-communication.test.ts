@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { contentKey, handleRequest, type BeginErr, type BeginOk, type Db, type Deps, type FinishResult } from '../../supabase/functions/send-communication/handler.ts';
+import { contentKey, handleRequest, normalizeOrigin, type BeginErr, type BeginOk, type Db, type Deps, type FinishResult } from '../../supabase/functions/send-communication/handler.ts';
 import { createResendProvider, providerFromEnv } from '../../supabase/functions/send-communication/provider.ts';
 import { createTestDb } from '../db/harness.ts';
 import { serviceApi } from '../db/communications-helpers.ts';
@@ -24,6 +24,7 @@ function setup(over: {
   user?: { id: string } | null; canRead?: boolean; begin?: BeginOk | BeginErr | Error;
   fetchImpl?: (url: string, init: FetchInit) => Promise<{ status: number; json(): Promise<unknown> }>;
   configured?: boolean; finishFails?: number; finishResult?: FinishResult; allowedOrigin?: string | null;
+  extraEnv?: Record<string, string>;
 } = {}) {
   const calls = { finish: [] as unknown[], begin: 0 };
   let finishFailures = over.finishFails ?? 0;
@@ -46,7 +47,7 @@ function setup(over: {
         : { ok: true, changed: true, status: 'failed', failure_reason: a.failureReason };
     },
   };
-  const env = over.configured === false ? {} : { RESEND_API_KEY: API_KEY, MAIL_FROM: 'Conecta Jovem <no-reply@exemplo.com>' };
+  const env = over.configured === false ? {} : { RESEND_API_KEY: API_KEY, MAIL_FROM: 'Conecta Jovem <no-reply@exemplo.com>', ...over.extraEnv };
   const deps: Deps = {
     db,
     provider: providerFromEnv((k) => (env as Record<string, string>)[k], fetchSpy as never),
@@ -107,6 +108,50 @@ describe('envio com sucesso', () => {
     expect(json.status).toBe('sent');
     expect(JSON.parse((s.fetchSpy.mock.calls[0] as [string, FetchInit])[1].body).reply_to).toBeUndefined();
     expect((s.calls.finish[0] as { providerMessageId: unknown }).providerMessageId).toBeNull();
+  });
+});
+
+describe('REPLY_TO_EMAIL (secret opcional)', () => {
+  const REPLY = 'contato@exemplo.com';
+  const sentBody = (s: ReturnType<typeof setup>) => (s.fetchSpy.mock.calls[0] as [string, FetchInit])[1].body;
+
+  it('com secret válido: SEMPRE substitui o e-mail de quem enviou (que não aparece na requisição ao provedor)', async () => {
+    const s = setup({ extraEnv: { REPLY_TO_EMAIL: `  ${REPLY}  ` } });
+    const { res, json } = await run(post(), s);
+    expect(res.status).toBe(200);
+    expect(json.status).toBe('sent');
+    expect(JSON.parse(sentBody(s)).reply_to).toBe(REPLY);
+    expect(sentBody(s)).not.toContain(SENDER);
+    expectNoLeak(JSON.stringify(json), s.logs);
+  });
+
+  it('com secret e sem sender_email: usa o secret', async () => {
+    const s = setup({ extraEnv: { REPLY_TO_EMAIL: REPLY }, begin: { ...begun, sender_email: null } });
+    await run(post(), s);
+    expect(JSON.parse(sentBody(s)).reply_to).toBe(REPLY);
+  });
+
+  it('sem secret (ou vazio): mantém o comportamento atual, reply_to = e-mail de quem enviou', async () => {
+    for (const extraEnv of [undefined, { REPLY_TO_EMAIL: '' }, { REPLY_TO_EMAIL: '   ' }]) {
+      const s = setup({ extraEnv });
+      const { json } = await run(post(), s);
+      expect(json.status).toBe('sent');
+      expect(JSON.parse(sentBody(s)).reply_to).toBe(SENDER);
+    }
+  });
+
+  it('secret inválido: NÃO envia (falha fechada), não cai no e-mail pessoal e não chama o provedor', async () => {
+    const invalid = ['nao-e-email', 'a@b', 'Nome <contato@exemplo.com>', 'a b@exemplo.com', 'a%b@exemplo.com',
+      'contato@exemplo.com\r\nBcc: x@y.com', 'a@@exemplo.com', '.a@exemplo.com', 'a..b@exemplo.com', `${'x'.repeat(250)}@exemplo.com`];
+    for (const REPLY_TO_EMAIL of invalid) {
+      const s = setup({ extraEnv: { REPLY_TO_EMAIL } });
+      expect(s.deps.provider).toBeNull();
+      const { res, json } = await run(post(), s);
+      expect(res.status).toBe(200);
+      expect(json).toEqual({ status: 'failed', communication_id: ID, failure_reason: 'provider_not_configured' });
+      expect(s.fetchSpy).not.toHaveBeenCalled();
+      expectNoLeak(JSON.stringify(json), s.logs);
+    }
   });
 });
 
@@ -211,6 +256,25 @@ describe('requisição e autorização', () => {
     expect(none.headers.get('access-control-allow-origin')).toBeNull();
     const { res } = await run(post(undefined, { origin: 'https://evil.com' }));
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('ALLOWED_ORIGIN: barra final/caminho/maiúsculas são normalizados; errada, "*" e sem esquema não liberam nada', async () => {
+    const preflight = async (allowedOrigin: string | null, origin = 'https://app.exemplo.com') =>
+      (await handleRequest(new Request('https://x/f', { method: 'OPTIONS', headers: { origin } }), setup({ allowedOrigin }).deps))
+        .headers.get('access-control-allow-origin');
+
+    for (const configured of ['https://app.exemplo.com', 'https://app.exemplo.com/', ' https://app.exemplo.com/ ', 'https://APP.exemplo.com/login'])
+      expect(await preflight(configured)).toBe('https://app.exemplo.com');
+
+    for (const wrong of ['http://app.exemplo.com', 'https://app.exemplo.com:8443', 'https://outro.exemplo.com', 'https://app.exemplo.com.evil.com'])
+      expect(await preflight(wrong)).toBeNull();
+    for (const invalid of ['*', 'app.exemplo.com', 'null', '', '   ', 'javascript:alert(1)', 'ftp://app.exemplo.com'])
+      expect(await preflight(invalid)).toBeNull();
+    expect(await preflight(null)).toBeNull();
+
+    expect(await preflight('https://app.exemplo.com/', 'https://app.exemplo.com/')).toBeNull();
+    expect(normalizeOrigin('http://localhost:5173/')).toBe('http://localhost:5173');
+    expect(normalizeOrigin(undefined)).toBeNull();
   });
 
   it('método errado -> 405; corpo inválido/uuid inválido/grande -> 400 (sem tocar no banco)', async () => {

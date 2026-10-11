@@ -7,8 +7,9 @@
 //   SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY são injetadas pelo Supabase (NUNCA no frontend/repositório).
 //   ALLOWED_ORIGIN: origem EXATA do app (ex.: https://app.exemplo.com). Sem ela nenhuma origem recebe CORS (restrito).
 //   Sem RESEND_API_KEY/MAIL_FROM a função NÃO envia: marca a tentativa como failed/provider_not_configured.
+//   REPLY_TO_EMAIL (opcional): se válido, é SEMPRE o reply_to (esconde o e-mail pessoal); inválido = não envia.
 // Ver docs/EMAIL.md.
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { handleRequest, type BeginErr, type BeginOk, type Db, type FinishResult } from './handler.ts';
 import { providerFromEnv } from './provider.ts';
 
