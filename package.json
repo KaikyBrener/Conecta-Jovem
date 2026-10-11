@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:concurrency": "vitest run --config vitest.concurrency.config.ts"
+    "test:concurrency": "vitest run --config vitest.concurrency.config.ts",
+    "smoke": "node scripts/smoke-prod.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
