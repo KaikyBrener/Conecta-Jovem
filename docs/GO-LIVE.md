@@ -135,6 +135,17 @@ devolve o `index.html`). O `public/_headers` vai para o `dist/` e define os head
 - [ ] HTTPS ativo no domínio.
 - [ ] HSTS: `public/_headers` envia `includeSubDomains`. Confirme antes que **todos** os subdomínios têm HTTPS.
 
+### Logs e monitoramento
+
+- **Worker:** o `wrangler.jsonc` liga `observability`. O Worker só entrega arquivos estáticos (não roda código do app),
+  então os logs do Workers mostram pouco: servem para ver se o site está respondendo, não o que o usuário fez.
+- **Visitas:** ligar o **Cloudflare Web Analytics** no painel (Analytics & Logs → Web Analytics → `conectjovem.com.br`).
+  Não exige alterar o app.
+- **Erros do navegador:** hoje ficam só no console de quem usa (ver `docs/OBSERVABILIDADE.md`). Para recebê-los seria
+  preciso um monitor de erros, como o Sentry. **Não está instalado.**
+- **Edge Function:** Supabase → Edge Functions → `send-communication` → Logs.
+- **E-mails (entregue, devolvido, reclamação):** painel do Resend.
+
 ## 8. Supabase Auth
 
 - [ ] Em Authentication → URL Configuration, **Site URL** = `https://conectjovem.com.br`.
