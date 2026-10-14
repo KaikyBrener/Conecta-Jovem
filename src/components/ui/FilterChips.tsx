@@ -13,10 +13,10 @@ export function FilterChips<T extends string>({ options, value, onChange }: Filt
           type="button"
           aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+          className={`inline-flex min-h-9 items-center rounded-control border px-3 text-label font-medium transition-colors md:min-h-[30px] ${
             value === opt.value
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              ? 'bg-action text-on-action border-action'
+              : 'bg-surface text-ink-soft border-line-strong hover:bg-surface-hover'
           }`}
         >
           {opt.label}

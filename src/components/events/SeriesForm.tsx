@@ -95,7 +95,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
       <div className="space-y-4" data-testid="serie-confirmacao">
         {message && <p role="alert" className={formErrorCls}>{message}</p>}
 
-        <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+        <div className="rounded-control bg-blue-50 border border-blue-200 px-4 py-3">
           <p className="text-sm font-semibold text-blue-700" data-testid="serie-previa-total" role="status">
             {previewSentence(dates.length)}
           </p>
@@ -107,7 +107,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
           </p>
         </div>
 
-        <ul className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 divide-y divide-gray-100 text-sm" aria-label="Datas dos encontros">
+        <ul className="max-h-40 overflow-y-auto rounded-control border border-gray-200 divide-y divide-gray-100 text-sm" aria-label="Datas dos encontros">
           {dates.slice(0, PREVIEW_LIMIT).map((d) => (
             <li key={d} className="px-3 py-1.5 text-gray-700">{shortDate(d)}</li>
           ))}
@@ -122,7 +122,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
             : <>Grupos: a definir depois. Os encontros ficarão com o aviso &quot;Grupos pendentes&quot; até você escolher os grupos.</>}
         </p>
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+        <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">
           <button type="button" onClick={() => setStep('edit')} disabled={loading} className={secondaryBtnCls}>
             Voltar
           </button>
@@ -234,7 +234,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
             allGroups.length === 0 ? (
               <p className="ml-6 text-sm text-gray-400">Nenhum grupo cadastrado.</p>
             ) : (
-              <div className="ml-6 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              <div className="ml-6 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-control p-3">
                 {allGroups.map((g) => (
                   <label key={g.id} className="flex items-center gap-3 cursor-pointer">
                     <input
@@ -267,7 +267,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
         </div>
       </fieldset>
 
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+      <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">
         <button type="button" onClick={onCancel} className={secondaryBtnCls}>
           Cancelar
         </button>

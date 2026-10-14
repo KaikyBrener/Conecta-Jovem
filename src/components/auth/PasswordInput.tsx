@@ -42,15 +42,15 @@ export function PasswordInput({
           readOnly={readOnly}
           aria-invalid={invalid ? true : undefined}
           aria-describedby={describedBy}
-          className={cn(fieldCls, fieldWithIconCls, 'pr-12', invalid && fieldInvalidCls)}
+          className={cn(fieldCls, fieldWithIconCls, 'pr-11', invalid && fieldInvalidCls)}
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-gray-500 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-control text-ink-faint transition-colors hover:text-ink focus-visible:-outline-offset-2"
         >
-          {visible ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+          {visible ? <EyeOff className="h-[18px] w-[18px]" aria-hidden="true" /> : <Eye className="h-[18px] w-[18px]" aria-hidden="true" />}
         </button>
       </div>
     </div>

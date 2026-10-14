@@ -103,13 +103,13 @@ export function Grupos() {
       />
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por grupo ou líder..." className="max-w-sm" />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -144,18 +144,18 @@ export function Grupos() {
 
       {/* Tabela - Desktop */}
       {groups.length > 0 && (
-        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-xl overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3">Grupo</th>
-                <th className="px-4 py-3">Líder</th>
-                <th className="px-4 py-3">Integrantes</th>
-                <th className="px-4 py-3">Frequência</th>
-                <th className="px-4 py-3">Tendência</th>
-                <th className="px-4 py-3">Em atenção</th>
-                <th className="px-4 py-3">Ações atrasadas</th>
-                <th className="px-4 py-3 text-right">Ações</th>
+                <th className="px-4 py-2">Grupo</th>
+                <th className="px-4 py-2">Líder</th>
+                <th className="px-4 py-2">Integrantes</th>
+                <th className="px-4 py-2">Frequência</th>
+                <th className="px-4 py-2">Tendência</th>
+                <th className="px-4 py-2">Em atenção</th>
+                <th className="px-4 py-2">Ações atrasadas</th>
+                <th className="px-4 py-2 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -163,7 +163,7 @@ export function Grupos() {
                 <tr key={g.id} data-testid="grupo-linha" className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <button onClick={() => openMembers(g)} className="flex items-center gap-3 text-left">
-                      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm flex items-center justify-center uppercase">
+                      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-sm flex items-center justify-center uppercase">
                         {g.name.charAt(0)}
                       </div>
                       <span className="font-medium text-gray-900">{g.name}</span>
@@ -184,7 +184,7 @@ export function Grupos() {
                       {canEditGroup(g) && (
                         <button
                           onClick={() => openEdit(g)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-control transition-colors"
                           title="Editar grupo"
                         >
                           <Pencil className="w-4 h-4" />
@@ -192,7 +192,7 @@ export function Grupos() {
                       )}
                       <button
                         onClick={() => openMembers(g)}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors"
                         title="Ver integrantes"
                       >
                         <ChevronRight className="w-4 h-4" />
@@ -208,11 +208,11 @@ export function Grupos() {
 
       {/* Cards - Mobile */}
       {groups.length > 0 && (
-        <ul className={cn('lg:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {groups.map((g) => (
             <li key={g.id} data-testid="grupo-card">
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 text-indigo-700 font-bold text-sm flex items-center justify-center uppercase">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-sm flex items-center justify-center uppercase">
                   {g.name.charAt(0)}
                 </div>
 
@@ -231,7 +231,7 @@ export function Grupos() {
                   {canEditGroup(g) && (
                     <button
                       onClick={() => openEdit(g)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-control transition-colors"
                       title="Editar grupo"
                     >
                       <Pencil className="w-4 h-4" />
@@ -239,7 +239,7 @@ export function Grupos() {
                   )}
                   <button
                     onClick={() => openMembers(g)}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors"
                     title="Ver integrantes"
                   >
                     <ChevronRight className="w-4 h-4" />

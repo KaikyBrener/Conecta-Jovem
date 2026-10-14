@@ -73,7 +73,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
     setSelected((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
 
   return (
-    <li className="rounded-xl border border-gray-200 p-4 space-y-3" data-testid="serie-item">
+    <li className="rounded-card border border-gray-200 p-4 space-y-3" data-testid="serie-item">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-900 break-words">{series.name}</h3>
@@ -122,7 +122,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
             type="button"
             onClick={cancelFuture}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-control hover:bg-red-100 disabled:opacity-50 transition-colors"
             data-testid="serie-cancelar-proximos"
           >
             <XCircle className="w-4 h-4" aria-hidden="true" /> Cancelar próximos encontros
@@ -131,7 +131,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
       )}
 
       {panel === 'groups' && (
-        <div className="space-y-3 rounded-lg bg-gray-50 p-3" data-testid="serie-painel-grupos">
+        <div className="space-y-3 rounded-control bg-gray-50 p-3" data-testid="serie-painel-grupos">
           <p className="text-xs text-gray-600">
             Os grupos escolhidos valem para os próximos encontros ainda agendados. Encontros editados individualmente
             não são alterados.
@@ -163,7 +163,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
       )}
 
       {panel === 'extend' && (
-        <form onSubmit={submitExtend} className="space-y-3 rounded-lg bg-gray-50 p-3" data-testid="serie-painel-estender" noValidate>
+        <form onSubmit={submitExtend} className="space-y-3 rounded-control bg-gray-50 p-3" data-testid="serie-painel-estender" noValidate>
           {localErr && <p role="alert" className={formErrorCls}>{localErr}</p>}
           <div>
             <label htmlFor={`serie-nova-data-${series.id}`} className={labelCls}>Nova data final</label>
@@ -228,7 +228,7 @@ export function SeriesManager({ series, loading, error, allGroups, onSetGroups, 
         </ul>
       )}
 
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+      <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">
         <button type="button" onClick={onClose} className={secondaryBtnCls}>Fechar</button>
         {series.length > 0 && (
           <button type="button" onClick={onNew} className={primaryBtnCls}>Nova série</button>

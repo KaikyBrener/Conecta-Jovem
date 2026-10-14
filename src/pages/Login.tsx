@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Loader2, LogIn, Mail } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { translateAuthError } from '../lib/format';
@@ -63,7 +63,6 @@ export const Login = () => {
   return (
     <AuthShell
       title="Entrar"
-      icon={LogIn}
       subtitle="Acesse o sistema com seu e-mail e senha."
       footer="Acesso restrito a membros da equipe."
     >

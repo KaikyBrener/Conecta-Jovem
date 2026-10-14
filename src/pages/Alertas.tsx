@@ -16,7 +16,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
-import { inputCls, labelCls, primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
+import { controlCls, inputCls, labelCls, primaryBtnCls, secondaryBtnCls, smallBtnCls, smallPrimaryBtnCls } from '../lib/formStyles';
 import { formatDate, formatDateOnly, formatDateTime, isOverdue } from '../lib/format';
 import {
   ALERT_SEVERITY_LABEL, ALERT_TYPE_NAME, ALERT_TYPES, FOLLOW_UP_TYPE_LABEL, TASK_STATUS_LABEL, alertDescription,
@@ -39,8 +39,7 @@ const STATUS_BADGE_COLOR: Record<AlertStatus, BadgeColor> = {
   dismissed: 'gray',
 };
 
-const selectCls =
-  'sm:w-52 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500';
+const selectCls = `sm:w-52 bg-surface ${controlCls}`;
 
 function CloseAlertForm({ alert, action, onConfirm, onCancel }: {
   alert: AlertWithRelations;
@@ -59,7 +58,7 @@ function CloseAlertForm({ alert, action, onConfirm, onCancel }: {
         {action === 'resolved' ? 'Resolver' : 'Dispensar'} o alerta de <strong>{alert.youth?.full_name ?? 'jovem'}</strong>
         {' '}({alertDescription(alert)})?
       </p>
-      <p data-testid="aviso-historico" className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+      <p data-testid="aviso-historico" className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-control px-3 py-2">
         {action === 'resolved' ? 'Resolver' : 'Dispensar'} não apaga as faltas; elas continuam no histórico.
 
         {' '}O alerta não é recriado enquanto a situação continuar a mesma. Ele só volta se uma presença quebrar a sequência.
@@ -126,7 +125,7 @@ export function Alertas() {
         subtitle="Gerados automaticamente pelo sistema: faltas seguidas, frequência baixa ou em queda, falta de acompanhamento e ações atrasadas. Os alertas encerrados ficam no histórico."
       />
 
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <FilterChips options={statusFilters} value={status} onChange={setStatus} />
         <div className="flex flex-col sm:flex-row gap-3">
           <select
@@ -170,7 +169,7 @@ export function Alertas() {
             const critical = a.severity === 'critical';
             const SeverityIcon = critical ? OctagonAlert : AlertTriangle;
             return (
-              <li key={a.id} data-testid="alerta-item" data-tipo={a.type} data-severidade={a.severity} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <li key={a.id} data-testid="alerta-item" data-tipo={a.type} data-severidade={a.severity} className="bg-white rounded-card border border-gray-200 p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <SeverityIcon
@@ -215,7 +214,7 @@ export function Alertas() {
                 </div>
 
                 {(a.tasks.length > 0 || a.follow_ups.length > 0) ? (
-                  <div data-testid="alerta-cadeia" className="text-xs bg-gray-50 rounded-lg px-3 py-2 space-y-2">
+                  <div data-testid="alerta-cadeia" className="text-xs bg-gray-50 rounded-control px-3 py-2 space-y-2">
                     {a.tasks.length > 0 && (
                       <div className="space-y-1">
                         <p className="font-medium text-gray-500">Ações</p>
@@ -258,32 +257,32 @@ export function Alertas() {
                     <>
                       <button
                         onClick={() => setClosing({ alert: a, action: 'dismissed' })}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className={smallBtnCls}
                       >
                         <XCircle className="w-3.5 h-3.5" /> Dispensar
                       </button>
                       <button
                         onClick={() => setClosing({ alert: a, action: 'resolved' })}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+                        className={smallBtnCls}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Resolver
                       </button>
                       <button
                         onClick={() => setFollowing(a)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                        className={smallBtnCls}
                       >
                         <HeartHandshake className="w-3.5 h-3.5" /> Registrar acompanhamento
                       </button>
                       <button
                         onClick={() => setEmailing(a)}
                         data-testid="alerta-enviar-email"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className={smallBtnCls}
                       >
                         <Mail className="w-3.5 h-3.5" aria-hidden="true" /> Enviar e-mail
                       </button>
                       <button
                         onClick={() => navigate(`/tarefas?novo=1&alerta=${a.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                        className={smallPrimaryBtnCls}
                       >
                         <ListPlus className="w-3.5 h-3.5" /> {openTasks.length ? 'Outra tarefa' : 'Criar tarefa'}
                       </button>
@@ -292,7 +291,7 @@ export function Alertas() {
                     <button
                       onClick={() => reopen(a)}
                       disabled={busyId === a.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                      className={smallBtnCls}
                     >
                       {busyId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                       Reabrir

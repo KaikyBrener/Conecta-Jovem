@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { KeyRound, Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { RECOVER_NEUTRAL_MESSAGE, recoverErrorMessage } from '../lib/format';
@@ -67,7 +67,6 @@ export function RecuperarSenha() {
   return (
     <AuthShell
       title="Recuperar senha"
-      icon={KeyRound}
       subtitle="Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha."
     >
       <form className="mt-6 space-y-5" onSubmit={handleSubmit} aria-busy={loading}>

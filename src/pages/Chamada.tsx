@@ -24,6 +24,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { cn } from '../lib/utils';
+import { primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
 
 type SaveSummary = SaveAttendanceResult & { completionFailed: boolean };
 
@@ -131,7 +132,7 @@ export function Chamada() {
             <button
               type="button"
               onClick={() => void refetch()}
-              className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+              className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-card hover:bg-blue-700 transition-colors"
             >
               Tentar novamente
             </button>
@@ -172,7 +173,7 @@ export function Chamada() {
         <section
           aria-labelledby="chamada-resumo-titulo"
           data-testid="chamada-resumo"
-          className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 space-y-4"
+          className="bg-white border border-gray-200 rounded-card p-4 sm:p-6 space-y-4"
         >
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" aria-hidden="true" />
@@ -203,7 +204,7 @@ export function Chamada() {
                 <AlertTriangle className="w-4 h-4" aria-hidden="true" />
                 Novas situações que pedem atenção
               </p>
-              <ul className="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-lg">
+              <ul className="mt-2 divide-y divide-gray-100 border border-gray-200 rounded-control">
                 {summary.new_alerts.map((a) => (
                   <li key={a.id} className="px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-x-3">
                     <span className="font-medium text-gray-900">{a.youth_name}</span>
@@ -223,13 +224,13 @@ export function Chamada() {
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-2">
             <button
               onClick={() => setSummary(null)}
-              className="min-h-11 px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+              className="min-h-11 px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-card hover:bg-gray-50 transition-colors"
             >
               Continuar editando
             </button>
             <button
               onClick={() => navigate('/encontros')}
-              className="min-h-11 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+              className="min-h-11 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-card hover:bg-blue-700 transition-colors"
             >
               Voltar aos encontros
             </button>
@@ -241,7 +242,7 @@ export function Chamada() {
 
   const stat = (label: string, value: string | number, testId: string, tone?: string) => (
     <div className="text-center min-w-0">
-      <p className={cn('text-xl font-bold leading-none text-gray-900', tone)} data-testid={testId}>{value}</p>
+      <p className={cn('text-xl font-semibold leading-none text-gray-900', tone)} data-testid={testId}>{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </div>
   );
@@ -253,14 +254,14 @@ export function Chamada() {
       <ErrorBanner message={error} />
 
       {isCancelled && (
-        <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           Este encontro foi cancelado. A chamada não pode ser alterada e não conta na frequência.
         </div>
       )}
 
       {!isCancelled && groups.length === 0 && (
-        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-control px-4 py-3">
           Nenhum grupo vinculado a este encontro. Edite o encontro e selecione os grupos participantes.
         </div>
       )}
@@ -268,7 +269,7 @@ export function Chamada() {
       {/* Resumo */}
       <div
         data-testid="chamada-contadores"
-        className="grid grid-cols-5 gap-2 bg-white p-3 sm:p-4 rounded-xl border border-gray-200"
+        className="grid grid-cols-5 gap-2 bg-white p-3 sm:p-4 rounded-card border border-gray-200"
       >
         {stat('Total', counts.total, 'contador-total')}
         {stat('Presentes', counts.present, 'contador-presentes', 'text-green-700')}
@@ -278,7 +279,7 @@ export function Chamada() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchInput
             value={search}
@@ -292,7 +293,7 @@ export function Chamada() {
               value={groupFilter}
               onChange={(e) => setGroupFilter(e.target.value)}
               aria-label="Filtrar por grupo"
-              className="sm:w-48 min-h-10 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+              className="sm:w-48 min-h-10 px-3 py-2 text-sm border border-gray-300 rounded-control focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
             >
               <option value="all">Todos os grupos</option>
               {groups.map((g) => (
@@ -305,7 +306,7 @@ export function Chamada() {
         <button
           onClick={markUnregisteredPresent}
           disabled={visibleUnregistered.length === 0 || isCancelled}
-          className="w-full sm:w-auto min-h-11 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+          className={cn('w-full sm:w-auto', secondaryBtnCls)}
         >
           <CheckCheck className="w-4 h-4" aria-hidden="true" />
           Marcar não registrados (visíveis) como presentes
@@ -314,13 +315,13 @@ export function Chamada() {
 
       {/* Lista */}
       {visible.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500 text-sm">
+        <div className="bg-white rounded-card border border-gray-200 p-8 text-center text-gray-500 text-sm">
           {counts.total === 0
             ? 'Nenhum jovem ativo nos grupos deste encontro.'
             : 'Nenhum jovem encontrado com os filtros atuais.'}
         </div>
       ) : (
-        <ul className="space-y-2 md:space-y-0 md:bg-white md:rounded-xl md:border md:border-gray-200 md:divide-y md:divide-gray-100 md:overflow-hidden">
+        <ul className="space-y-2 md:space-y-0 md:bg-white md:rounded-card md:border md:border-gray-200 md:divide-y md:divide-gray-100 md:overflow-hidden">
           {visible.map((y) => {
             const stateText = attendanceMarkLabel(y.present);
             return (
@@ -328,7 +329,7 @@ export function Chamada() {
                 key={y.youth_id}
                 data-testid="chamada-jovem"
                 data-state={y.present === true ? 'present' : y.present === false ? 'absent' : 'unregistered'}
-                className="bg-white border border-gray-200 rounded-xl p-3 md:border-0 md:rounded-none md:px-4 md:flex md:items-center md:justify-between md:gap-4"
+                className="bg-white border border-gray-200 rounded-card p-3 md:border-0 md:rounded-none md:px-4 md:flex md:items-center md:justify-between md:gap-4"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 break-words">{y.full_name}</p>
@@ -355,7 +356,7 @@ export function Chamada() {
                     aria-pressed={y.present === true}
                     aria-label={`Presente: ${y.full_name}`}
                     className={cn(
-                      'min-h-11 px-3 text-sm font-medium rounded-lg border flex items-center justify-center gap-2 transition-colors disabled:opacity-60',
+                      'min-h-11 px-3 text-sm font-medium rounded-control border flex items-center justify-center gap-2 transition-colors disabled:opacity-60',
                       y.present === true
                         ? 'bg-green-600 border-green-600 text-white'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
@@ -371,7 +372,7 @@ export function Chamada() {
                     aria-pressed={y.present === false}
                     aria-label={`Ausente: ${y.full_name}`}
                     className={cn(
-                      'min-h-11 px-3 text-sm font-medium rounded-lg border flex items-center justify-center gap-2 transition-colors disabled:opacity-60',
+                      'min-h-11 px-3 text-sm font-medium rounded-control border flex items-center justify-center gap-2 transition-colors disabled:opacity-60',
                       y.present === false
                         ? 'bg-red-600 border-red-600 text-white'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
@@ -388,7 +389,7 @@ export function Chamada() {
       )}
 
       {/* Salvar */}
-      <div className="sticky bottom-20 md:bottom-0 z-[5] bg-white border border-gray-200 rounded-xl shadow-lg p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="sticky bottom-20 md:bottom-0 z-[5] bg-white border border-gray-200 rounded-card shadow-lg p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-1 min-w-0">
           {counts.unregistered > 0 && counts.total > 0 && (
             <p className="text-xs text-gray-500" data-testid="aviso-sem-registro">
@@ -420,7 +421,7 @@ export function Chamada() {
           onClick={handleSave}
           disabled={!canSave}
           aria-describedby="chamada-salvar-status"
-          className="w-full md:w-auto min-h-11 px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+          className={cn('w-full md:w-auto md:px-6', primaryBtnCls)}
         >
           {saving ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>

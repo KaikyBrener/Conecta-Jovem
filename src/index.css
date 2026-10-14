@@ -1,110 +1,396 @@
 @import "tailwindcss";
-
-@theme {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-
-  /* Paleta "navy" para o shell administrativo (sidebar/topbar) */
-  --color-navy-950: #0b1220;
-  --color-navy-900: #111c2e;
-  --color-navy-800: #182438;
-  --color-navy-700: #202f47;
-  --color-navy-600: #2b3c58;
-  --color-navy-500: #3c4f6e;
-  --color-navy-400: #64748b;
-  --color-navy-300: #94a3b8;
-  --color-navy-200: #cbd5e1;
-  --color-navy-100: #e7eaf0;
-  --color-navy-50: #f4f6f9;
-}
+/* IBM Plex Sans auto-hospedada (woff2 no bundle): a CSP do build só aceita font-src 'self'.
+   Só o subconjunto latino (cobre o português) e os três pesos do design system. */
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
 
 /*
- * Modo escuro — retarget centralizado das classes utilitárias já usadas nas
- * páginas (bg-white, text-gray-700, border-gray-200, etc.), ativado pela
- * classe `.dark` no <html> (ver ThemeContext). Evita precisar adicionar
- * `dark:` em cada componente/página.
+ * Fundação de tokens do ConectJovem (projeto visual aprovado; ver docs/REDESIGN.md).
+ *
+ * 1. Paleta: as escalas do Tailwind (gray, blue, red, amber, green) são REDEFINIDAS com as cores do design
+ *    system, para que as classes de paleta que as páginas já usam (bg-white, text-gray-700, bg-blue-600...)
+ *    caiam nas cores aprovadas sem reescrever cada tela. `navy` é a marca (menu, cabeçalho, painel do login).
+ * 2. Tokens semânticos: o que cada cor SIGNIFICA (canvas, surface, line, ink, action, success...). Viram
+ *    utilities (bg-surface, text-ink-muted, border-line, bg-action...) e trocam de valor sozinhos no modo escuro.
+ * 3. Tipografia e raios por papel (text-title, rounded-card...).
+ *
+ * Código novo usa os tokens semânticos. As classes de paleta continuam funcionando no modo escuro pela
+ * "ponte de legado" no fim do arquivo.
  */
+@theme {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+  /* Marca: azul-marinho (menu lateral, cabeçalho mobile, painel do login) */
+  --color-navy-950: #0a1124;
+  --color-navy-900: #0f1b3d;
+  --color-navy-800: #18264d;
+  --color-navy-700: #22305a;
+  --color-navy-600: #2e3d6b;
+  --color-navy-500: #4a5a86;
+  --color-navy-400: #6b7aa3;
+  --color-navy-300: #8f9bbe;
+  --color-navy-200: #c4cce0;
+  --color-navy-100: #e3e7f1;
+  --color-navy-50: #f4f6f9;
+
+  /* Neutros (tom azulado): fundo, superfícies de apoio, bordas e texto */
+  --color-gray-50: #f4f6f9;
+  --color-gray-100: #edf0f5;
+  --color-gray-200: #dde2ea;
+  --color-gray-300: #c9d1de;
+  --color-gray-400: #6b7387;
+  --color-gray-500: #5a6478;
+  --color-gray-600: #3f4a60;
+  --color-gray-700: #2c3852;
+  --color-gray-800: #1a2647;
+  --color-gray-900: #0f1b3d;
+  --color-gray-950: #0a1124;
+
+  /* Azul institucional: ação primária, item ativo, links, foco, informação */
+  --color-blue-50: #e8f0fd;
+  --color-blue-100: #d6e4fb;
+  --color-blue-200: #bfd3f6;
+  --color-blue-300: #8cb4ff;
+  --color-blue-400: #5c8fe8;
+  --color-blue-500: #2f6fe0;
+  --color-blue-600: #1f5fd1;
+  --color-blue-700: #174aa6;
+  --color-blue-800: #153f8a;
+  --color-blue-900: #12336e;
+  --color-blue-950: #0c2148;
+
+  /* Crítico · erro · ação destrutiva */
+  --color-red-50: #fdecea;
+  --color-red-100: #fad9d5;
+  --color-red-200: #f3c4be;
+  --color-red-300: #e89b92;
+  --color-red-400: #db6b5f;
+  --color-red-500: #c8372d;
+  --color-red-600: #b42318;
+  --color-red-700: #9f1d12;
+  --color-red-800: #84180f;
+  --color-red-900: #6b140d;
+
+  /* Atenção */
+  --color-amber-50: #fff4db;
+  --color-amber-100: #fbe7b5;
+  --color-amber-200: #ebd08c;
+  --color-amber-300: #e0b45a;
+  --color-amber-400: #d4962f;
+  --color-amber-500: #c7791a;
+  --color-amber-600: #a9620f;
+  --color-amber-700: #8a4b08;
+  --color-amber-800: #7a4208;
+  --color-amber-900: #5f3306;
+
+  /* Sucesso · normal */
+  --color-green-50: #e7f4ec;
+  --color-green-100: #d2eadc;
+  --color-green-200: #b9dcc8;
+  --color-green-300: #8cc6a6;
+  --color-green-400: #4fa57a;
+  --color-green-500: #2b8f5e;
+  --color-green-600: #1e7a4c;
+  --color-green-700: #17603b;
+  --color-green-800: #124d2f;
+  --color-green-900: #0e3d26;
+
+  /* Índigo: fora do design system; os selos que ainda o usam caem no azul de informação */
+  --color-indigo-50: #e8f0fd;
+  --color-indigo-100: #d6e4fb;
+  --color-indigo-200: #bfd3f6;
+  --color-indigo-600: #1f5fd1;
+  --color-indigo-700: #174aa6;
+
+  /* ---- Tokens semânticos (valores do modo claro; o escuro está em `.dark` logo abaixo) ---- */
+
+  /* Marca */
+  --color-brand: #0f1b3d;
+  --color-brand-line: #22305a;
+  --color-brand-ink: #c4cce0;
+  --color-brand-muted: #8f9bbe;
+  --color-brand-accent: #4fc3dc;
+  --color-brand-focus: #8cb4ff;
+  --color-counter: #c8372d;
+
+  /* Superfícies e bordas */
+  --color-canvas: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f4f8;
+  --color-surface-hover: #f8fafc;
+  --color-line: #dde2ea;
+  --color-line-soft: #edf0f5;
+  --color-line-strong: #c9d1de;
+
+  /* Texto */
+  --color-ink: #0f1b3d;
+  --color-ink-soft: #3f4a60;
+  --color-ink-muted: #5a6478;
+  --color-ink-faint: #6b7387;
+
+  /* Ações e seleção */
+  --color-action: #1f5fd1;
+  --color-action-hover: #174aa6;
+  --color-action-soft: #e8f0fd;
+  --color-action-line: #bfd3f6;
+  --color-action-ink: #174aa6;
+  --color-on-action: #ffffff;
+  --color-disabled: #e3e8ef;
+  --color-on-disabled: #7c8498;
+
+  /* Estados: `-solid` é a cor cheia (ponto da tag, botão destrutivo); `-ink` é o texto sobre `-soft` */
+  --color-success: #1e7a4c;
+  --color-success-soft: #e7f4ec;
+  --color-success-line: #b9dcc8;
+  --color-success-ink: #17603b;
+  --color-warning: #c7791a;
+  --color-warning-soft: #fff4db;
+  --color-warning-line: #ebd08c;
+  --color-warning-ink: #7a4208;
+  --color-danger: #b42318;
+  --color-danger-hover: #9f1d12;
+  --color-danger-soft: #fdecea;
+  --color-danger-line: #f3c4be;
+  --color-danger-ink: #9f1d12;
+
+  /* Tipografia por papel (design system): título de página 24/600, título de seção 15/600, título de janela
+     16/600, corpo 14, tabela 13.5, legenda 12.5, cabeçalho de tabela 11.5/600 em caixa-alta, numeral 30/600 */
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.2;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.015em;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.25;
+  --text-title--font-weight: 600;
+  --text-title--letter-spacing: -0.01em;
+  --text-dialog: 1rem;
+  --text-dialog--line-height: 1.35;
+  --text-dialog--font-weight: 600;
+  --text-heading: 0.9375rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--font-weight: 600;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.5;
+  --text-table: 0.84375rem;
+  --text-table--line-height: 1.45;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.4;
+  --text-caption: 0.78125rem;
+  --text-caption--line-height: 1.4;
+  --text-micro: 0.71875rem;
+  --text-micro--line-height: 1.3;
+  --text-micro--font-weight: 600;
+  --text-micro--letter-spacing: 0.04em;
+  --text-stat: 1.875rem;
+  --text-stat--line-height: 1.15;
+  --text-stat--font-weight: 600;
+  --text-stat--letter-spacing: -0.02em;
+
+  /* Raios por papel: tag 4, controle (botão, campo) 6, painel 8, janela 12 */
+  --radius-tag: 0.25rem;
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
+  --radius-sheet: 0.75rem;
+
+  /* Painéis têm borda de 1px e nenhuma sombra; sombra só em janela e aviso flutuante (shadow-lg/xl) */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+}
+
+/* Modo escuro: só os tokens mudam (classe `.dark` no <html>, ver ThemeContext) */
+.dark {
+  --color-brand: #0a1124;
+  --color-brand-line: #202f47;
+
+  --color-canvas: #0b1220;
+  --color-surface: #111c2e;
+  --color-surface-muted: #182438;
+  --color-surface-hover: #16213a;
+  --color-line: #202f47;
+  --color-line-soft: #1a2740;
+  --color-line-strong: #2b3c58;
+
+  --color-ink: #f4f6f9;
+  --color-ink-soft: #cbd5e1;
+  --color-ink-muted: #94a3b8;
+  --color-ink-faint: #8391a8;
+
+  --color-action: #2f6fe0;
+  --color-action-hover: #4a84ea;
+  --color-action-soft: rgba(47, 111, 224, 0.16);
+  --color-action-line: rgba(47, 111, 224, 0.4);
+  --color-action-ink: #93c5fd;
+  --color-disabled: #202f47;
+  --color-on-disabled: #8391a8;
+
+  --color-success: #86efac;
+  --color-success-soft: rgba(34, 197, 94, 0.12);
+  --color-success-line: rgba(34, 197, 94, 0.35);
+  --color-success-ink: #86efac;
+  --color-warning: #fcd34d;
+  --color-warning-soft: rgba(245, 158, 11, 0.12);
+  --color-warning-line: rgba(245, 158, 11, 0.35);
+  --color-warning-ink: #fcd34d;
+  --color-danger: #d9483d;
+  --color-danger-hover: #e2635a;
+  --color-danger-soft: rgba(239, 68, 68, 0.12);
+  --color-danger-line: rgba(239, 68, 68, 0.35);
+  --color-danger-ink: #fca5a5;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    /* numerais tabulares: colunas e indicadores alinham */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Foco de teclado: contorno de 2px em botões e links (campos usam borda azul + anel; ver formStyles.ts) */
+  :where(a, button, summary, [role="button"], [tabindex]):focus-visible {
+    outline: 2px solid var(--color-action);
+    outline-offset: 2px;
+  }
+  /* sobre o azul-marinho o contorno precisa ser mais claro */
+  :where(.on-brand) :where(a, button):focus-visible {
+    outline-color: var(--color-brand-focus);
+  }
+
+  /* Cabeçalho de tabela: caixa-alta espaçada sobre o fundo de apoio (11.5px / 600) */
+  thead th {
+    background-color: var(--color-surface-muted);
+    color: var(--color-ink-soft);
+    font-size: 0.71875rem;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-faint);
+    opacity: 1;
+  }
+}
+
 .dark body {
-  background-color: var(--color-navy-950);
   color-scheme: dark;
 }
 
+/*
+ * Ponte de legado — as páginas ainda usam classes de paleta (bg-white, text-gray-700, border-gray-200...).
+ * No modo escuro elas são redirecionadas para os tokens semânticos acima, sem `dark:` em cada componente.
+ * Ao migrar um componente para os tokens (bg-surface, text-ink...), ele deixa de depender destas regras.
+ */
+
 /* Superfícies */
-.dark .bg-gray-50 { background-color: var(--color-navy-950); }
-.dark .bg-white { background-color: var(--color-navy-900); }
-.dark .bg-gray-100 { background-color: var(--color-navy-800); }
-.dark .bg-gray-300 { background-color: var(--color-navy-600); }
-.dark .hover\:bg-gray-100:hover { background-color: var(--color-navy-800); }
-.dark .hover\:bg-gray-50:hover { background-color: var(--color-navy-800); }
+.dark .bg-gray-50 { background-color: var(--color-canvas); }
+.dark .bg-white { background-color: var(--color-surface); }
+.dark .bg-gray-100,
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-50:hover { background-color: var(--color-surface-muted); }
+.dark .bg-gray-200,
+.dark .bg-gray-300 { background-color: var(--color-line-strong); }
 
 /* Bordas e divisores */
 .dark .border-gray-100,
 .dark .border-gray-200,
-.dark .border-gray-300 { border-color: var(--color-navy-700); }
-.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-navy-700); }
+.dark .border-gray-200\/80 { border-color: var(--color-line); }
+.dark .border-gray-300 { border-color: var(--color-line-strong); }
+.dark .ring-blue-100 { --tw-ring-color: var(--color-action-line); }
+/* o Tailwind v4 põe a borda do divide-* em `> :not(:last-child)` (não mais nos irmãos seguintes) */
+.dark .divide-gray-100 > :not(:last-child),
+.dark .divide-gray-200 > :not(:last-child) { border-color: var(--color-line); }
 
 /* Texto */
 .dark .text-gray-900,
-.dark .text-gray-800 { color: var(--color-navy-50); }
-.dark .text-gray-700 { color: var(--color-navy-100); }
-.dark .text-gray-600 { color: var(--color-navy-200); }
-.dark .text-gray-500 { color: var(--color-navy-300); }
-.dark .text-gray-400 { color: var(--color-navy-400); }
-.dark .placeholder\:text-gray-400::placeholder { color: var(--color-navy-400); }
-.dark .text-gray-300 { color: var(--color-navy-500); }
+.dark .text-gray-800 { color: var(--color-ink); }
+.dark .text-gray-700,
+.dark .text-gray-600,
 .dark .hover\:text-gray-600:hover,
-.dark .hover\:text-gray-700:hover { color: var(--color-navy-100); }
+.dark .hover\:text-gray-700:hover,
+.dark .hover\:text-gray-900:hover { color: var(--color-ink-soft); }
+.dark .text-gray-500 { color: var(--color-ink-muted); }
+.dark .text-gray-400,
+.dark .placeholder\:text-gray-400::placeholder { color: var(--color-ink-faint); }
+.dark .text-gray-300 { color: var(--color-line-strong); }
 
-/* Status (alertas, badges, mensagens): fundo claro + texto/borda saturados */
+/* Ações e seleção */
+.dark .bg-blue-600 { background-color: var(--color-action); }
+.dark .hover\:bg-blue-700:hover { background-color: var(--color-action-hover); }
+.dark .bg-blue-50,
+.dark .hover\:bg-blue-50:hover { background-color: var(--color-action-soft); }
+.dark .bg-blue-100,
+.dark .hover\:bg-blue-100:hover { background-color: rgba(47, 111, 224, 0.24); }
+.dark .border-blue-200,
+.dark .border-blue-300 { border-color: var(--color-action-line); }
+.dark .text-blue-600,
+.dark .text-blue-700,
+.dark .text-blue-800,
+.dark .hover\:text-blue-700:hover,
+.dark .hover\:text-blue-800:hover { color: var(--color-action-ink); }
+/* texto de ação (links) no escuro: o azul de botão não tem contraste sobre as superfícies; usa o azul claro */
+.dark .text-action { color: var(--color-action-ink); }
+
+/* Estados (alertas, selos, mensagens): fundo translúcido + texto/borda claros */
 .dark .bg-red-50,
-.dark .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.12); }
+.dark .hover\:bg-red-50:hover { background-color: var(--color-danger-soft); }
 .dark .bg-red-100,
 .dark .hover\:bg-red-100:hover { background-color: rgba(239, 68, 68, 0.18); }
-.dark .border-red-200 { border-color: rgba(239, 68, 68, 0.35); }
+.dark .border-red-200,
+.dark .border-red-300 { border-color: var(--color-danger-line); }
+.dark .text-red-800,
 .dark .text-red-700,
 .dark .text-red-600,
-.dark .hover\:text-red-700:hover { color: #fca5a5; }
+.dark .text-red-500,
+.dark .hover\:text-red-700:hover { color: var(--color-danger-ink); }
 
 .dark .bg-green-50,
-.dark .hover\:bg-green-50:hover { background-color: rgba(34, 197, 94, 0.12); }
+.dark .hover\:bg-green-50:hover { background-color: var(--color-success-soft); }
 .dark .bg-green-100,
 .dark .hover\:bg-green-100:hover { background-color: rgba(34, 197, 94, 0.18); }
-.dark .border-green-200 { border-color: rgba(34, 197, 94, 0.35); }
+.dark .border-green-200,
+.dark .border-green-300 { border-color: var(--color-success-line); }
+.dark .text-green-800,
 .dark .text-green-700,
 .dark .text-green-600,
-.dark .hover\:text-green-800:hover { color: #86efac; }
+.dark .hover\:text-green-800:hover { color: var(--color-success-ink); }
+.dark .bg-green-600,
 .dark .bg-green-700,
 .dark .hover\:bg-green-700:hover { background-color: #15803d; }
 
-.dark .bg-blue-50,
-.dark .hover\:bg-blue-50:hover { background-color: rgba(37, 99, 235, 0.14); }
-.dark .bg-blue-100,
-.dark .hover\:bg-blue-100:hover { background-color: rgba(37, 99, 235, 0.2); }
-.dark .border-blue-200 { border-color: rgba(37, 99, 235, 0.35); }
-.dark .text-blue-700,
-.dark .hover\:text-blue-700:hover { color: #93c5fd; }
-
-.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12); }
-.dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.35); }
+.dark .bg-amber-50,
+.dark .hover\:bg-amber-50:hover { background-color: var(--color-warning-soft); }
+.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.18); }
+.dark .border-amber-200,
+.dark .border-amber-300 { border-color: var(--color-warning-line); }
+.dark .text-amber-600,
 .dark .text-amber-700,
 .dark .text-amber-800,
-.dark .text-amber-900 { color: #fcd34d; }
+.dark .text-amber-900 { color: var(--color-warning-ink); }
 
-.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.14); }
+/* Índigo (selos antigos): mesmo tratamento do azul de informação */
+.dark .bg-indigo-50,
 .dark .bg-indigo-100,
-.dark .hover\:bg-indigo-100:hover { background-color: rgba(99, 102, 241, 0.2); }
-.dark .border-indigo-200 { border-color: rgba(99, 102, 241, 0.35); }
-.dark .text-indigo-700 { color: #a5b4fc; }
+.dark .hover\:bg-indigo-100:hover { background-color: var(--color-action-soft); }
+.dark .border-indigo-200 { border-color: var(--color-action-line); }
+.dark .text-indigo-700 { color: var(--color-action-ink); }
 
 /* Inputs, selects e textareas (sem bg utilitário explícito nas páginas) */
 .dark input,
 .dark select,
 .dark textarea {
-  background-color: var(--color-navy-800);
-  border-color: var(--color-navy-600);
-  color: var(--color-navy-50);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
 }
-.dark input::placeholder,
-.dark textarea::placeholder { color: var(--color-navy-400); }
 
 /* Logo: telas claras usam a variante "claro"; no modo escuro entra a de fundo escuro (ver components/ui/Logo.tsx) */
 .logo-tema-escuro { display: none; }

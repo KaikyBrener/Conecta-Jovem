@@ -29,7 +29,7 @@ import type { EventWithGroups } from '../hooks/useEvents';
 const STATUS_BADGE_COLOR: Record<EventStatus, BadgeColor> = {
   scheduled: 'blue',
   completed: 'green',
-  cancelled: 'gray',
+  cancelled: 'muted',
 };
 
 const STATUS_LABEL: Record<EventStatus, string> = {
@@ -242,14 +242,14 @@ export function Encontros() {
       />
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por título..." className="max-w-sm" />
         <FilterChips options={filters} value={filterStatus} onChange={setFilterStatus} />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -273,15 +273,15 @@ export function Encontros() {
 
       {/* Tabela - Desktop */}
       {events.length > 0 && (
-        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3">Encontro</th>
-                <th className="px-4 py-3">Data</th>
-                <th className="px-4 py-3">Grupos</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Ações</th>
+                <th className="px-4 py-2">Encontro</th>
+                <th className="px-4 py-2">Data</th>
+                <th className="px-4 py-2">Grupos</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -290,7 +290,7 @@ export function Encontros() {
                   <td className="px-4 py-3">
                     <button onClick={() => openView(ev)} className="flex items-center gap-3 text-left">
                       <div className="flex-shrink-0 w-10 text-center">
-                        <p className="text-base font-bold text-blue-700 leading-none">{new Date(ev.event_date).getDate()}</p>
+                        <p className="text-base font-semibold text-blue-700 leading-none">{new Date(ev.event_date).getDate()}</p>
                         <p className="text-[10px] text-gray-400 uppercase">{new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}</p>
                       </div>
                       <span className="font-medium text-gray-900">{ev.title}</span>
@@ -305,7 +305,7 @@ export function Encontros() {
                     <Badge color={STATUS_BADGE_COLOR[ev.status]}>{STATUS_LABEL[ev.status]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openView(ev)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
+                    <button onClick={() => openView(ev)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors">
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </td>
@@ -318,7 +318,7 @@ export function Encontros() {
 
       {/* Cards - Mobile */}
       {events.length > 0 && (
-        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {events.map((ev) => (
             <li key={ev.id}>
               <button
@@ -327,7 +327,7 @@ export function Encontros() {
               >
                 {/* Date badge */}
                 <div className="flex-shrink-0 w-12 text-center">
-                  <p className="text-lg font-bold text-blue-700 leading-none">
+                  <p className="text-lg font-semibold text-blue-700 leading-none">
                     {new Date(ev.event_date).getDate()}
                   </p>
                   <p className="text-[10px] text-gray-400 uppercase">

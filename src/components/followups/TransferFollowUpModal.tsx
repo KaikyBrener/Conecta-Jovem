@@ -84,7 +84,7 @@ export function TransferFollowUpModal({ followUp, youthName, names, userId, onCl
           <p className="mt-1 text-xs text-gray-400">O histórico da transferência fica registrado e não pode ser alterado.</p>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+        <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">
           <button type="button" onClick={onClose} className={secondaryBtnCls}>Cancelar</button>
           <button type="submit" disabled={saving} className={primaryBtnCls}>
             {saving ? 'Transferindo...' : 'Transferir'}

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useReportGroups } from '../hooks/useReports';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Tabs } from '../components/ui/Card';
 import { FilterChips } from '../components/ui/FilterChips';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { GeneralTab } from '../components/reports/GeneralTab';
@@ -61,7 +62,7 @@ export function Relatorios() {
       />
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+      <div className="bg-white rounded-card border border-gray-200 p-4 space-y-4">
         <div className="space-y-2">
           <p className={labelCls} id="rel-periodo-rotulo">Período</p>
           <div role="group" aria-labelledby="rel-periodo-rotulo" data-testid="rel-periodos">
@@ -118,26 +119,7 @@ export function Relatorios() {
       <ErrorBanner message={groupsError} />
 
       {/* Abas */}
-      <div role="tablist" aria-label="Tipo de relatório" className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            id={`rel-aba-${t.key}`}
-            aria-selected={tab === t.key}
-            aria-controls="rel-painel"
-            data-testid={`rel-aba-${t.key}`}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
-              tab === t.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Tipo de relatório" idPrefix="rel-aba" panelId="rel-painel" testIdPrefix="rel-aba" />
 
       <div role="tabpanel" id="rel-painel" aria-labelledby={`rel-aba-${tab}`}>
         {tab === 'general' && <GeneralTab {...tabProps} />}

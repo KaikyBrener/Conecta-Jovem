@@ -21,7 +21,7 @@ const PANEL_TONE: Record<SituationTone, string> = {
 
 function Metric({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
-    <div className="rounded-lg bg-white px-2.5 py-2 border border-gray-100">
+    <div className="rounded-control bg-white px-2.5 py-2 border border-gray-100">
       <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium text-gray-900 break-words" data-testid={testId}>{value}</dd>
     </div>
@@ -36,7 +36,7 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
 
   if (!situation) {
     return (
-      <p role="status" className="rounded-lg bg-gray-50 p-3 text-center text-xs text-gray-500">
+      <p role="status" className="rounded-control bg-gray-50 p-3 text-center text-xs text-gray-500">
         {error ?? 'Situação indisponível para este jovem.'}
       </p>
     );
@@ -51,7 +51,7 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
     <section
       aria-labelledby="situacao-title"
       data-testid="painel-situacao"
-      className={`rounded-xl border px-3 py-3 ${PANEL_TONE[d.tone]}`}
+      className={`rounded-card border px-3 py-3 ${PANEL_TONE[d.tone]}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 id="situacao-title" className="text-sm font-semibold text-gray-900">Situação do jovem</h4>
@@ -68,7 +68,7 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
         <p className="mt-2 text-sm text-gray-600">Nenhum sinal de atenção no momento.</p>
       )}
 
-      <dl className="mt-3 grid grid-cols-2 gap-2">
+      <dl className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <Metric label="Grupo" value={situation.group_name ?? 'Sem grupo'} />
         <Metric label="Líder" value={situation.leader_name ?? '—'} />
         <Metric label="Frequência (últimos 8)" value={formatPercent(situation.attendance_rate)} testId="metrica-frequencia" />

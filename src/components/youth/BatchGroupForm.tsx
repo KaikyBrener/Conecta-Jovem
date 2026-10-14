@@ -45,7 +45,7 @@ export function BatchGroupForm({ count, groups, loading, error, onSubmit, onCanc
           <option value={NONE}>Sem grupo</option>
         </select>
       </div>
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+      <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">
         <button type="button" onClick={onCancel} disabled={loading} className={secondaryBtnCls}>Cancelar</button>
         <button type="submit" disabled={loading} className={primaryBtnCls} data-testid="lote-grupo-aplicar">
           {loading ? 'Aplicando...' : `Aplicar a ${count === 1 ? '1 jovem' : `${count} jovens`}`}

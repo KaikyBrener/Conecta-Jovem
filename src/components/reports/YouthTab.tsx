@@ -20,7 +20,7 @@ function YouthResult({ id, range }: { id: string; range: ReportTabProps['range']
         const doc = buildYouthDoc(r);
         return (
           <div className="space-y-4" data-testid="relatorio-individual">
-            <section className="bg-white rounded-xl border border-gray-200 p-4">
+            <section className="bg-white rounded-card border border-gray-200 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-gray-900 break-words" data-testid="rel-jovem-nome">{r.youth.full_name}</h3>
@@ -73,7 +73,7 @@ export function YouthTab({ range }: ReportTabProps) {
   return (
     <div className="space-y-4">
       {picked ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-xl border border-gray-200 px-4 py-3" data-testid="rel-jovem-escolhido">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-card border border-gray-200 px-4 py-3" data-testid="rel-jovem-escolhido">
           <p className="text-sm text-gray-700">Jovem: <span className="font-medium text-gray-900">{picked.full_name}</span></p>
           <button
             type="button"
@@ -84,7 +84,7 @@ export function YouthTab({ range }: ReportTabProps) {
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="bg-white rounded-card border border-gray-200 p-4 space-y-3">
           <p className="text-sm font-medium text-gray-700">Buscar jovem por nome</p>
           <SearchInput
             value={term}
@@ -101,7 +101,7 @@ export function YouthTab({ range }: ReportTabProps) {
             </p>
           )}
           {results.length > 0 && (
-            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg" aria-label="Resultados da busca">
+            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-control" aria-label="Resultados da busca">
               {results.map((y) => (
                 <li key={y.id}>
                   <button

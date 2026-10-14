@@ -22,7 +22,7 @@ export function BatchBar({ count, busy, atLimit, error, onChangeGroup, onActivat
       role="region"
       aria-label="Ações em lote"
       data-testid="lote-barra"
-      className="sticky bottom-20 md:bottom-4 z-20 rounded-xl border border-blue-200 bg-white p-3 shadow-lg"
+      className="sticky bottom-20 md:bottom-4 z-20 rounded-card border border-blue-200 bg-white p-3 shadow-lg"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <p className="text-sm font-semibold text-gray-900" role="status" data-testid="lote-contador">

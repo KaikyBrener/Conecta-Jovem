@@ -275,7 +275,7 @@ export function CommunicationModal({
               <li
                 key={s.id}
                 aria-current={s.id === step ? 'step' : undefined}
-                className={`flex flex-1 items-center gap-1.5 rounded-lg border px-2 py-1.5 ${
+                className={`flex flex-1 items-center gap-1.5 rounded-control border px-2 py-1.5 ${
                   s.id === step ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700' : i < stepIndex ? 'border-gray-200 text-gray-700' : 'border-gray-200 text-gray-400'
                 }`}
               >
@@ -316,13 +316,13 @@ export function CommunicationModal({
             )}
 
             {leaderNoEmail && (
-              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>{LEADER_NO_EMAIL}</span>
               </p>
             )}
             {!isLeader && noYouthEmail && (
-              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>Este jovem não tem e-mail cadastrado. Digite um endereço para continuar ou atualize o cadastro do jovem.</span>
               </p>
@@ -364,7 +364,7 @@ export function CommunicationModal({
           <form onSubmit={goReview} noValidate className="space-y-4" aria-label="Mensagem do e-mail">
             {fixed ? (
               (alertChoice || followUp) && (
-                <p data-testid="comunicacao-vinculo" className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <p data-testid="comunicacao-vinculo" className="rounded-control bg-gray-50 px-3 py-2 text-xs text-gray-600">
                   {alertChoice && <span className="block">Relacionada ao alerta: {alertChoice.label}</span>}
                   {followUp && <span className="block">Relacionada ao acompanhamento: {followUp.label}</span>}
                 </p>
@@ -438,14 +438,14 @@ export function CommunicationModal({
                 <dt className="text-xs font-medium text-gray-500">Mensagem</dt>
                 <dd
                   data-testid="comunicacao-revisao-corpo"
-                  className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-900"
+                  className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-control border border-gray-200 bg-gray-50 px-3 py-2 text-gray-900"
                 >
                   {body}
                 </dd>
               </div>
             </dl>
 
-            <p data-testid="comunicacao-aviso-envio" className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            <p data-testid="comunicacao-aviso-envio" className="flex items-start gap-2 rounded-control border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
               <Info className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
               <span>
                 Ao clicar em &ldquo;Enviar e-mail&rdquo;, a mensagem é enviada de verdade ao destinatário e o envio não pode
@@ -454,7 +454,7 @@ export function CommunicationModal({
             </p>
 
             {leaderNoEmail && (
-              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>{LEADER_NO_EMAIL}</span>
               </p>
@@ -488,7 +488,7 @@ export function CommunicationModal({
             className="space-y-4"
           >
             {view.kind === 'sent' && (
-              <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-700">
+              <div className="flex items-start gap-2 rounded-control border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-700">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <div>
                   <p className="font-semibold">E-mail enviado</p>
@@ -498,7 +498,7 @@ export function CommunicationModal({
               </div>
             )}
             {view.kind === 'failed' && (
-              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
+              <div className="flex items-start gap-2 rounded-control border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
                 <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <div>
                   <p className="font-semibold">O e-mail não foi enviado</p>
@@ -507,7 +507,7 @@ export function CommunicationModal({
               </div>
             )}
             {(view.kind === 'unconfirmed' || view.kind === 'in_progress') && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+              <div className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
                 <TriangleAlert className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <p>{view.kind === 'unconfirmed' ? SEND_UNCONFIRMED_MESSAGE : SEND_IN_PROGRESS_MESSAGE}</p>
               </div>

@@ -204,7 +204,7 @@ export function YouthForm({ initial, groups = [], canChangeGroup = false, onSubm
         </div>
       )}
 
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
+      <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 mt-2 sm:flex-row sm:justify-end sm:gap-3">
         <button type="button" onClick={onCancel} className={secondaryBtnCls}>
           Cancelar
         </button>

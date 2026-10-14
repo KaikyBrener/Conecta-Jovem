@@ -130,7 +130,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
         aria-modal="true"
         aria-label="Busca global"
         onKeyDown={handleKeyDown}
-        className="bg-white w-full h-[100dvh] md:h-auto md:max-h-[70vh] md:max-w-xl flex flex-col md:rounded-xl md:shadow-xl md:border md:border-gray-200"
+        className="bg-white w-full h-[100dvh] md:h-auto md:max-h-[70vh] md:max-w-xl flex flex-col md:rounded-card md:shadow-xl md:border md:border-gray-200"
       >
         <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2">
           <Search className="w-5 h-5 flex-shrink-0 text-gray-400" aria-hidden="true" />
@@ -156,7 +156,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
             type="button"
             onClick={onClose}
             aria-label="Fechar busca"
-            className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="rounded-control p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -181,7 +181,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
           )}
 
           {error && (
-            <p role="alert" className="flex items-start gap-2 m-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-testid="busca-global-erro">
+            <p role="alert" className="flex items-start gap-2 m-2 rounded-control border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-testid="busca-global-erro">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" /> {error}
             </p>
           )}
@@ -217,7 +217,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                         onClick={() => go(hit)}
                         data-testid={`busca-global-${hit.kind}`}
                         className={cn(
-                          'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5',
+                          'flex cursor-pointer items-center gap-3 rounded-control px-3 py-2.5',
                           isActive ? 'bg-blue-50' : 'hover:bg-gray-50',
                         )}
                       >
