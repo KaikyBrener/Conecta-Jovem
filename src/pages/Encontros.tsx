@@ -212,11 +212,11 @@ export function Encontros() {
     if (ok) { closeModal(); toast.success('Encontro excluído.'); }
   };
 
-  const filters: { label: string; value: EventStatusFilter }[] = [
+  const filters: { label: string; value: EventStatusFilter; shortLabel?: string }[] = [
     { label: 'Todos', value: 'all' },
-    { label: 'Agendados', value: 'scheduled' },
-    { label: 'Realizados', value: 'completed' },
-    { label: 'Cancelados', value: 'cancelled' },
+    { label: 'Agendados', value: 'scheduled', shortLabel: 'Agend.' },
+    { label: 'Realizados', value: 'completed', shortLabel: 'Realiz.' },
+    { label: 'Cancelados', value: 'cancelled', shortLabel: 'Cancel.' },
   ];
 
   return (
@@ -245,7 +245,7 @@ export function Encontros() {
       {/* Filtros */}
       <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por título..." className="max-w-sm" />
-        <FilterChips options={filters} value={filterStatus} onChange={setFilterStatus} />
+        <FilterChips options={filters} value={filterStatus} onChange={setFilterStatus} segmentedOnMobile />
       </div>
 
       {/* Error */}
