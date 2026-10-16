@@ -13,6 +13,7 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { Group, GroupInsert, GroupUpdate } from '../types/database.types';
@@ -268,6 +269,8 @@ export function Grupos() {
           ))}
         </ul>
       )}
+
+      <RefreshingNote show={loading && groups.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'grupo' : 'grupos'} disabled={loading} />
 

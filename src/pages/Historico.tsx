@@ -18,6 +18,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import type { ActivityAction, ActivityEntry } from '../types/database.types';
 
 function YouthLink({ entry }: { entry: ActivityEntry }) {
@@ -199,6 +200,8 @@ export function Historico() {
           ))}
         </ul>
       )}
+
+      <RefreshingNote show={loading && rows.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'registro' : 'registros'} disabled={loading} />
     </div>

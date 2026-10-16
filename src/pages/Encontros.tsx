@@ -21,6 +21,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { EventInsert, EventUpdate, EventStatus } from '../types/database.types';
@@ -355,6 +356,8 @@ export function Encontros() {
           ))}
         </ul>
       )}
+
+      <RefreshingNote show={loading && events.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'encontro' : 'encontros'} disabled={loading} />
 

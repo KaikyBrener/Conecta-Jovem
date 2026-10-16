@@ -74,7 +74,7 @@ function ProfileSection() {
         </div>
         <button type="submit" disabled={busy !== null} className={primaryBtn}>
           {busy === 'name' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Salvar nome
+          {busy === 'name' ? 'Salvando…' : 'Salvar nome'}
         </button>
       </form>
       <form onSubmit={savePassword} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] sm:items-end gap-3">
@@ -88,7 +88,7 @@ function ProfileSection() {
         </div>
         <button type="submit" disabled={busy !== null || !password} className={primaryBtn}>
           {busy === 'password' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-          Alterar senha
+          {busy === 'password' ? 'Alterando…' : 'Alterar senha'}
         </button>
       </form>
     </Section>
@@ -162,11 +162,11 @@ function SettingsForm({ settings, onSave, onRecalculate }: {
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={recalc} disabled={busy !== null} className={secondaryBtnCls}>
             {busy === 'recalc' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Recalcular alertas
+            {busy === 'recalc' ? 'Recalculando…' : 'Recalcular alertas'}
           </button>
           <button type="submit" disabled={busy !== null} className={primaryBtn}>
             {busy === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Salvar
+            {busy === 'save' ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
       </div>

@@ -24,6 +24,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Badge } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { Youth, YouthInsert, YouthUpdate } from '../types/database.types';
@@ -429,6 +430,8 @@ export function Jovens() {
           ))}
         </ul>
       )}
+
+      <RefreshingNote show={loading && youth.length > 0} />
 
       {situationsError && youth.length > 0 && (
         <p role="status" className="text-xs text-gray-500">A situação dos jovens não pôde ser carregada agora. A lista continua disponível.</p>

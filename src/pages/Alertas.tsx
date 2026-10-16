@@ -294,7 +294,7 @@ export function Alertas() {
                       className={smallBtnCls}
                     >
                       {busyId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
-                      Reabrir
+                      {busyId === a.id ? 'Reabrindo…' : 'Reabrir'}
                     </button>
                   )}
                 </div>

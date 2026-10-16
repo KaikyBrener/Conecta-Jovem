@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Download, FileText, Loader2 } from 'lucide-react';
 import { ErrorBanner } from '../ErrorBanner';
 import { LoadingBlock } from '../ui/LoadingBlock';
+import { RefreshingNote } from '../ui/RefreshingNote';
 import { useToast } from '../../contexts/ToastContext';
 import { downloadCsv } from '../../lib/csv';
 import { errorMessage } from '../../lib/format';
@@ -88,6 +89,7 @@ export function ReportShell<T>({ state, build, children }: ReportShellProps<T>) 
             <ExportButtons getDoc={() => build(data)} disabled={loading} />
           </div>
           <div className={loading ? 'space-y-4 opacity-60 transition-opacity' : 'space-y-4'}>{children(data)}</div>
+          <RefreshingNote show={loading} />
         </>
       )}
     </div>

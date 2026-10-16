@@ -17,6 +17,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls, smallBtnCls, smallDangerBtnCls } from '../lib/formStyles';
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from '../lib/labels';
 import { formatDateOnly, isOverdue } from '../lib/format';
@@ -244,6 +245,8 @@ export function Tarefas() {
           })}
         </ul>
       )}
+
+      <RefreshingNote show={loading && tasks.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'tarefa' : 'tarefas'} disabled={loading} />
 
