@@ -84,7 +84,9 @@ Convenções observadas:
 - Hooks novos carregam dados em `useEffect` com flag `cancelled` e sem setState síncrono
   no effect (regra `react(set-state-in-effect)` do oxlint). Não exporte constantes de arquivos de componente.
 - Integração por URL: `/tarefas?novo=1&jovem=<id>` ou `&alerta=<id>` abre nova tarefa pré-preenchida.
-- Formulários em `Modal` (bottom-sheet no mobile). `window.confirm` para exclusões.
+- Formulários em `Modal` (bottom-sheet no mobile). Exclusões e ações irreversíveis pedem confirmação com
+  `await useConfirm()({ title, message, confirmLabel, tone })` (`contexts/ConfirmContext.tsx`, janela própria do DS-6);
+  não use `window.confirm`. No E2E: `answerConfirmation(page, true|false)` (fixtures).
 - Layout: sidebar no desktop; bottom-nav no mobile com itens principais + menu "Mais".
 - **Design system** (`src/index.css`, `docs/REDESIGN.md`): as escalas do Tailwind (gray/blue/red/amber/green) são redefinidas com a
   paleta aprovada, então classes de paleta caem nas cores certas; código novo usa as utilities semânticas (`bg-canvas`,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRightLeft, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, HeartHandshake, ListChecks, Mail, Pencil, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { fetchFollowUpPeople, useFollowUps, type FollowUpWithRelations } from '../../hooks/useFollowUps';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { Badge } from '../ui/Badge';
 import { LoadingBlock } from '../ui/LoadingBlock';
 import { Pagination } from '../ui/Pagination';
@@ -59,6 +60,7 @@ function TransferHistory({ followUp }: { followUp: FollowUpWithRelations }) {
 /** Seção "Acompanhamento" da ficha do jovem: linha do tempo + registrar, editar, transferir e excluir. */
 export function FollowUpSection({ youth, onChanged, groupName, onCommunicationChanged }: FollowUpSectionProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const {
     followUps, total, page, setPage, pageSize, totalPages, loading, error, names, isCoordinator, userId,
     refetch, deleteFollowUp, clearError,
@@ -81,7 +83,12 @@ export function FollowUpSection({ youth, onChanged, groupName, onCommunicationCh
     });
 
   const handleDelete = async (f: FollowUpWithRelations) => {
-    if (!window.confirm(`Excluir o acompanhamento de ${formatDateOnly(f.occurred_at)} ("${f.reason}")? Esta ação não pode ser desfeita.`)) return;
+    const confirmed = await confirm({
+      title: 'Excluir acompanhamento?',
+      message: `Excluir o acompanhamento de ${formatDateOnly(f.occurred_at)} (“${f.reason}”)? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+    });
+    if (!confirmed) return;
     setBusyId(f.id);
     const ok = await deleteFollowUp(f.id);
     setBusyId(null);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CalendarClock, CalendarPlus, Users, XCircle } from 'lucide-react';
 import type { Group } from '../../types/database.types';
 import type { SeriesRow } from '../../hooks/useEventSeries';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { Badge } from '../ui/Badge';
 import { LoadingBlock } from '../ui/LoadingBlock';
 import { EmptyState } from '../ui/EmptyState';
@@ -33,6 +34,7 @@ interface CardProps extends Pick<SeriesManagerProps, 'allGroups' | 'onSetGroups'
 }
 
 function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, busy, setBusy }: CardProps) {
+  const confirm = useConfirm();
   const [panel, setPanel] = useState<Panel>(null);
   const [selected, setSelected] = useState<string[]>(series.group_ids);
   const [newEnd, setNewEnd] = useState('');
@@ -60,12 +62,17 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
     void run(() => onExtend(series, newEnd));
   };
 
-  const cancelFuture = () => {
-    const ok = window.confirm(
-      `Cancelar os próximos encontros de "${series.name}"?\n\n` +
-      'A série será encerrada e os encontros futuros ainda sem chamada serão cancelados. ' +
-      'Chamadas já feitas não são afetadas, e encontros passados ou realizados continuam como estão.',
-    );
+  const cancelFuture = async () => {
+    const ok = await confirm({
+      title: 'Cancelar próximos encontros?',
+      message: [
+        `Cancelar os próximos encontros de “${series.name}”?`,
+        'A série será encerrada e os encontros futuros ainda sem chamada serão cancelados. ' +
+          'Chamadas já feitas não são afetadas, e encontros passados ou realizados continuam como estão.',
+      ],
+      confirmLabel: 'Cancelar próximos encontros',
+      cancelLabel: 'Voltar',
+    });
     if (ok) void run(() => onCancelFuture(series));
   };
 

@@ -7,6 +7,7 @@ import {
 import { useTasks, prefillTaskFromAlert, prefillTaskFromYouth, type TaskWithRelations, type TaskListFilter } from '../hooks/useTasks';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { Modal } from '../components/Modal';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { TaskForm, type TaskFormPayload } from '../components/tasks/TaskForm';
@@ -54,6 +55,7 @@ const isOpen = (s: TaskStatus) => s === 'pending' || s === 'in_progress';
 
 export function Tarefas() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filtros, ordenação e paginação são aplicados no servidor (useTasks)
@@ -116,7 +118,7 @@ export function Tarefas() {
   };
 
   const handleDelete = async (t: TaskWithRelations) => {
-    if (!window.confirm(`Excluir a tarefa "${t.title}"?`)) return;
+    if (!(await confirm({ title: 'Excluir tarefa?', message: `Excluir a tarefa “${t.title}”?`, confirmLabel: 'Excluir' }))) return;
     setBusyId(t.id);
     const ok = await deleteTask(t.id);
     setBusyId(null);

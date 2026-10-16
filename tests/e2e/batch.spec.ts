@@ -1,7 +1,7 @@
 // Ações em lote em Jovens (Fase 7, bloco 8): RPCs batch_set_youth_group / batch_set_youth_active reais (migration 014).
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { api, daysFromNow, expect, modal, spDay, test, type TestDb } from './fixtures.ts';
+import { answerConfirmation, api, daysFromNow, expect, modal, spDay, test, type TestDb } from './fixtures.ts';
 import { bulkYouth, seedPeople } from './phase7-helpers.ts';
 
 async function seed(db: TestDb) {
@@ -197,15 +197,15 @@ test.describe('Lote — ativar e desativar', () => {
     await pick(page, 'Bia Lima').check();
 
     // cancelar a confirmação não altera nada
-    let message = '';
-    page.once('dialog', (d) => { message = d.message(); void d.dismiss(); });
     await page.getByTestId('lote-desativar').click();
-    await expect.poll(() => message).toBe('Desativar 2 jovens? Os alertas abertos desses jovens serão resolvidos automaticamente.');
+    let message = await answerConfirmation(page, false);
+    expect(message).toContain('Desativar 2 jovens?');
+    expect(message).toContain('Os alertas abertos desses jovens serão resolvidos automaticamente.');
     expect(await activeOf(db, s.ana)).toBe(true);
     await expect(counter(page)).toHaveText('2 selecionados');
 
-    page.once('dialog', (d) => void d.accept());
     await page.getByTestId('lote-desativar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('2 atualizados.')).toBeVisible();
     expect(await activeOf(db, s.ana)).toBe(false);
     expect(await activeOf(db, s.bia)).toBe(false);
@@ -216,10 +216,10 @@ test.describe('Lote — ativar e desativar', () => {
     await page.getByRole('button', { name: 'Inativos', exact: true }).click();
     await expect(table(page).locator('tbody tr')).toHaveCount(2);
     await pick(page, 'Ana Souza').check();
-    page.once('dialog', (d) => { message = d.message(); void d.accept(); });
     await page.getByTestId('lote-ativar').click();
+    message = await answerConfirmation(page, true);
     await expect(page.getByText('1 atualizado.')).toBeVisible();
-    expect(message).toBe('Ativar 1 jovem?');
+    expect(message).toContain('Ativar 1 jovem?');
     expect(await activeOf(db, s.ana)).toBe(true);
     expect(await activeOf(db, s.bia)).toBe(false);
 
@@ -295,8 +295,8 @@ test.describe('Lote — líder', () => {
       return route.continue({ postData: JSON.stringify({ ...body, p_youth_ids: [s.caio] }) });
     });
     await pick(page, 'Ana Souza').check();
-    page.once('dialog', (d) => void d.accept());
     await page.getByTestId('lote-desativar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByRole('alert').filter({ hasText: '1 sem permissão.' })).toBeVisible();
     expect(await activeOf(db, s.caio)).toBe(true);
     expect(await activeOf(db, s.ana)).toBe(true);

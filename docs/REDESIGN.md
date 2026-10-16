@@ -45,7 +45,9 @@ Como funciona:
 | `Tabs` | `components/ui/Card.tsx` | abas dos relatórios |
 | `DataTable` | `components/reports/ReportParts.tsx` | tabela no desktop, cartões no celular |
 | `Modal` | `components/Modal.tsx` | janela no desktop, folha inferior no celular; `size="lg"` para a ficha do jovem |
-| `PageHeader`, `EmptyState`, `LoadingBlock`, `SearchInput`, `FilterChips`, `Pagination` | `components/ui/` | já existiam; passaram aos tokens |
+| `PageHeader`, `EmptyState`, `LoadingBlock`, `SearchInput`, `FilterChips`, `Pagination` | `components/ui/` | já existiam; passaram aos tokens. `EmptyState`: ícone em círculo de 44px e `hint` opcional (DS-5). `FilterChips`: `shortLabel` e `segmentedOnMobile` (Encontros no celular) |
+| `RefreshingNote` | `components/ui/RefreshingNote.tsx` | "Atualizando…" abaixo de uma lista que já tem resultado (DS-5); a lista continua esmaecida |
+| `ConfirmProvider` / `useConfirm` | `contexts/ConfirmContext.tsx` | confirmação em janela própria (DS-6) sobre o `Modal`: foco inicial em "Cancelar", Esc cancela, foco volta a quem abriu; recusa sozinha se a rota mudar |
 | Classes de botão, campo e tabela | `lib/formStyles.ts`, `lib/authStyles.ts` | usadas pelos componentes acima e pelas telas antigas |
 
 `Button` e `Field` são novos e estão disponíveis; as telas existentes continuam usando as classes de `formStyles.ts`
@@ -57,8 +59,10 @@ Como funciona:
   (`dashboard_overview`): nome, grupo, motivos e situação. O desenho mostra uma tabela com colunas que o servidor não
   fornece; nenhuma mudança de banco foi feita.
 - **Tendência de grupos:** "Em queda" usa âmbar, não vermelho. Os textos existentes foram mantidos.
-- **Confirmações:** `window.confirm` foi mantido (os testes esperam o diálogo nativo). A confirmação destrutiva em
-  janela própria do desenho fica para outra etapa.
+- **Confirmações:** janela própria (`useConfirm`) em todos os pontos que usavam `window.confirm`: excluir encontro,
+  tarefa, acompanhamento e comunicação; descartar e reenviar e-mail; trocar modelo de e-mail; cancelar os próximos
+  encontros da série; ativar/desativar em lote. Título = a pergunta do desenho, texto = a explicação. O E2E responde
+  com `answerConfirmation` (fixtures) e confere o texto da janela.
 - **Ações em lote:** continuam disponíveis para coordenador e líder.
 - **Textos:** rótulos, títulos e mensagens não mudaram (inclusive "nenhum alerta aberto" em minúsculas, que os testes
   conferem).
@@ -76,7 +80,8 @@ O Playwright localiza alguns elementos por classe. Ao mexer nesses pontos, mante
 
 ## Pendências
 
-- Substituir `window.confirm` por confirmação em janela (exige reescrever os pontos de E2E que usam o diálogo nativo).
+- Migrar as ~715 classes de paleta (`bg-white`, `text-gray-*`...) para os tokens semânticos (decidido ficar para outra
+  etapa; ver `docs/REDESIGN-PLANO.md`).
 - Migrar os formulários antigos de `inputCls`/`labelCls` para `Field`/`Select`/`Textarea`, um por vez.
 - Mover `DataTable` para `components/ui` e usá-la nas tabelas escritas à mão (Jovens, Encontros, Grupos, Histórico).
 - Conferir em Safari, Firefox e iOS reais (a validação visual foi feita no Chromium do Playwright).

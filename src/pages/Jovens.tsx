@@ -12,6 +12,7 @@ import { BatchGroupForm } from '../components/youth/BatchGroupForm';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useYouthSituations } from '../hooks/useYouthSituation';
 import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { Modal } from '../components/Modal';
 import { YouthForm } from '../components/youth/YouthForm';
 import { YouthDetail } from '../components/youth/YouthDetail';
@@ -33,6 +34,7 @@ const NO_SELECTION: ReadonlyMap<string, Youth> = new Map();
 
 export function Jovens() {
   const toast = useToast();
+  const confirm = useConfirm();
   // UI state — filtros, ordenação e paginação são aplicados no servidor (useYouth)
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search);
@@ -133,10 +135,19 @@ export function Jovens() {
     if (await applyBatch(() => batchSetGroup(ids(), groupId))) setGroupModalOpen(false);
   };
   const handleBatchActive = async (active: boolean) => {
-    const ok = window.confirm(
+    const ok = await confirm(
       active
-        ? `Ativar ${countText}?`
-        : `Desativar ${countText}? Os alertas abertos desses jovens serão resolvidos automaticamente.`,
+        ? {
+            title: `Ativar ${countText}?`,
+            message: n === 1 ? 'O jovem volta a ser avaliado e a aparecer nas chamadas.' : 'Os jovens voltam a ser avaliados e a aparecer nas chamadas.',
+            confirmLabel: 'Ativar',
+            tone: 'primary',
+          }
+        : {
+            title: `Desativar ${countText}?`,
+            message: n === 1 ? 'Os alertas abertos deste jovem serão resolvidos automaticamente.' : 'Os alertas abertos desses jovens serão resolvidos automaticamente.',
+            confirmLabel: 'Desativar',
+          },
     );
     if (ok) await applyBatch(() => batchSetActive(ids(), active));
   };

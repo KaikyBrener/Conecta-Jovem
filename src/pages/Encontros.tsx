@@ -11,6 +11,7 @@ import { cancelMessage, createdMessage, groupsMessage, hasPendingGroups, type Se
 import { SeriesForm } from '../components/events/SeriesForm';
 import { SeriesManager } from '../components/events/SeriesManager';
 import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { Modal } from '../components/Modal';
 import { EventForm } from '../components/events/EventForm';
 import { EventDetail } from '../components/events/EventDetail';
@@ -65,6 +66,7 @@ function EventBadges({ ev }: { ev: EventWithGroups }) {
 
 export function Encontros() {
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   // Filtros, ordenação e paginação são aplicados no servidor (useEvents)
   // `/encontros?busca=<texto>` preenche a busca
@@ -204,7 +206,11 @@ export function Encontros() {
 
   const handleDelete = async () => {
     if (!selected || !isCoordinator) return;
-    const confirmed = window.confirm(`Excluir "${selected.title}"? Esta ação não pode ser desfeita.`);
+    const confirmed = await confirm({
+      title: 'Excluir encontro?',
+      message: `Excluir “${selected.title}”? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+    });
     if (!confirmed) return;
     setActionLoading(true);
     const ok = await deleteEvent(selected.id);

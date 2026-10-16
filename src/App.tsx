@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -53,6 +54,7 @@ function App() {
       <ToastProvider>
       <AuthProvider>
         <Router>
+          <ConfirmProvider>
           <PasswordSetupGate>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -80,6 +82,7 @@ function App() {
             </Routes>
           </Suspense>
           </PasswordSetupGate>
+          </ConfirmProvider>
         </Router>
       </AuthProvider>
       </ToastProvider>
