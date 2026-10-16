@@ -7,6 +7,7 @@ import {
 import { useTasks, prefillTaskFromAlert, prefillTaskFromYouth, type TaskWithRelations, type TaskListFilter } from '../hooks/useTasks';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { Modal } from '../components/Modal';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { TaskForm, type TaskFormPayload } from '../components/tasks/TaskForm';
@@ -17,6 +18,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls, smallBtnCls, smallDangerBtnCls } from '../lib/formStyles';
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from '../lib/labels';
 import { formatDateOnly, isOverdue } from '../lib/format';
@@ -53,6 +55,7 @@ const isOpen = (s: TaskStatus) => s === 'pending' || s === 'in_progress';
 
 export function Tarefas() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filtros, ordenação e paginação são aplicados no servidor (useTasks)
@@ -115,7 +118,7 @@ export function Tarefas() {
   };
 
   const handleDelete = async (t: TaskWithRelations) => {
-    if (!window.confirm(`Excluir a tarefa "${t.title}"?`)) return;
+    if (!(await confirm({ title: 'Excluir tarefa?', message: `Excluir a tarefa “${t.title}”?`, confirmLabel: 'Excluir' }))) return;
     setBusyId(t.id);
     const ok = await deleteTask(t.id);
     setBusyId(null);
@@ -244,6 +247,8 @@ export function Tarefas() {
           })}
         </ul>
       )}
+
+      <RefreshingNote show={loading && tasks.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'tarefa' : 'tarefas'} disabled={loading} />
 

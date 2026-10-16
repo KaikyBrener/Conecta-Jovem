@@ -11,6 +11,7 @@ import { cancelMessage, createdMessage, groupsMessage, hasPendingGroups, type Se
 import { SeriesForm } from '../components/events/SeriesForm';
 import { SeriesManager } from '../components/events/SeriesManager';
 import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { Modal } from '../components/Modal';
 import { EventForm } from '../components/events/EventForm';
 import { EventDetail } from '../components/events/EventDetail';
@@ -21,6 +22,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { EventInsert, EventUpdate, EventStatus } from '../types/database.types';
@@ -64,6 +66,7 @@ function EventBadges({ ev }: { ev: EventWithGroups }) {
 
 export function Encontros() {
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   // Filtros, ordenação e paginação são aplicados no servidor (useEvents)
   // `/encontros?busca=<texto>` preenche a busca
@@ -203,7 +206,11 @@ export function Encontros() {
 
   const handleDelete = async () => {
     if (!selected || !isCoordinator) return;
-    const confirmed = window.confirm(`Excluir "${selected.title}"? Esta ação não pode ser desfeita.`);
+    const confirmed = await confirm({
+      title: 'Excluir encontro?',
+      message: `Excluir “${selected.title}”? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+    });
     if (!confirmed) return;
     setActionLoading(true);
     const ok = await deleteEvent(selected.id);
@@ -211,11 +218,11 @@ export function Encontros() {
     if (ok) { closeModal(); toast.success('Encontro excluído.'); }
   };
 
-  const filters: { label: string; value: EventStatusFilter }[] = [
+  const filters: { label: string; value: EventStatusFilter; shortLabel?: string }[] = [
     { label: 'Todos', value: 'all' },
-    { label: 'Agendados', value: 'scheduled' },
-    { label: 'Realizados', value: 'completed' },
-    { label: 'Cancelados', value: 'cancelled' },
+    { label: 'Agendados', value: 'scheduled', shortLabel: 'Agend.' },
+    { label: 'Realizados', value: 'completed', shortLabel: 'Realiz.' },
+    { label: 'Cancelados', value: 'cancelled', shortLabel: 'Cancel.' },
   ];
 
   return (
@@ -244,7 +251,7 @@ export function Encontros() {
       {/* Filtros */}
       <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por título..." className="max-w-sm" />
-        <FilterChips options={filters} value={filterStatus} onChange={setFilterStatus} />
+        <FilterChips options={filters} value={filterStatus} onChange={setFilterStatus} segmentedOnMobile />
       </div>
 
       {/* Error */}
@@ -355,6 +362,8 @@ export function Encontros() {
           ))}
         </ul>
       )}
+
+      <RefreshingNote show={loading && events.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'encontro' : 'encontros'} disabled={loading} />
 

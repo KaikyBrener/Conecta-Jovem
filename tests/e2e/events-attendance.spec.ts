@@ -1,5 +1,5 @@
 import {
-  chamadaRow, daysFromNow, expect, expectCounters, markAbsent, markPresent, modal, test, toDatetimeLocal,
+  answerConfirmation, chamadaRow, daysFromNow, expect, expectCounters, markAbsent, markPresent, modal, test, toDatetimeLocal,
 } from './fixtures.ts';
 
 test.describe('Encontros', () => {
@@ -160,15 +160,14 @@ test.describe('Encontros', () => {
     await page.goto('/encontros');
 
     await page.getByRole('button', { name: 'Culto Descartável' }).first().click();
-    page.once('dialog', (d) => {
-      expect(d.message()).toContain('Culto Descartável');
-      void d.dismiss();
-    });
     await modal(page).getByRole('button', { name: 'Excluir' }).click();
+    const asked = await answerConfirmation(page, false);
+    expect(asked).toContain('Excluir encontro?');
+    expect(asked).toContain('Culto Descartável');
     expect(await db.sql(`SELECT 1 FROM events`)).toHaveLength(1); // cancelar não exclui
 
-    page.once('dialog', (d) => void d.accept());
     await modal(page).getByRole('button', { name: 'Excluir' }).click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('Nenhum encontro cadastrado ainda.')).toBeVisible();
     expect(await db.sql(`SELECT 1 FROM events`)).toHaveLength(0);
   });

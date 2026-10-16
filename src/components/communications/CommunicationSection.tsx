@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useCommunications, type CommunicationWithRelations } from '../../hooks/useCommunications';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { ErrorBanner } from '../ErrorBanner';
 import { LoadingBlock } from '../ui/LoadingBlock';
 import { Pagination } from '../ui/Pagination';
@@ -38,6 +39,7 @@ const SENDING_REFRESH_MS = 15_000;
 /** Seção "Comunicações" da ficha do jovem: histórico de e-mails + novo e-mail. Enviado e cancelada são só leitura. */
 export function CommunicationSection({ youth, groupName, alertChoices, refreshKey, onChanged }: CommunicationSectionProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const {
     communications, total, page, setPage, pageSize, totalPages, loading, error, isCoordinator, userId,
     clearError, markCommunication, sendCommunication, deleteCommunication, refetch,
@@ -76,7 +78,12 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
 
   const discard = async (c: CommunicationWithRelations) => {
     const what = c.status === 'draft' ? 'este rascunho' : 'esta comunicação';
-    if (!window.confirm(`Descartar ${what}? Ela ficará no histórico como cancelada e não poderá ser editada.`)) return;
+    const ok = await confirm({
+      title: `Descartar ${what}?`,
+      message: 'Ela ficará no histórico como cancelada e não poderá ser editada.',
+      confirmLabel: 'Descartar',
+    });
+    if (!ok) return;
     setBusyId(c.id);
     const row = await markCommunication(c.id, 'cancelled');
     setBusyId(null);
@@ -85,7 +92,13 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
 
   /** Reenvia a MESMA comunicação (falha ou envio sem resposta). O servidor decide; o resultado vem do banco. */
   const resend = async (c: CommunicationWithRelations) => {
-    if (!window.confirm('Enviar este e-mail agora? O envio é real e não pode ser desfeito.')) return;
+    const ok = await confirm({
+      title: 'Enviar este e-mail agora?',
+      message: 'O envio é real e não pode ser desfeito.',
+      confirmLabel: 'Enviar e-mail',
+      tone: 'primary',
+    });
+    if (!ok) return;
     clearError();
     setBusyId(c.id);
     const { outcome, row } = await sendCommunication(c.id);
@@ -102,7 +115,12 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
   const refreshStatus = () => { setNow(Date.now()); refetch(); };
 
   const remove = async (c: CommunicationWithRelations) => {
-    if (!window.confirm('Excluir esta comunicação definitivamente?')) return;
+    const confirmed = await confirm({
+      title: 'Excluir comunicação?',
+      message: 'Excluir esta comunicação definitivamente? Esta ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+    });
+    if (!confirmed) return;
     setBusyId(c.id);
     const ok = await deleteCommunication(c.id);
     setBusyId(null);

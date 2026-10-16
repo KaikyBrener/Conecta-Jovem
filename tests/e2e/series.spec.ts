@@ -2,7 +2,7 @@
 // (migration 014). Datas fixas em 2030 (sábados: 5, 12, 19 e 26/jan; 2, 9, 16 e 23/fev) para o resultado ser
 // determinístico e sempre futuro.
 import type { Page } from '@playwright/test';
-import { api, expect, injectSession, modal, passwordSession, test, type TestDb } from './fixtures.ts';
+import { answerConfirmation, api, expect, injectSession, modal, passwordSession, test, type TestDb } from './fixtures.ts';
 import { APP_URL } from './env.ts';
 import { seedPeople } from './phase7-helpers.ts';
 
@@ -336,15 +336,15 @@ test.describe('Séries — estender e cancelar', () => {
     const card = modal(page).getByTestId('serie-item');
 
     // recusar a confirmação não muda nada
-    page.once('dialog', (d) => d.dismiss());
     await card.getByTestId('serie-cancelar-proximos').click();
+    await answerConfirmation(page, false);
     expect((await seriesEvents(db)).filter((r) => r.status === 'cancelled')).toHaveLength(0);
 
-    let message = '';
-    page.once('dialog', (d) => { message = d.message(); void d.accept(); });
     await card.getByTestId('serie-cancelar-proximos').click();
+    const message = await answerConfirmation(page, true);
     await expect(page.getByText('3 encontros futuros cancelados. Série encerrada. 1 encontro futuro já tem chamada e foi mantido.')).toBeVisible();
-    expect(message).toContain(`Cancelar os próximos encontros de "${SERIES}"?`);
+    expect(message).toContain('Cancelar próximos encontros?');
+    expect(message).toContain(`Cancelar os próximos encontros de “${SERIES}”?`);
     expect(message).toContain('Chamadas já feitas não são afetadas');
 
     const rows = await seriesEvents(db);

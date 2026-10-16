@@ -7,9 +7,11 @@ interface ModalProps {
   children: ReactNode;
   /** `lg` = janela larga (ficha do jovem, 760px). Padrão: 512px. No celular é sempre folha inferior. */
   size?: 'md' | 'lg';
+  /** data-testid do elemento role="dialog" */
+  testId?: string;
 }
 
-export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
+export function Modal({ title, onClose, children, size = 'md', testId }: ModalProps) {
   const titleId = useId();
   return (
     <div
@@ -20,6 +22,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        data-testid={testId}
         className={`bg-surface w-full ${size === 'lg' ? 'sm:max-w-[47.5rem]' : 'sm:max-w-lg'} rounded-t-sheet sm:rounded-sheet shadow-xl border border-line max-h-[90vh] overflow-y-auto`}
       >
         <div className="flex items-center justify-between gap-2 border-b border-line-soft py-1.5 pl-5 pr-2">

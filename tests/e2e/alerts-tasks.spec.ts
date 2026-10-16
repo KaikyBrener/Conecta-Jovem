@@ -1,4 +1,4 @@
-import { daysFromNow, expect, markAbsent, markPresent, modal, test, type TestDb, type TestUser } from './fixtures.ts';
+import { answerConfirmation, daysFromNow, expect, markAbsent, markPresent, modal, test, type TestDb, type TestUser } from './fixtures.ts';
 
 /**
  * Cenário: Ana faltou nos 2 últimos encontros realizados (limite padrão = 3 faltas
@@ -221,18 +221,34 @@ test.describe('Tarefas', () => {
     await page.goto('/tarefas');
     const task = page.locator('main li', { hasText: 'Tarefa descartável' });
 
-    page.once('dialog', (d) => void d.dismiss());
     await task.getByRole('button', { name: 'Excluir' }).click();
+    await answerConfirmation(page, false);
     await expect(task).toBeVisible();
     expect(await db.sql(`SELECT 1 FROM tasks`)).toHaveLength(1);
 
-    page.once('dialog', (d) => {
-      expect(d.message()).toContain('Tarefa descartável');
-      void d.accept();
-    });
     await task.getByRole('button', { name: 'Excluir' }).click();
+    const asked = await answerConfirmation(page, true);
+    expect(asked).toContain('Excluir tarefa?');
+    expect(asked).toContain('Tarefa descartável');
     await expect(page.getByText('Nenhuma tarefa encontrada para este filtro.')).toBeVisible();
     expect(await db.sql(`SELECT 1 FROM tasks`)).toHaveLength(0);
+  });
+
+  test('janela de confirmação: foco em "Cancelar", Esc cancela e o foco volta ao botão que abriu', async ({ page, db, loginAs }) => {
+    const coord = await db.createUser('coordinator', 'Carla Coordenadora');
+    await db.sql(`INSERT INTO tasks (title, created_by, assigned_to) VALUES ('Tarefa descartável', $1, $1)`, [coord.id]);
+    await loginAs(coord);
+    await page.goto('/tarefas');
+    const excluir = page.locator('main li', { hasText: 'Tarefa descartável' }).getByRole('button', { name: 'Excluir' });
+
+    await excluir.click();
+    const dialog = page.getByRole('dialog', { name: 'Excluir tarefa?' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId('confirmacao-cancelar')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(excluir).toBeFocused();
+    expect(await db.sql(`SELECT 1 FROM tasks`)).toHaveLength(1);
   });
 
   test('busca e filtro "Só as minhas"', async ({ page, db, loginAs }) => {

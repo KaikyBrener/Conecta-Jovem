@@ -5,8 +5,8 @@
 import type { Page } from '@playwright/test';
 import type { Browser } from '@playwright/test';
 import {
-  api, brDate, daysFromNow, expect, injectSession, markAbsent, markPresent, modal, passwordSession, spDay, test,
-  type TestDb, type TestUser,
+  answerConfirmation, api, brDate, daysFromNow, expect, injectSession, markAbsent, markPresent, modal, passwordSession,
+  spDay, test, type TestDb, type TestUser,
 } from './fixtures.ts';
 import { ANON_KEY, APP_URL, SUPABASE_URL } from './env.ts';
 import { bulkYouth, seedPeople } from './phase7-helpers.ts';
@@ -169,8 +169,8 @@ test.describe('Histórico — o que é registrado', () => {
     await modal(page).getByTestId('lote-grupo-aplicar').click();
     await expect(page.getByText('1 atualizado.')).toBeVisible();
     await page.locator('table').getByRole('checkbox', { name: 'Selecionar Bia Lima' }).check();
-    page.once('dialog', (d) => void d.accept());
     await page.getByTestId('lote-desativar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('1 atualizado.').last()).toBeVisible();
 
     // série pela tela

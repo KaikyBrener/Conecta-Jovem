@@ -233,8 +233,9 @@
   --color-warning-soft: rgba(245, 158, 11, 0.12);
   --color-warning-line: rgba(245, 158, 11, 0.35);
   --color-warning-ink: #fcd34d;
-  --color-danger: #d9483d;
-  --color-danger-hover: #e2635a;
+  /* fundo do botão destrutivo: texto branco precisa de 4.5:1 (#d0413a dá 4.67); o hover escurece para não perder contraste */
+  --color-danger: #d0413a;
+  --color-danger-hover: #b93a31;
   --color-danger-soft: rgba(239, 68, 68, 0.12);
   --color-danger-line: rgba(239, 68, 68, 0.35);
   --color-danger-ink: #fca5a5;
@@ -338,6 +339,8 @@
 .dark .hover\:text-blue-800:hover { color: var(--color-action-ink); }
 /* texto de ação (links) no escuro: o azul de botão não tem contraste sobre as superfícies; usa o azul claro */
 .dark .text-action { color: var(--color-action-ink); }
+/* idem para o vermelho: `--color-danger` é o fundo do botão destrutivo; como texto (botão em contorno) usa o tom claro */
+.dark .text-danger { color: var(--color-danger-ink); }
 
 /* Estados (alertas, selos, mensagens): fundo translúcido + texto/borda claros */
 .dark .bg-red-50,

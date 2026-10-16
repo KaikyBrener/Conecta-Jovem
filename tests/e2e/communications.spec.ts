@@ -4,7 +4,7 @@
 // Falhas do provedor, estados concorrentes, permissões da função e vazamentos: communications-send.spec.ts.
 // Nenhum e-mail é enviado de verdade.
 import type { Page } from '@playwright/test';
-import { api, expect, openYouthSheet, test } from './fixtures.ts';
+import { answerConfirmation, api, expect, openYouthSheet, test } from './fixtures.ts';
 import {
   ANA_EMAIL, FAKE_PROVIDER_KEY, MSG, idemKey, PROVIDER_RAW_TEXT, callSend, collectLeaks, comItems, commRows, composeToReview, goToMessage,
   goToReview, mailCalls, modalCom, seedComm, seedWorld, sendMail, setMail,
@@ -226,13 +226,13 @@ test.describe('Rascunho, descartar e reabrir', () => {
     await expect(page.getByText('Rascunho salvo.')).toBeVisible();
 
     const item = comItems(page).first();
-    page.once('dialog', (d) => { expect(d.message()).toContain('Descartar este rascunho?'); void d.dismiss(); });
     await item.getByTestId('comunicacao-descartar').click();
+    expect(await answerConfirmation(page, false)).toContain('Descartar este rascunho?');
     await expect(item).toHaveAttribute('data-status', 'draft');
     expect((await commRows(db))[0].status).toBe('draft');
 
-    page.once('dialog', (d) => { void d.accept(); });
     await item.getByTestId('comunicacao-descartar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('Comunicação descartada.')).toBeVisible();
     await expect(item).toHaveAttribute('data-status', 'cancelled');
     expect((await commRows(db))[0]).toMatchObject({ status: 'cancelled', sent_at: null, failure_reason: null, sent_by: null });
@@ -257,12 +257,12 @@ test.describe('Rascunho, descartar e reabrir', () => {
     const m = modalCom(page);
     await goToMessage(page);
     await m.getByTestId('comunicacao-assunto').fill('Meu assunto');
-    page.once('dialog', (d) => { expect(d.message()).toContain('Trocar o modelo substitui'); void d.dismiss(); });
     await m.getByTestId('comunicacao-modelo').selectOption('free');
+    expect(await answerConfirmation(page, false)).toContain('Trocar o modelo substitui');
     await expect(m.getByTestId('comunicacao-modelo')).toHaveValue('consecutive_absences');
     await expect(m.getByTestId('comunicacao-assunto')).toHaveValue('Meu assunto');
-    page.once('dialog', (d) => { void d.accept(); });
     await m.getByTestId('comunicacao-modelo').selectOption('free');
+    await answerConfirmation(page, true);
     await expect(m.getByTestId('comunicacao-modelo')).toHaveValue('free');
     await expect(m.getByTestId('comunicacao-assunto')).toHaveValue('Mensagem do ministério jovem');
   });
@@ -615,15 +615,15 @@ test.describe('Permissões: coordenador x líder', () => {
     await expect(byStatus('draft').getByTestId('comunicacao-excluir')).toBeVisible();
     await expect(byStatus('cancelled').getByTestId('comunicacao-excluir')).toBeVisible();
 
-    page.once('dialog', (d) => { expect(d.message()).toContain('Excluir esta comunicação definitivamente?'); void d.dismiss(); });
     await byStatus('draft').getByTestId('comunicacao-excluir').click();
+    expect(await answerConfirmation(page, false)).toContain('Excluir esta comunicação definitivamente?');
     await expect(comItems(page)).toHaveCount(5);
-    page.once('dialog', (d) => { void d.accept(); });
     await byStatus('draft').getByTestId('comunicacao-excluir').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('Comunicação excluída.')).toBeVisible();
     await expect(comItems(page)).toHaveCount(4);
-    page.once('dialog', (d) => { void d.accept(); });
     await byStatus('cancelled').getByTestId('comunicacao-excluir').click();
+    await answerConfirmation(page, true);
     await expect(comItems(page)).toHaveCount(3);
     expect((await commRows(db)).map((r) => r.status).sort()).toEqual(['failed', 'sending', 'sent']);
 

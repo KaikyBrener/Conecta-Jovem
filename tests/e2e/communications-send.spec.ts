@@ -4,7 +4,7 @@
 // Nenhum e-mail é enviado de verdade.
 import type { Page } from '@playwright/test';
 import { ANON_KEY, APP_URL, SUPABASE_URL } from './env.ts';
-import { api, expect, openYouthSheet, test, type TestUser } from './fixtures.ts';
+import { answerConfirmation, api, expect, openYouthSheet, test, type TestUser } from './fixtures.ts';
 import {
   ANA_EMAIL, FAKE_PROVIDER_KEY, MSG, idemKey, PROVIDER_RAW_TEXT, callSend, collectLeaks, comItems, commRows, composeToReview, mailCalls,
   modalCom, seedComm, seedWorld, sendMail, setMail, type MailMode, type World,
@@ -154,13 +154,13 @@ test.describe('"Tentar novamente" reenvia a MESMA comunicação', () => {
 
     await setMail('success');
     const item = comItems(page).first();
-    page.once('dialog', (d) => { expect(d.message()).toContain('Enviar este e-mail agora?'); void d.dismiss(); });
     await item.getByTestId('comunicacao-reenviar').click();
+    expect(await answerConfirmation(page, false)).toContain('Enviar este e-mail agora?');
     await expect(item).toHaveAttribute('data-status', 'failed');
     expect(await mailCalls()).toHaveLength(1);                       // recusar a confirmação não envia
 
-    page.once('dialog', (d) => { void d.accept(); });
     await item.getByTestId('comunicacao-reenviar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('E-mail enviado.', { exact: true })).toBeVisible();
     await expect(item).toHaveAttribute('data-status', 'sent');
     await expect(item.getByTestId('comunicacao-reenviar')).toHaveCount(0);
@@ -178,8 +178,8 @@ test.describe('"Tentar novamente" reenvia a MESMA comunicação', () => {
     await sendMail(page);
     await m.getByTestId('comunicacao-fechar').click();
     const item = comItems(page).first();
-    page.once('dialog', (d) => { void d.accept(); });
     await item.getByTestId('comunicacao-reenviar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText(MSG_FALHA.unknown).first()).toBeVisible();
     await expect(item).toHaveAttribute('data-status', 'failed');
     expect((await commRows(db))[0]).toMatchObject({ status: 'failed', attempts: 2, sent_at: null });
@@ -499,8 +499,8 @@ test.describe('Estados: duplo envio, envio em andamento, envio preso e limite', 
     const item = comItems(page).first();
     await expect(item.getByTestId('comunicacao-envio-sem-resposta')).toContainText('Envio sem resposta');
     await expect(item.getByTestId('comunicacao-enviando-item')).toHaveCount(0);
-    page.once('dialog', (d) => { void d.accept(); });
     await item.getByTestId('comunicacao-reenviar').click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('E-mail enviado.', { exact: true })).toBeVisible();
     await expect(item).toHaveAttribute('data-status', 'sent');
     const rows = await commRows(db);

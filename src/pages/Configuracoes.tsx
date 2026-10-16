@@ -7,7 +7,7 @@ import { ErrorBanner, SuccessBanner } from '../components/ErrorBanner';
 import { PageHeader } from '../components/ui/PageHeader';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Pagination } from '../components/ui/Pagination';
-import { inputCls, labelCls, primaryBtnCls as primaryBtn, secondaryBtnCls } from '../lib/formStyles';
+import { helpCls, inputCls, labelCls, primaryBtnCls as primaryBtn, secondaryBtnCls } from '../lib/formStyles';
 import { formatDateTime } from '../lib/format';
 import { MIN_PASSWORD_LENGTH } from '../lib/passwordPolicy';
 import { validateSettings, type SettingsPayload } from '../lib/settingsForm';
@@ -74,22 +74,27 @@ function ProfileSection() {
         </div>
         <button type="submit" disabled={busy !== null} className={primaryBtn}>
           {busy === 'name' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Salvar nome
+          {busy === 'name' ? 'Salvando…' : 'Salvar nome'}
         </button>
       </form>
-      <form onSubmit={savePassword} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] sm:items-end gap-3">
-        <div>
-          <label className={labelCls} htmlFor="pw1">Nova senha</label>
-          <input id="pw1" type="password" autoComplete="new-password" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} />
+      <form onSubmit={savePassword} className="space-y-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] sm:items-end gap-3">
+          <div>
+            <label className={labelCls} htmlFor="pw1">Nova senha</label>
+            <input id="pw1" type="password" autoComplete="new-password" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} aria-describedby="pw-help" />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="pw2">Confirmar senha</label>
+            <input id="pw2" type="password" autoComplete="new-password" className={inputCls} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          </div>
+          <button type="submit" disabled={busy !== null || !password} className={primaryBtn}>
+            {busy === 'password' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+            {busy === 'password' ? 'Alterando…' : 'Alterar senha'}
+          </button>
         </div>
-        <div>
-          <label className={labelCls} htmlFor="pw2">Confirmar senha</label>
-          <input id="pw2" type="password" autoComplete="new-password" className={inputCls} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-        </div>
-        <button type="submit" disabled={busy !== null || !password} className={primaryBtn}>
-          {busy === 'password' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-          Alterar senha
-        </button>
+        <p id="pw-help" className={helpCls}>
+          Mínimo de {MIN_PASSWORD_LENGTH} caracteres. Ao alterar a senha, as outras sessões abertas são encerradas; esta continua.
+        </p>
       </form>
     </Section>
   );
@@ -162,11 +167,11 @@ function SettingsForm({ settings, onSave, onRecalculate }: {
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={recalc} disabled={busy !== null} className={secondaryBtnCls}>
             {busy === 'recalc' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Recalcular alertas
+            {busy === 'recalc' ? 'Recalculando…' : 'Recalcular alertas'}
           </button>
           <button type="submit" disabled={busy !== null} className={primaryBtn}>
             {busy === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Salvar
+            {busy === 'save' ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
       </div>

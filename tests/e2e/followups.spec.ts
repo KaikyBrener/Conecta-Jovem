@@ -3,7 +3,7 @@
 // Tudo roda contra o banco falso com as migrations reais (triggers, RLS e RPCs de verdade).
 import type { Page } from '@playwright/test';
 import {
-  api, brDate, daysFromNow, expect, modal, openYouthSheet, spDay, test, type TestDb, type TestUser,
+  answerConfirmation, api, brDate, daysFromNow, expect, modal, openYouthSheet, spDay, test, type TestDb, type TestUser,
 } from './fixtures.ts';
 import { addFollowUp } from './phase7-helpers.ts';
 
@@ -214,13 +214,13 @@ test.describe('Acompanhamento — registrar e editar (coordenador)', () => {
     await loginAs(s.carla);
     await openYouthSheet(page, 'Ana Souza');
 
-    page.once('dialog', (d) => { expect(d.message()).toContain('Conversa antiga'); void d.dismiss(); });
     await items(page).getByRole('button', { name: 'Excluir' }).click();
+    expect(await answerConfirmation(page, false)).toContain('Conversa antiga');
     await expect(items(page)).toHaveCount(1);
     expect(await db.sql(`SELECT 1 FROM follow_ups`)).toHaveLength(1);
 
-    page.once('dialog', (d) => void d.accept());
     await items(page).getByRole('button', { name: 'Excluir' }).click();
+    await answerConfirmation(page, true);
     await expect(page.getByText('Acompanhamento excluído.')).toBeVisible();
     await expect(page.getByText('Nenhum acompanhamento registrado para este jovem ainda.')).toBeVisible();
     expect(await db.sql(`SELECT 1 FROM follow_ups`)).toHaveLength(0);

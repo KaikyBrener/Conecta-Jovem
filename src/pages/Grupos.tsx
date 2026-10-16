@@ -13,6 +13,7 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Pagination } from '../components/ui/Pagination';
+import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { primaryBtnCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { Group, GroupInsert, GroupUpdate } from '../types/database.types';
@@ -163,7 +164,7 @@ export function Grupos() {
                 <tr key={g.id} data-testid="grupo-linha" className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <button onClick={() => openMembers(g)} className="flex items-center gap-3 text-left">
-                      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-sm flex items-center justify-center uppercase">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-card bg-action-soft text-action-ink font-semibold text-label flex items-center justify-center uppercase" aria-hidden="true">
                         {g.name.charAt(0)}
                       </div>
                       <span className="font-medium text-gray-900">{g.name}</span>
@@ -212,7 +213,7 @@ export function Grupos() {
           {groups.map((g) => (
             <li key={g.id} data-testid="grupo-card">
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-50 text-indigo-700 font-semibold text-sm flex items-center justify-center uppercase">
+                <div className="flex-shrink-0 w-10 h-10 rounded-card bg-action-soft text-action-ink font-semibold text-[1.0625rem] flex items-center justify-center uppercase" aria-hidden="true">
                   {g.name.charAt(0)}
                 </div>
 
@@ -268,6 +269,8 @@ export function Grupos() {
           ))}
         </ul>
       )}
+
+      <RefreshingNote show={loading && groups.length > 0} />
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'grupo' : 'grupos'} disabled={loading} />
 

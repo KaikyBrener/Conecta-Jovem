@@ -246,6 +246,22 @@ export async function loginViaForm(page: Page, email: string, password: string) 
 /** Modal aberto (o componente Modal não expõe role=dialog). */
 export const modal = (page: Page) => page.locator('div.fixed.inset-0').last();
 
+/** Janela de confirmação do app (ConfirmProvider), que substituiu o `window.confirm`. */
+export const confirmation = (page: Page) => page.getByTestId('confirmacao');
+
+/**
+ * Responde à janela de confirmação aberta pelo último clique e devolve o texto dela (título + mensagem, com os
+ * espaços normalizados) para o teste conferir. `accept=false` clica em "Cancelar"/"Voltar".
+ */
+export async function answerConfirmation(page: Page, accept: boolean): Promise<string> {
+  const dialog = confirmation(page);
+  await expect(dialog).toBeVisible();
+  const text = (await dialog.innerText()).replace(/\s+/g, ' ').trim();
+  await dialog.getByTestId(accept ? 'confirmacao-confirmar' : 'confirmacao-cancelar').click();
+  await expect(dialog).toHaveCount(0);
+  return text;
+}
+
 /** Data futura/passada relativa a agora, em horário local de São Paulo, sem segundos. */
 export function daysFromNow(days: number, hour = 19): Date {
   const d = new Date();

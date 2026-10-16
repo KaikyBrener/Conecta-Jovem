@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { CheckCircle2, Info, Loader2, Mail, TriangleAlert, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import { useCommunicationMutations, useRecipientSuggestions, type DraftContent } from '../../hooks/useCommunications';
 import { Modal } from '../Modal';
 import { ErrorBanner } from '../ErrorBanner';
@@ -71,6 +72,7 @@ export function CommunicationModal({
   youthId, youthName, groupName, fixedLinks, alertChoices = NO_CHOICES, initial, onClose, onChanged,
 }: CommunicationModalProps) {
   const toast = useToast();
+  const confirm = useConfirm();
   const { profile, role } = useAuth();
   // Líder só escreve ao e-mail cadastrado do jovem (o servidor também recusa outro destinatário)
   const isLeader = role === 'leader';
@@ -130,9 +132,17 @@ export function CommunicationModal({
     setNameEdit(next === 'youth' ? null : '');
   };
 
-  const applyTemplate = (next: TemplateId) => {
+  const applyTemplate = async (next: TemplateId) => {
     if (next === templateId) return;
-    if (edited && !window.confirm('Trocar o modelo substitui o assunto e a mensagem que você editou. Continuar?')) return;
+    if (edited) {
+      const ok = await confirm({
+        title: 'Trocar o modelo?',
+        message: 'Trocar o modelo substitui o assunto e a mensagem que você editou.',
+        confirmLabel: 'Trocar modelo',
+        tone: 'primary',
+      });
+      if (!ok) return;
+    }
     setTemplateEdit(next);
     setSubjectEdit(null);
     setBodyEdit(null);
