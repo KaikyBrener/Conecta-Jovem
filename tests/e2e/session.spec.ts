@@ -141,7 +141,7 @@ test.describe('Troca de usuário no mesmo navegador', () => {
     await page.getByLabel('E-mail').fill(w.lia.email);
     await page.getByLabel('Senha', { exact: true }).fill('senha-errada');
     await page.getByRole('button', { name: 'Entrar' }).click();
-    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
+    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.');
     await expect(page).toHaveURL(/\/login$/);
     expect(await page.evaluate((k) => localStorage.getItem(k), AUTH_STORAGE_KEY)).toBeNull();
     await page.goto('/alertas');

@@ -188,7 +188,7 @@ export function FollowUpFormModal({
           )}
         </div>
 
-        <fieldset className="space-y-3 rounded-lg border border-gray-200 px-3 py-3">
+        <fieldset className="space-y-3 rounded-control border border-gray-200 px-3 py-3">
           <legend className="px-1 text-xs font-medium text-gray-500">Vínculos (opcional)</legend>
           <div>
             <label className={labelCls} htmlFor="fu-alert">Alerta</label>
@@ -223,7 +223,7 @@ export function FollowUpFormModal({
           )}
         </fieldset>
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+        <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">
           <button type="button" onClick={onClose} className={secondaryBtnCls}>Cancelar</button>
           <button type="submit" disabled={saving} className={primaryBtnCls}>
             {saving ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Registrar acompanhamento'}

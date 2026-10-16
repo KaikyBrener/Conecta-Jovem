@@ -23,7 +23,7 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
       aria-busy={loading}
       onSubmit={(e) => { e.preventDefault(); if (canConfirm) onConfirm(); }}
     >
-      <div role="note" className="flex items-start gap-2 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+      <div role="note" className="flex items-start gap-2 text-sm text-red-800 bg-red-50 border border-red-200 rounded-control px-3 py-2">
         <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
         <p>
           Esta ação é <strong>IRREVERSÍVEL</strong>. Os dados pessoais de <strong>{youthName}</strong> serão apagados e
@@ -69,7 +69,7 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
         <button
           type="submit"
           disabled={!canConfirm}
-          className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-control hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Anonimizando...' : 'Anonimizar definitivamente'}
         </button>

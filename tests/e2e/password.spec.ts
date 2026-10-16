@@ -3,6 +3,7 @@ import { expect, loginViaForm, test } from './fixtures.ts';
 
 const EXPIRED_HASH =
   '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired';
+const NEUTRAL = 'Se o e-mail estiver cadastrado, você receberá um link em instantes.';
 
 test.describe('Recuperação de senha — pedido do link', () => {
   test('o login oferece "Esqueci minha senha" e há caminho de volta', async ({ page }) => {
@@ -23,8 +24,9 @@ test.describe('Recuperação de senha — pedido do link', () => {
     await page.getByRole('button', { name: 'Enviar link' }).click();
 
     await expect(page.getByRole('heading', { name: 'Verifique seu e-mail' })).toBeVisible();
-    await expect(page.getByRole('status')).toContainText('Se');
-    await expect(page.getByRole('status')).toContainText('estiver cadastrado');
+    await expect(page.getByRole('status')).toHaveText(NEUTRAL);
+    // a confirmação não repete o e-mail digitado
+    await expect(page.getByText(user.email)).toHaveCount(0);
     const requests = await db.recoverRequests();
     expect(requests).toEqual([{ email: user.email, redirectTo: `${APP_URL}/redefinir-senha` }]);
 
@@ -38,7 +40,48 @@ test.describe('Recuperação de senha — pedido do link', () => {
     await page.getByRole('button', { name: 'Enviar link' }).click();
 
     await expect(page.getByRole('heading', { name: 'Verifique seu e-mail' })).toBeVisible();
-    await expect(page.getByRole('status')).toContainText('estiver cadastrado');
+    await expect(page.getByRole('status')).toHaveText(NEUTRAL);
+  });
+
+  test('servidor que responde "usuário não encontrado" também cai na confirmação neutra', async ({ page }) => {
+    await page.route('**/auth/v1/recover*', (route) =>
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 404, error_code: 'user_not_found', msg: 'User not found' }),
+      }));
+    await page.goto('/recuperar-senha');
+    await page.getByLabel('E-mail').fill('ninguem@e2e.test');
+    await page.getByRole('button', { name: 'Enviar link' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Verifique seu e-mail' })).toBeVisible();
+    await expect(page.getByRole('status')).toHaveText(NEUTRAL);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.getByText('User not found')).toHaveCount(0);
+  });
+
+  test('falha de envio (500 do /recover) mostra mensagem útil, sem texto técnico, e permite tentar de novo', async ({ page }) => {
+    const logs: string[] = [];
+    page.on('console', (m) => logs.push(m.text()));
+    await page.route('**/auth/v1/recover*', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 500, error_code: 'unexpected_failure', msg: 'Error sending recovery email' }),
+      }));
+    await page.goto('/recuperar-senha');
+    await page.getByLabel('E-mail').fill('lia@e2e.test');
+    await page.getByRole('button', { name: 'Enviar link' }).click();
+
+    await expect(page.getByRole('alert')).toHaveText('Não foi possível enviar o e-mail agora. Aguarde um minuto e tente novamente.');
+    await expect(page.getByText('Error sending recovery email')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Verifique seu e-mail' })).toHaveCount(0);
+    await expect(page.getByLabel('E-mail')).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Enviar link' })).toBeEnabled();
+    // o registro de diagnóstico existe, mas não carrega o e-mail digitado
+    const app = logs.filter((l) => l.startsWith('[conectjovem]'));
+    expect(app.some((l) => l.includes('Pedido de redefinição de senha falhou.'))).toBe(true);
+    expect(logs.join('\n')).not.toContain('lia@e2e.test');
   });
 
   test('e-mail vazio ou inválido é barrado antes de chamar o servidor', async ({ page, db }) => {
@@ -113,7 +156,7 @@ test.describe('Recuperação de senha — pedido do link', () => {
     await page.getByLabel('E-mail').fill('lia@e2e.test');
     await page.getByRole('button', { name: 'Enviar link' }).click();
 
-    await expect(page.getByRole('alert')).toHaveText('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+    await expect(page.getByRole('alert')).toHaveText('Muitas tentativas. Aguarde um pouco.');
     await expect(page.getByText('Request rate limit reached')).toHaveCount(0);
     await expect(page.getByLabel('E-mail')).toBeFocused();
     await expect(page.getByRole('button', { name: 'Enviar link' })).toBeEnabled();
@@ -147,7 +190,7 @@ test.describe('Link de recuperação — definir nova senha', () => {
     await page.getByRole('button', { name: 'Encerrar sessão' }).click();
     await expect(page).toHaveURL(/\/login$/);
     await loginViaForm(page, user.email, user.password); // senha antiga
-    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
+    await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.');
     await page.getByLabel('Senha', { exact: true }).fill('NovaSenha#2026');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page).toHaveURL('/');
@@ -299,8 +342,9 @@ test.describe('Link inválido ou expirado', () => {
     await page.goto(`/redefinir-senha${EXPIRED_HASH}`);
 
     await expect(page.getByRole('heading', { name: 'Link inválido ou expirado' })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('expirou ou já foi usado');
     await expect(page.getByRole('alert')).toContainText('só podem ser usados uma vez');
-    await page.getByRole('link', { name: 'Pedir um novo link' }).click();
+    await page.getByRole('link', { name: 'Pedir novo link', exact: true }).click();
     await expect(page).toHaveURL(/\/recuperar-senha$/);
     await expect(page.getByRole('heading', { name: 'Recuperar senha' })).toBeVisible();
   });

@@ -26,9 +26,9 @@ export function ProfileLoadError() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">Não foi possível carregar sua conta</h1>
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8">
+      <div className="w-full max-w-md space-y-5 rounded-sheet border border-line bg-surface p-6 sm:p-8">
+        <h1 className="text-[1.375rem] font-semibold leading-tight text-ink">Não foi possível carregar sua conta</h1>
         <AuthAlert tone="error">
           Você está autenticado, mas não conseguimos carregar seu perfil e permissões. Verifique sua conexão e
           tente novamente. Se o problema continuar, fale com a coordenação.
@@ -40,7 +40,7 @@ export function ProfileLoadError() {
         <button
           type="button"
           onClick={leave}
-          className="w-full text-center text-sm font-medium text-gray-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+          className="w-full rounded-tag text-center text-sm font-medium text-ink-soft hover:underline"
         >
           Sair
         </button>

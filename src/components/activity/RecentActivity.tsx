@@ -26,13 +26,13 @@ export function RecentActivity({ youthId, version = 0 }: RecentActivityProps) {
       {loading ? (
         <LoadingBlock size="sm" />
       ) : error ? (
-        <p role="alert" className="text-xs text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
+        <p role="alert" className="text-xs text-red-600 bg-red-50 p-3 rounded-control">{error}</p>
       ) : data.length === 0 ? (
-        <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-lg text-center">
+        <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-control text-center">
           Nenhuma atividade registrada para este jovem ainda.
         </p>
       ) : (
-        <ul className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+        <ul className="bg-white border border-gray-200 rounded-control divide-y divide-gray-100">
           {data.map((a) => (
             <li key={a.id} className="px-3 py-2">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

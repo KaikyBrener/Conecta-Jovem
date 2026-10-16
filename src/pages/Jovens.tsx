@@ -249,12 +249,12 @@ export function Jovens() {
       />
 
       {/* Search + filters */}
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row gap-3">
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome..." className="flex-1" />
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 flex flex-col sm:flex-row sm:flex-wrap gap-3">
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome..." className="flex-1 sm:min-w-60" />
         <select
           value={groupFilter}
           onChange={(e) => setGroupFilter(e.target.value)}
-          className="sm:w-44 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+          className="sm:w-44 px-3 py-2 text-sm border border-gray-300 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
           aria-label="Filtrar por grupo"
         >
           <option value="all">Todos os grupos</option>
@@ -263,7 +263,7 @@ export function Jovens() {
           ))}
           {role === 'coordinator' && <option value="none">Sem grupo</option>}
         </select>
-        <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+        <div className="flex rounded-control border border-gray-300 overflow-hidden text-sm">
           {(['all', 'active', 'inactive'] as YouthStatusFilter[]).map((f) => (
             <button
               key={f}
@@ -280,7 +280,7 @@ export function Jovens() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -304,12 +304,12 @@ export function Jovens() {
 
       {/* Tabela - Desktop */}
       {youth.length > 0 && (
-        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 {canEdit && (
-                  <th className="pl-4 pr-0 py-3 w-10">
+                  <th className="pl-4 pr-0 py-2 w-10">
                     <input
                       ref={selectAllRef}
                       type="checkbox"
@@ -321,12 +321,12 @@ export function Jovens() {
                     />
                   </th>
                 )}
-                <th className="px-4 py-3">Jovem</th>
-                <th className="px-4 py-3">Grupo</th>
-                <th className="px-4 py-3">Contato</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Situação</th>
-                <th className="px-4 py-3 text-right">Ações</th>
+                <th className="px-4 py-2">Jovem</th>
+                <th className="px-4 py-2">Grupo</th>
+                <th className="px-4 py-2">Contato</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Situação</th>
+                <th className="px-4 py-2 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -353,13 +353,13 @@ export function Jovens() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{(y.group_id && groupName.get(y.group_id)) || 'Sem grupo'}</td>
-                  <td className="px-4 py-3 text-gray-600">{y.phone ?? y.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{y.phone ?? y.email ?? '—'}</td>
                   <td className="px-4 py-3">
                     <Badge color={y.is_active ? 'green' : 'gray'}>{y.is_active ? 'Ativo' : 'Inativo'}</Badge>
                   </td>
                   <td className="px-4 py-3">{situationCell(y)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openView(y)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
+                    <button onClick={() => openView(y)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors">
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </td>
@@ -372,7 +372,7 @@ export function Jovens() {
 
       {/* Cards - Mobile */}
       {youth.length > 0 && canEdit && (
-        <label className="md:hidden flex items-center gap-3 px-1 text-sm text-gray-700">
+        <label className="lg:hidden flex items-center gap-3 px-1 text-sm text-gray-700">
           <input
             ref={selectAllRef}
             type="checkbox"
@@ -385,7 +385,7 @@ export function Jovens() {
         </label>
       )}
       {youth.length > 0 && (
-        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {youth.map((y) => (
             <li key={y.id} className={cn('flex items-stretch', selection.has(y.id) && 'bg-blue-50')}>
               {canEdit && (
@@ -466,7 +466,7 @@ export function Jovens() {
 
       {/* Modal: Visualização */}
       {selectedYouth && mode === 'view' && (
-        <Modal title="Detalhes do Jovem" onClose={closeModal}>
+        <Modal title="Detalhes do Jovem" onClose={closeModal} size="lg">
           <YouthDetail
             youth={selectedYouth}
             groupName={(selectedYouth.group_id && groupName.get(selectedYouth.group_id)) || null}

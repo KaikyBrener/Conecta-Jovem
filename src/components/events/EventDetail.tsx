@@ -24,7 +24,7 @@ const STATUS_LABEL: Record<EventStatus, string> = {
 const STATUS_BADGE_COLOR: Record<EventStatus, BadgeColor> = {
   scheduled: 'blue',
   completed: 'green',
-  cancelled: 'gray',
+  cancelled: 'muted',
 };
 
 function formatDatetime(iso: string): string {
@@ -70,7 +70,7 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
       )}
 
       {/* Info rows */}
-      <div className="bg-gray-50 rounded-lg px-4 py-1">
+      <div className="bg-gray-50 rounded-control px-4 py-1">
         <Row icon={Calendar} label="Data e hora" value={formatDatetime(event.event_date)} />
         <Row icon={Users} label="Grupos participantes" value={event.group_names.length ? event.group_names.join(', ') : 'Nenhum grupo'} />
         <Row icon={Tag} label="Status" value={STATUS_LABEL[event.status]} />
@@ -80,13 +80,13 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
       {/* Actions */}
       <div className="flex flex-col gap-3 pt-2">
         {event.status === 'cancelled' ? (
-          <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-3 text-center">
+          <p className="text-sm text-gray-500 bg-gray-50 rounded-control px-4 py-3 text-center">
             Encontro cancelado — não há chamada.
           </p>
         ) : (
         <button
           onClick={onOpenAttendance}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-green-600 rounded-xl hover:bg-green-700 transition-colors shadow-md shadow-green-100"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-green-600 rounded-card hover:bg-green-700 transition-colors shadow-md shadow-green-100"
         >
           <Users className="w-5 h-5" />
           Realizar / Ver Chamada
@@ -102,14 +102,14 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
             <button
               onClick={onDelete}
               disabled={actionLoading}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-control hover:bg-red-100 disabled:opacity-50 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
               {actionLoading ? '...' : 'Excluir'}
             </button>
             <button
               onClick={onEdit}
-              className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-control hover:bg-blue-700 transition-colors"
             >
               Editar
             </button>

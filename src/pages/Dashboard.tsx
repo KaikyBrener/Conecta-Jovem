@@ -1,54 +1,18 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarClock, ChevronRight, ListChecks, Percent, UserX } from 'lucide-react';
+import { CalendarClock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAttendanceReport } from '../hooks/useReports';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { PageHeader } from '../components/ui/PageHeader';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
+import { Panel, PanelEmpty, PanelLink, Stat, StatGrid } from '../components/ui/Card';
 import { SituationBadge } from '../components/youth/SituationBadge';
 import { AttendanceChart } from '../components/reports/AttendanceChart';
 import { appToday, formatDateOnly, formatDateTime, formatPercent } from '../lib/format';
 import { resolvePeriod } from '../lib/periods';
 import { cn } from '../lib/utils';
-
-function StatCard({ label, value, hint, icon: Icon, to, tone, testId }: {
-  label: string; value: string; hint?: string; icon: React.ElementType; to: string; tone?: 'danger'; testId: string;
-}) {
-  return (
-    <Link
-      to={to}
-      data-testid={testId}
-      className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-gray-500">{label}</p>
-        <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
-      </div>
-      <p className={cn('text-2xl font-bold mt-1 tabular-nums', tone === 'danger' ? 'text-red-600' : 'text-gray-900')}>{value}</p>
-      {hint && <p className="text-[11px] text-gray-500 mt-0.5">{hint}</p>}
-    </Link>
-  );
-}
-
-function Panel({ title, to, linkLabel, children, className, testId }: {
-  title: React.ReactNode; to?: string; linkLabel?: string; children: React.ReactNode; className?: string; testId?: string;
-}) {
-  return (
-    <section className={cn('bg-white rounded-xl border border-gray-200 overflow-hidden', className)} data-testid={testId}>
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-        {to && linkLabel && <Link to={to} className="text-xs text-blue-600 hover:underline flex-shrink-0">{linkLabel}</Link>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Empty({ text, testId }: { text: string; testId?: string }) {
-  return <p className="px-4 py-6 text-sm text-gray-500 text-center" data-testid={testId}>{text}</p>;
-}
 
 export const Dashboard = () => {
   const { role, profile } = useAuth();
@@ -75,71 +39,71 @@ export const Dashboard = () => {
 
       {data && (
         <>
-          <div className={cn('grid grid-cols-2 gap-3', isCoordinator ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
-            <StatCard
+          <StatGrid cols={isCoordinator ? 4 : 3}>
+            <Stat
               testId="dash-alertas"
               label="Alertas abertos"
               value={String(data.open_alerts.total)}
-              hint={data.open_alerts.total > 0 ? `${data.open_alerts.critical} crítico(s) · ${data.open_alerts.attention} em atenção` : 'nenhum alerta aberto'}
-              icon={AlertTriangle}
+              hint={data.open_alerts.total > 0
+                ? <><span className="font-medium text-danger-ink">{data.open_alerts.critical} crítico(s)</span> · <span className="font-medium text-warning-ink">{data.open_alerts.attention} em atenção</span></>
+                : 'nenhum alerta aberto'}
+              tone={data.open_alerts.total > 0 ? undefined : 'muted'}
               to="/alertas"
             />
-            <StatCard
+            <Stat
               testId="dash-acoes-atrasadas"
               label="Ações atrasadas"
               value={String(data.overdue_actions)}
               hint={data.overdue_actions > 0 ? 'passaram do prazo' : 'nenhuma atrasada'}
-              tone={data.overdue_actions > 0 ? 'danger' : undefined}
-              icon={ListChecks}
+              tone={data.overdue_actions > 0 ? 'danger' : 'muted'}
               to="/tarefas?filtro=atrasadas"
             />
-            <StatCard
+            <Stat
               testId="dash-frequencia"
               label="Frequência média (30 dias)"
               value={formatPercent(data.avg_attendance)}
               hint={data.avg_attendance_records > 0 ? `${data.avg_attendance_records} registros` : 'sem registros de chamada no período'}
-              icon={Percent}
+              tone={data.avg_attendance_records > 0 ? undefined : 'muted'}
               to="/relatorios"
             />
             {isCoordinator && (
-              <StatCard
+              <Stat
                 testId="dash-sem-grupo"
                 label="Jovens sem grupo"
                 value={String(data.youth_without_group)}
                 hint={data.youth_without_group > 0 ? 'ativos, sem grupo' : 'todos têm grupo'}
-                icon={UserX}
-                to="/jovens"
+                tone={data.youth_without_group > 0 ? undefined : 'muted'}
+                  to="/jovens"
               />
             )}
-          </div>
+          </StatGrid>
 
           <Panel
             testId="dash-atencao"
-            title={<>Precisam de atenção <span className="ml-1 font-normal text-gray-500" data-testid="dash-atencao-total">({data.attention_total})</span></>}
-            to="/jovens"
-            linkLabel="Ver jovens"
+            title={<>Precisam de atenção <span className="ml-1 text-label font-normal text-ink-muted" data-testid="dash-atencao-total">({data.attention_total})</span></>}
+            action={<PanelLink to="/jovens">Ver jovens</PanelLink>}
           >
             {data.attention.length === 0 ? (
-              <Empty testId="dash-atencao-vazio" text="Nenhum jovem precisa de atenção agora." />
+              <PanelEmpty testId="dash-atencao-vazio">Nenhum jovem precisa de atenção agora.</PanelEmpty>
             ) : (
               <>
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-line-soft">
                   {data.attention.map((y) => (
                     <li key={y.youth_id}>
                       <Link
                         to={`/jovens?ficha=${y.youth_id}`}
                         data-testid="dash-atencao-item"
                         data-situacao={y.situation}
-                        className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50"
+                        className="flex items-start justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5"
                       >
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{y.full_name}</p>
-                          <p className="text-xs text-gray-500 truncate">{y.group_name ?? 'Sem grupo'}</p>
-                          {y.reasons.length > 0 && <p className="mt-1 text-xs text-gray-600">{y.reasons.join(' · ')}</p>}
+                          <p className="truncate text-sm font-semibold text-ink">{y.full_name}</p>
+                          <p className="truncate text-caption text-ink-muted">{y.group_name ?? 'Sem grupo'}</p>
+                          {y.reasons.length > 0 && <p className="mt-1 text-caption text-ink-soft">{y.reasons.join(' · ')}</p>}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <SituationBadge situation={{ situation: y.situation, inactive: false }} />
-                          <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                          <ChevronRight className="h-4 w-4 text-ink-faint" aria-hidden="true" />
                         </div>
                       </Link>
                     </li>
@@ -149,7 +113,7 @@ export const Dashboard = () => {
                   <Link
                     to="/jovens"
                     data-testid="dash-atencao-mais"
-                    className="block px-4 py-3 text-xs text-blue-600 hover:underline border-t border-gray-100"
+                    className="block border-t border-line-soft px-4 py-2.5 text-label font-medium text-action hover:underline sm:px-5"
                   >
                     e mais {data.attention_total - data.attention.length} {data.attention_total - data.attention.length === 1 ? 'jovem' : 'jovens'} em atenção
                   </Link>
@@ -158,12 +122,12 @@ export const Dashboard = () => {
             )}
           </Panel>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Panel testId="dash-acompanhamentos" title="Próximos acompanhamentos" to="/jovens" linkLabel="Ver jovens">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+            <Panel testId="dash-acompanhamentos" title="Próximos acompanhamentos" action={<PanelLink to="/jovens">Ver jovens</PanelLink>}>
               {data.upcoming_follow_ups.length === 0 ? (
-                <Empty text="Nenhum acompanhamento vencido ou com prazo nos próximos 14 dias." />
+                <PanelEmpty hint="Os acompanhamentos com prazo definido aparecem aqui.">Nenhum acompanhamento vencido ou com prazo nos próximos 14 dias.</PanelEmpty>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-line-soft">
                   {data.upcoming_follow_ups.map((f) => {
                     const overdue = f.next_action_due < today;
                     return (
@@ -172,14 +136,14 @@ export const Dashboard = () => {
                           to={`/jovens?ficha=${f.youth_id}`}
                           data-testid="dash-acompanhamento-item"
                           data-vencido={overdue ? 'true' : 'false'}
-                          className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50"
+                          className="flex items-start justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5"
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{f.youth_name}</p>
-                            <p className="text-xs text-gray-600">{f.next_action ?? 'Próxima ação não descrita'}</p>
-                            <p className="text-xs text-gray-500">Responsável: {f.responsible_name ?? 'não definido'}</p>
+                            <p className="truncate text-sm font-semibold text-ink">{f.youth_name}</p>
+                            <p className="text-caption text-ink-soft">{f.next_action ?? 'Próxima ação não descrita'}</p>
+                            <p className="text-caption text-ink-muted">Responsável: {f.responsible_name ?? 'não definido'}</p>
                           </div>
-                          <span className={cn('inline-flex items-center gap-1 text-xs flex-shrink-0 whitespace-nowrap', overdue ? 'text-red-600 font-medium' : 'text-gray-600')}>
+                          <span className={cn('inline-flex items-center gap-1 text-caption flex-shrink-0 whitespace-nowrap', overdue ? 'text-red-600 font-medium' : 'text-ink-soft')}>
                             <CalendarClock className="w-3 h-3" aria-hidden="true" />
                             {formatDateOnly(f.next_action_due)}{overdue && ' · vencido'}
                           </span>
@@ -191,20 +155,20 @@ export const Dashboard = () => {
               )}
             </Panel>
 
-            <Panel testId="dash-encontros" title="Próximos encontros" to="/encontros" linkLabel="Ver todos">
+            <Panel testId="dash-encontros" title="Próximos encontros" action={<PanelLink to="/encontros">Ver todos</PanelLink>}>
               {data.upcoming_events.length === 0 ? (
-                <Empty text="Nenhum encontro agendado." />
+                <PanelEmpty hint="Os encontros agendados aparecem aqui.">Nenhum encontro agendado.</PanelEmpty>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-line-soft">
                   {data.upcoming_events.map((e) => (
                     <li key={e.id}>
-                      <Link to={`/chamada/${e.id}`} data-testid="dash-encontro-item" className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50">
+                      <Link to={`/chamada/${e.id}`} data-testid="dash-encontro-item" className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5">
                         <div className="min-w-0">
-                          <p className="text-sm text-gray-900 truncate">{e.title}</p>
-                          <p className="text-xs text-gray-500">{formatDateTime(e.event_date)}</p>
-                          {e.groups.length > 0 && <p className="text-xs text-gray-500 truncate">{e.groups.map((g) => g.name).join(', ')}</p>}
+                          <p className="truncate text-sm font-semibold text-ink">{e.title}</p>
+                          <p className="text-caption text-ink-muted">{formatDateTime(e.event_date)}</p>
+                          {e.groups.length > 0 && <p className="truncate text-caption text-ink-muted">{e.groups.map((g) => g.name).join(', ')}</p>}
                         </div>
-                        <span className="text-xs text-blue-600 flex-shrink-0">Chamada</span>
+                        <span className="flex-shrink-0 text-label font-medium text-action">Chamada</span>
                       </Link>
                     </li>
                   ))}
@@ -214,8 +178,8 @@ export const Dashboard = () => {
           </div>
 
           {series.length > 0 && (
-            <Panel testId="dash-grafico" title="Frequência por encontro (últimos 30 dias)" to="/relatorios" linkLabel="Relatórios">
-              <div className="p-4">
+            <Panel testId="dash-grafico" title="Frequência por encontro (últimos 30 dias)" action={<PanelLink to="/relatorios">Relatórios</PanelLink>}>
+              <div className="px-4 pb-3 pt-5 sm:px-6">
                 <AttendanceChart points={series} title="Frequência por encontro nos últimos 30 dias" />
               </div>
             </Panel>

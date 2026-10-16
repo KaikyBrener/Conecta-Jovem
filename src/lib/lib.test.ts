@@ -3,7 +3,7 @@ import { toCsv } from './csv';
 import { parseAuthLinkHash } from './authLink';
 import { setErrorReporter } from './logger';
 import { MESSAGES } from './errors';
-import { formatPercent, isOverdue, errorMessage, translateAuthError } from './format';
+import { formatPercent, isOverdue, errorMessage, translateAuthError, recoverErrorMessage, RECOVER_NEUTRAL_MESSAGE } from './format';
 
 describe('format / csv', () => {
   it('formatPercent', () => {
@@ -30,7 +30,7 @@ describe('format / csv', () => {
   });
 
   it('translateAuthError traduz mensagens conhecidas e nunca vaza texto em inglês', () => {
-    expect(translateAuthError('Invalid login credentials')).toBe('E-mail ou senha inválidos.');
+    expect(translateAuthError('Invalid login credentials')).toBe('E-mail ou senha incorretos.');
     expect(translateAuthError('Email not confirmed')).toMatch(/confirmado/);
     expect(translateAuthError('Some unexpected GoTrue internal error')).not.toMatch(/[A-Za-z]{4,}(internal|error|credentials)/i);
   });
@@ -54,7 +54,7 @@ describe('translateAuthError (cobertura ampliada)', () => {
     expect(translateAuthError({ message: 'TypeError: Failed to fetch' })).toBe(MESSAGES.network);
     expect(translateAuthError('Failed to fetch')).toBe(MESSAGES.network);
     // credencial inválida com o objeto completo continua sendo credencial
-    expect(translateAuthError({ name: 'AuthApiError', message: 'Invalid login credentials', status: 400 })).toBe('E-mail ou senha inválidos.');
+    expect(translateAuthError({ name: 'AuthApiError', message: 'Invalid login credentials', status: 400 })).toBe('E-mail ou senha incorretos.');
   });
   it('limite de requisições (429 / over_*_rate_limit / "rate limit") vira "Muitas tentativas"', () => {
     const msg = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
@@ -68,7 +68,7 @@ describe('translateAuthError (cobertura ampliada)', () => {
   });
   it('busca no dicionário ignora maiúsculas/minúsculas', () => {
     expect(translateAuthError('email rate limit exceeded')).toMatch(/Muitas tentativas/);
-    expect(translateAuthError('INVALID LOGIN CREDENTIALS')).toBe('E-mail ou senha inválidos.');
+    expect(translateAuthError('INVALID LOGIN CREDENTIALS')).toBe('E-mail ou senha incorretos.');
     expect(translateAuthError('auth session missing!')).toMatch(/sessão expirou/);
   });
   it('erro 5xx do provedor vira mensagem de servidor', () => {
@@ -95,5 +95,45 @@ describe('parseAuthLinkHash', () => {
   });
   it('outros tipos (signup, magiclink) não pedem senha', () => {
     expect(parseAuthLinkHash('#access_token=a&type=magiclink').needsPassword).toBe(false);
+  });
+});
+
+describe('recoverErrorMessage (pedido de redefinição de senha)', () => {
+  const SEND_FAILED = 'Não foi possível enviar o e-mail agora. Aguarde um minuto e tente novamente.';
+
+  it('sucesso e conta inexistente são indistinguíveis: null (a tela mostra a mensagem neutra)', () => {
+    expect(recoverErrorMessage(null)).toBeNull();
+    expect(recoverErrorMessage(undefined)).toBeNull();
+    expect(recoverErrorMessage({ message: 'User not found', status: 404 })).toBeNull();
+    expect(recoverErrorMessage({ message: 'x', code: 'user_not_found', status: 400 })).toBeNull();
+    expect(recoverErrorMessage('user not found')).toBeNull();
+    expect(RECOVER_NEUTRAL_MESSAGE).toBe('Se o e-mail estiver cadastrado, você receberá um link em instantes.');
+  });
+
+  it('falha de envio (500) e erro desconhecido viram a mensagem de envio, sem o texto do servidor', () => {
+    expect(recoverErrorMessage({ message: 'Error sending recovery email', status: 500, code: 'unexpected_failure' })).toBe(SEND_FAILED);
+    expect(recoverErrorMessage({ message: 'boom: internal gotrue failure', status: 502 })).toBe(SEND_FAILED);
+    expect(recoverErrorMessage('qualquer coisa')).toBe(SEND_FAILED);
+    expect(recoverErrorMessage({})).toBe(SEND_FAILED);
+  });
+
+  it('limite de pedidos (429) vira "Muitas tentativas"; com o tempo informado, mostra os segundos', () => {
+    const msg = 'Muitas tentativas. Aguarde um pouco.';
+    expect(recoverErrorMessage({ message: 'Request rate limit reached', status: 429 })).toBe(msg);
+    expect(recoverErrorMessage({ message: 'x', code: 'over_email_send_rate_limit' })).toBe(msg);
+    expect(recoverErrorMessage('email rate limit exceeded')).toBe(msg);
+    expect(recoverErrorMessage({ message: 'For security purposes, you can only request this after 48 seconds.', status: 429 })).toBe(
+      'Por segurança, aguarde 48 segundos antes de tentar novamente.');
+  });
+
+  it('rede e e-mail mal formatado têm mensagem própria', () => {
+    expect(recoverErrorMessage({ name: 'AuthRetryableFetchError', message: 'Failed to fetch', status: 0 })).toBe(MESSAGES.network);
+    expect(recoverErrorMessage('Unable to validate email address: invalid format')).toBe('Informe um e-mail válido.');
+  });
+
+  it('nunca devolve o texto cru nem o e-mail informado', () => {
+    const out = recoverErrorMessage({ message: 'smtp: 535 auth failed for fulano@exemplo.com', status: 500 });
+    expect(out).toBe(SEND_FAILED);
+    expect(out).not.toMatch(/smtp|535|fulano/i);
   });
 });

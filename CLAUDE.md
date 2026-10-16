@@ -86,6 +86,15 @@ Convenções observadas:
 - Integração por URL: `/tarefas?novo=1&jovem=<id>` ou `&alerta=<id>` abre nova tarefa pré-preenchida.
 - Formulários em `Modal` (bottom-sheet no mobile). `window.confirm` para exclusões.
 - Layout: sidebar no desktop; bottom-nav no mobile com itens principais + menu "Mais".
+- **Design system** (`src/index.css`, `docs/REDESIGN.md`): as escalas do Tailwind (gray/blue/red/amber/green) são redefinidas com a
+  paleta aprovada, então classes de paleta caem nas cores certas; código novo usa as utilities semânticas (`bg-canvas`,
+  `bg-surface`, `border-line`, `text-ink`/`-soft`/`-muted`/`-faint`, `bg-action`, `bg-brand`, `*-success|warning|danger-soft|line|ink`,
+  `text-title`/`text-heading`/`text-label`/`text-caption`, `rounded-tag`/`rounded-control`/`rounded-card`/`rounded-sheet`), que
+  trocam sozinhas no modo escuro (classe `.dark`; classes de paleta dependem da "ponte de legado" do mesmo arquivo).
+  Componentes compartilhados em `components/ui`: `Button`, `Field`/`Select`/`Textarea`, `Badge` (= `Tag`), `Card`/`Panel`/
+  `SectionCard`/`Stat`/`StatGrid`/`Tabs`, `Banner` (em `components/ErrorBanner`); classes em `lib/formStyles.ts` (botões, campos,
+  tabelas). Não use `rounded-lg/xl` nem `font-bold`: os raios são por papel e a fonte só tem 400/500/600.
+  Fonte: IBM Plex Sans auto-hospedada (`@fontsource/ibm-plex-sans`; a CSP só aceita `font-src 'self'`).
 
 ## Banco de dados (Supabase / Postgres)
 

@@ -148,8 +148,11 @@ devolve o `index.html`). O `public/_headers` vai para o `dist/` e define os head
 
 ## 8. Supabase Auth
 
+Checklist completo (URLs, SMTP do Resend, templates, proteções, como testar e "sintoma → causa provável"):
+[`docs/AUTH-EMAIL.md`](AUTH-EMAIL.md). Os itens abaixo são o resumo.
+
 - [ ] Em Authentication → URL Configuration, **Site URL** = `https://conectjovem.com.br`.
-- [ ] **Redirect URLs** incluindo `https://conectjovem.com.br/redefinir-senha`.
+- [ ] **Redirect URLs**: `https://conectjovem.com.br/**` e `http://localhost:5173/**`.
 - [ ] Senha mínima **10** no Auth (o app já valida 10 na tela). Se fizer parte dos "ajustes de Auth" já declarados, só confira.
 - [ ] **SMTP próprio** no Auth (Project Settings → Auth → SMTP). O envio padrão do Supabase tem limite baixo de e-mails
       por hora, o que afeta convites e recuperação de senha.

@@ -75,7 +75,7 @@ export function GroupMembers({
   return (
     <div className="space-y-4">
       {err && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-3 py-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {err}
         </div>
@@ -90,9 +90,9 @@ export function GroupMembers({
           </span>
         </h4>
         {members.length === 0 ? (
-          <p className="text-sm text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-lg">Nenhum integrante ainda.</p>
+          <p className="text-sm text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-control">Nenhum integrante ainda.</p>
         ) : (
-          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white overflow-hidden">
+          <ul className="divide-y divide-gray-100 rounded-control border border-gray-200 bg-white overflow-hidden">
             {members.map((y) => (
               <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export function GroupMembers({
                 <button
                   onClick={() => handleRemove(y.id)}
                   disabled={actionId === y.id}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-40 p-1.5 rounded-md transition-colors"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-40 p-1.5 rounded-control transition-colors"
                   title="Remover do grupo"
                 >
                   {actionId === y.id
@@ -138,18 +138,18 @@ export function GroupMembers({
           {showAdd && (
             <div className="mt-2">
               {unassigned.length === 0 ? (
-                <p className="text-sm text-gray-400 py-2 text-center border border-dashed border-gray-200 rounded-lg">
+                <p className="text-sm text-gray-400 py-2 text-center border border-dashed border-gray-200 rounded-control">
                   Todos os jovens ativos já estão em grupos.
                 </p>
               ) : (
-                <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <ul className="divide-y divide-gray-100 rounded-control border border-gray-200 bg-white overflow-hidden">
                   {unassigned.map((y) => (
                     <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
                       <p className="text-sm text-gray-900">{y.full_name}</p>
                       <button
                         onClick={() => handleAssign(y.id)}
                         disabled={actionId === y.id}
-                        className="text-green-600 hover:text-green-800 hover:bg-green-50 disabled:opacity-40 p-1.5 rounded-md transition-colors"
+                        className="text-green-600 hover:text-green-800 hover:bg-green-50 disabled:opacity-40 p-1.5 rounded-control transition-colors"
                         title="Adicionar ao grupo"
                       >
                         {actionId === y.id

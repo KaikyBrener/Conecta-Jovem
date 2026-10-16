@@ -64,8 +64,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             role={t.tone === 'error' ? 'alert' : 'status'}
-            className={`pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm shadow-lg ${
-              t.tone === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'
+            className={`pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-control border px-3.5 py-2.5 text-table shadow-lg ${
+              t.tone === 'error' ? 'border-danger-line bg-danger-soft text-danger-ink' : 'border-success-line bg-success-soft text-success-ink'
             }`}
           >
             {t.tone === 'error'
@@ -76,7 +76,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Fechar aviso"
-              className="rounded p-0.5 opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="rounded-tag p-0.5 opacity-70 hover:opacity-100"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>

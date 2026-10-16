@@ -51,10 +51,11 @@ export function RedefinirSenha() {
       <AuthShell title="Link inválido ou expirado">
         <div className="mt-4 space-y-5">
           <AuthAlert tone="error">
-            Este link não é mais válido. Links de e-mail expiram e só podem ser usados uma vez.
+            Este link não é mais válido: ele expirou ou já foi usado. Links de e-mail valem por tempo limitado e só
+            podem ser usados uma vez. Peça um novo link para continuar.
           </AuthAlert>
           <Link to="/recuperar-senha" onClick={finishPasswordSetup} className={cn(authPrimaryBtnCls, 'no-underline')}>
-            Pedir um novo link
+            Pedir novo link
           </Link>
           <div className="text-center">
             <Link to="/login" onClick={finishPasswordSetup} className={authLinkCls}>Voltar ao login</Link>

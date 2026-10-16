@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Loader2, ListChecks, CalendarClock, Play, Check, Pencil, Trash2, AlertTriangle, HeartHandshake, User as UserIcon } from 'lucide-react';
+import {
+  Plus, Loader2, ListChecks, CalendarClock, Play, Check, Pencil, Trash2, AlertTriangle, HeartHandshake, User as UserIcon,
+  ChevronDown, ChevronsUp, Equal,
+} from 'lucide-react';
 import { useTasks, prefillTaskFromAlert, prefillTaskFromYouth, type TaskWithRelations, type TaskListFilter } from '../hooks/useTasks';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useToast } from '../contexts/ToastContext';
@@ -14,7 +17,7 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
-import { primaryBtnCls } from '../lib/formStyles';
+import { primaryBtnCls, smallBtnCls, smallDangerBtnCls } from '../lib/formStyles';
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from '../lib/labels';
 import { formatDateOnly, isOverdue } from '../lib/format';
 import { parseTaskFilterParam } from '../lib/deepLinks';
@@ -22,17 +25,29 @@ import { cn } from '../lib/utils';
 import type { Task, TaskPriority, TaskStatus } from '../types/database.types';
 
 const STATUS_BADGE_COLOR: Record<TaskStatus, BadgeColor> = {
-  pending: 'amber',
+  pending: 'gray',
   in_progress: 'blue',
   done: 'green',
-  cancelled: 'gray',
+  cancelled: 'muted',
 };
 
-const PRIORITY_COLOR: Record<TaskPriority, string> = {
-  low: 'text-gray-400',
-  medium: 'text-amber-500',
-  high: 'text-red-600',
+// Prioridade: ícone e texto distintos por nível (nunca só a cor); as três cores passam em WCAG AA sobre a superfície
+const PRIORITY_DISPLAY: Record<TaskPriority, { icon: React.ElementType; cls: string }> = {
+  low: { icon: ChevronDown, cls: 'text-ink-muted' },
+  medium: { icon: Equal, cls: 'text-warning-ink' },
+  high: { icon: ChevronsUp, cls: 'text-danger-ink font-medium' },
 };
+
+function PriorityTag({ priority }: { priority: TaskPriority }) {
+  const { icon: Icon, cls } = PRIORITY_DISPLAY[priority];
+  return (
+    <span className={`inline-flex items-center gap-0.5 ${cls}`} data-prioridade={priority}>
+      <Icon className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+      <span className="sr-only">Prioridade: </span>
+      {TASK_PRIORITY_LABEL[priority]}
+    </span>
+  );
+}
 
 const isOpen = (s: TaskStatus) => s === 'pending' || s === 'in_progress';
 
@@ -134,7 +149,7 @@ export function Tarefas() {
         }
       />
 
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar por título ou jovem..." className="flex-1" />
           <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -154,7 +169,7 @@ export function Tarefas() {
       )}
 
       {tasks.length > 0 && (
-        <ul className={cn('bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {tasks.map((t) => {
             const overdue = isOverdue(t.due_date, t.status);
             return (
@@ -165,7 +180,7 @@ export function Tarefas() {
                       {t.title}
                     </p>
                     <p className="text-xs text-gray-500 flex flex-wrap gap-x-2">
-                      <span className={PRIORITY_COLOR[t.priority]}>● {TASK_PRIORITY_LABEL[t.priority]}</span>
+                      <PriorityTag priority={t.priority} />
                       {t.youth && <span>{t.youth.full_name}</span>}
                       {t.groups && <span>{t.groups.name}</span>}
                       {t.due_date && (
@@ -203,23 +218,23 @@ export function Tarefas() {
                   {busyId === t.id && <Loader2 className="w-4 h-4 text-blue-600 animate-spin self-center" />}
                   {t.status === 'pending' && (
                     <button onClick={() => quickStatus(t, 'in_progress')} disabled={busyId !== null}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors">
+                      className={smallBtnCls}>
                       <Play className="w-3 h-3" /> Iniciar
                     </button>
                   )}
                   {isOpen(t.status) && (
                     <button onClick={() => quickStatus(t, 'done')} disabled={busyId !== null}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 disabled:opacity-50 transition-colors">
+                      className={smallBtnCls}>
                       <Check className="w-3 h-3" /> Concluir
                     </button>
                   )}
                   <button onClick={() => setEditing(t)} disabled={busyId !== null}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                    className={smallBtnCls}>
                     <Pencil className="w-3 h-3" /> Editar
                   </button>
                   {canDelete(t) && (
                     <button onClick={() => handleDelete(t)} disabled={busyId !== null}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors">
+                      className={smallDangerBtnCls}>
                       <Trash2 className="w-3 h-3" /> Excluir
                     </button>
                   )}

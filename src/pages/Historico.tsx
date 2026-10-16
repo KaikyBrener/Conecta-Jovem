@@ -77,7 +77,7 @@ export function Historico() {
         subtitle="Registro das ações feitas no sistema: chamadas, acompanhamentos, ações, alertas e mudanças de jovens."
       />
 
-      <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchInput
             value={search}
@@ -90,7 +90,7 @@ export function Historico() {
             value={action}
             onChange={(e) => setAction(e.target.value as ActivityAction | 'all')}
             aria-label="Filtrar por tipo de ação"
-            className="sm:w-64 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+            className="sm:w-64 px-3 py-2 text-sm border border-gray-300 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
           >
             <option value="all">Todas as ações</option>
             {ACTIVITY_ACTIONS.map((a) => (
@@ -138,7 +138,7 @@ export function Historico() {
       </div>
 
       {error && (
-        <div role="alert" className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <div role="alert" className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -155,15 +155,15 @@ export function Historico() {
 
       {/* Tabela - Desktop */}
       {rows.length > 0 && (
-        <div className={cn('hidden md:block bg-white border border-gray-200 rounded-xl overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           <table className="w-full text-sm" data-testid="historico-tabela">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3">Data e hora</th>
-                <th className="px-4 py-3">Ação</th>
-                <th className="px-4 py-3">Resumo</th>
-                <th className="px-4 py-3">Jovem</th>
-                <th className="px-4 py-3">Feito por</th>
+                <th className="px-4 py-2">Data e hora</th>
+                <th className="px-4 py-2">Ação</th>
+                <th className="px-4 py-2">Resumo</th>
+                <th className="px-4 py-2">Jovem</th>
+                <th className="px-4 py-2">Feito por</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -183,7 +183,7 @@ export function Historico() {
 
       {/* Cards - Mobile */}
       {rows.length > 0 && (
-        <ul className={cn('md:hidden bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {rows.map((a) => (
             <li key={a.id} data-testid="historico-card" className="px-4 py-3 space-y-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -131,7 +131,7 @@ export function EventForm({ initial, allGroups, onSubmit, onCancel, loading }: E
         {allGroups.length === 0 ? (
           <p className="mt-1 text-sm text-gray-400">Nenhum grupo cadastrado.</p>
         ) : (
-          <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+          <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-control p-3">
             {allGroups.map((g) => (
               <label key={g.id} className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -147,7 +147,7 @@ export function EventForm({ initial, allGroups, onSubmit, onCancel, loading }: E
         )}
       </div>
 
-      <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
+      <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 mt-2 sm:flex-row sm:justify-end sm:gap-3">
         <button type="button" onClick={onCancel} className={secondaryBtnCls}>
           Cancelar
         </button>

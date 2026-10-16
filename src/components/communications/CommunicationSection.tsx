@@ -16,6 +16,7 @@ import {
 import { isStuckSending, resolveSendView } from '../../lib/communications';
 import { formatDateOnly, formatDateTime } from '../../lib/format';
 import type { Communication } from '../../types/database.types';
+import { smallBtnCls, smallDangerBtnCls, smallPrimaryBtnCls } from '../../lib/formStyles';
 
 interface CommunicationSectionProps {
   youth: { id: string; full_name: string };
@@ -30,15 +31,6 @@ interface CommunicationSectionProps {
    */
   onChanged?: () => void;
 }
-
-const newBtnCls =
-  'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm';
-
-const smallBtnCls =
-  'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors';
-
-const dangerBtnCls =
-  'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors';
 
 /** Intervalo de atualização enquanto há envio em andamento */
 const SENDING_REFRESH_MS = 15_000;
@@ -136,7 +128,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
         </h4>
         <button
           type="button" data-testid="jovem-enviar-email"
-          onClick={() => { clearError(); setComposing(true); }} className={newBtnCls}
+          onClick={() => { clearError(); setComposing(true); }} className={smallPrimaryBtnCls}
         >
           <Mail className="h-3.5 w-3.5" aria-hidden="true" /> Enviar e-mail
         </button>
@@ -147,7 +139,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
       {loading && communications.length === 0 ? (
         <LoadingBlock size="sm" />
       ) : !error && communications.length === 0 ? (
-        <p className="rounded-lg bg-gray-50 p-3 text-center text-xs italic text-gray-500">
+        <p className="rounded-control bg-gray-50 p-3 text-center text-xs italic text-gray-500">
           Nenhum e-mail registrado para este jovem ainda.
         </p>
       ) : (
@@ -163,7 +155,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
             return (
               <li
                 key={c.id} data-testid="comunicacao-item" data-status={c.status}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-3"
+                className="rounded-control border border-gray-200 bg-white px-3 py-3"
               >
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <CommunicationStatusBadge status={c.status} />
@@ -215,7 +207,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
                 {open && (
                   <div
                     data-testid="comunicacao-corpo-item"
-                    className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800"
+                    className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-control border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800"
                   >
                     {c.body}
                   </div>
@@ -267,7 +259,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
                     </>
                   )}
                   {isCoordinator && (c.status === 'draft' || c.status === 'cancelled') && (
-                    <button type="button" data-testid="comunicacao-excluir" onClick={() => remove(c)} disabled={busy} className={dangerBtnCls}>
+                    <button type="button" data-testid="comunicacao-excluir" onClick={() => remove(c)} disabled={busy} className={smallDangerBtnCls}>
                       <Trash2 className="h-3 w-3" aria-hidden="true" /> Excluir
                     </button>
                   )}
