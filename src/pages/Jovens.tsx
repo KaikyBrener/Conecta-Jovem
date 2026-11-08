@@ -416,15 +416,11 @@ export function Jovens() {
                   <p className="text-xs text-ink-muted truncate">
                     {(y.group_id && groupName.get(y.group_id)) || 'Sem grupo'} · {y.phone ?? y.email ?? 'Sem contato'}
                   </p>
+                  <div className="mt-1.5">{situationCell(y)}</div>
                 </div>
-                {/* Situação + status */}
+                {/* Inativo é a exceção e fica marcado; ativo é o padrão e não precisa de ícone */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {situationCell(y)}
-                  {y.is_active ? (
-                    <UserCheck className="w-4 h-4 text-success-ink" aria-label="Ativo" />
-                  ) : (
-                    <UserX className="w-4 h-4 text-ink-faint" aria-label="Inativo" />
-                  )}
+                  {!y.is_active && <UserX className="w-4 h-4 text-ink-faint" aria-label="Inativo" />}
                   <ChevronRight className="w-4 h-4 text-ink-faint" aria-hidden="true" />
                 </div>
               </button>

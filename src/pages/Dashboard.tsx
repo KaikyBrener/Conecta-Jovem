@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarClock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
+import { useAppSettings } from '../hooks/useSettings';
 import { useAttendanceReport } from '../hooks/useReports';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -17,6 +18,9 @@ import { cn } from '../lib/utils';
 export const Dashboard = () => {
   const { role, profile } = useAuth();
   const { data, loading, error } = useDashboard();
+  // limite de "frequência baixa" configurado (leitura liberada a todos); sem ele o painel só não compara
+  const { settings } = useAppSettings();
+  const lowAttendance = settings?.low_attendance_threshold ?? null;
   const isCoordinator = role === 'coordinator';
 
   // Gráfico: frequência por encontro nos últimos 30 dias (mesma janela da frequência média). Se falhar, some
@@ -25,6 +29,7 @@ export const Dashboard = () => {
   const range = useMemo(() => resolvePeriod('last30', today), [today]);
   const chart = useAttendanceReport(data ? range : null, null, 3);
   const series = chart.data?.series ?? [];
+  const belowLimit = !!data && data.avg_attendance !== null && data.avg_attendance_records > 0 && lowAttendance !== null && data.avg_attendance < lowAttendance;
 
   return (
     <div className="space-y-6">
@@ -45,7 +50,7 @@ export const Dashboard = () => {
               label="Alertas abertos"
               value={String(data.open_alerts.total)}
               hint={data.open_alerts.total > 0
-                ? <><span className="font-medium text-danger-ink">{data.open_alerts.critical} crítico(s)</span> · <span className="font-medium text-warning-ink">{data.open_alerts.attention} em atenção</span></>
+                ? <><span className="font-medium text-danger-ink">{data.open_alerts.critical} {data.open_alerts.critical === 1 ? 'crítico' : 'críticos'}</span> · <span className="font-medium text-warning-ink">{data.open_alerts.attention} em atenção</span></>
                 : 'nenhum alerta aberto'}
               tone={data.open_alerts.total > 0 ? undefined : 'muted'}
               to="/alertas"
@@ -62,8 +67,10 @@ export const Dashboard = () => {
               testId="dash-frequencia"
               label="Frequência média (30 dias)"
               value={formatPercent(data.avg_attendance)}
-              hint={data.avg_attendance_records > 0 ? `${data.avg_attendance_records} registros` : 'sem registros de chamada no período'}
-              tone={data.avg_attendance_records > 0 ? undefined : 'muted'}
+              hint={data.avg_attendance_records > 0
+                ? `${data.avg_attendance_records} registros${belowLimit ? ` · abaixo do limite de ${lowAttendance}%` : ''}`
+                : 'sem registros de chamada no período'}
+              tone={data.avg_attendance_records > 0 ? (belowLimit ? 'warning' : undefined) : 'muted'}
               to="/relatorios"
             />
             {isCoordinator && (
@@ -94,7 +101,11 @@ export const Dashboard = () => {
                         to={`/jovens?ficha=${y.youth_id}`}
                         data-testid="dash-atencao-item"
                         data-situacao={y.situation}
-                        className="flex items-start justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-5"
+                        className={cn(
+                          'flex items-start justify-between gap-3 border-l-4 px-3 py-3 transition-colors hover:bg-surface-hover focus-visible:-outline-offset-2 sm:px-4',
+                          // a faixa lateral reforça a gravidade; o selo ao lado continua dizendo em texto
+                          y.situation === 'critical' ? 'border-l-danger' : 'border-l-warning',
+                        )}
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-ink">{y.full_name}</p>
@@ -180,7 +191,7 @@ export const Dashboard = () => {
           {series.length > 0 && (
             <Panel testId="dash-grafico" title="Frequência por encontro (últimos 30 dias)" action={<PanelLink to="/relatorios">Relatórios</PanelLink>}>
               <div className="px-4 pb-3 pt-5 sm:px-6">
-                <AttendanceChart points={series} title="Frequência por encontro nos últimos 30 dias" />
+                <AttendanceChart points={series} title="Frequência por encontro nos últimos 30 dias" threshold={lowAttendance} />
               </div>
             </Panel>
           )}

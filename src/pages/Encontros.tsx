@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Calendar, ChevronRight, AlertCircle, CalendarClock } from 'lucide-react';
 import { useEvents, fetchEventById, type EventStatusFilter } from '../hooks/useEvents';
 import { useEventSeries, type SeriesRow } from '../hooks/useEventSeries';
@@ -312,8 +312,18 @@ export function Encontros() {
                   <td className="px-4 py-3">
                     <Badge color={STATUS_BADGE_COLOR[ev.status]}>{STATUS_LABEL[ev.status]}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <IconButton label="Abrir encontro" icon={ChevronRight} onClick={() => openView(ev)} className="ml-auto" />
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      {ev.status !== 'cancelled' && (
+                        <Link
+                          to={`/chamada/${ev.id}`}
+                          className="inline-flex min-h-[30px] items-center rounded-control px-3 text-label font-medium text-action-ink transition-colors hover:bg-action-soft"
+                        >
+                          Fazer chamada
+                        </Link>
+                      )}
+                      <IconButton label="Abrir encontro" icon={ChevronRight} onClick={() => openView(ev)} />
+                    </div>
                   </td>
                 </tr>
               ))}

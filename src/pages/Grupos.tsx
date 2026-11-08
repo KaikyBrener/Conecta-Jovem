@@ -167,10 +167,10 @@ export function Grupos() {
                   <td className="px-4 py-3">
                     <button onClick={() => openMembers(g)} className="flex items-center gap-3 text-left">
                       <Avatar name={g.name} size="sm" shape="square" />
-                      <span className="font-medium text-ink">{g.name}</span>
+                      <span className="whitespace-nowrap font-medium text-ink">{g.name}</span>
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-ink-soft">{g.leader_name ?? '—'}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-ink-soft">{g.leader_name ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-action-soft text-action-ink text-xs font-semibold">
                       {g.member_count}

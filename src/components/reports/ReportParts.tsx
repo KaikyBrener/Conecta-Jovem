@@ -3,6 +3,7 @@ import { formatPercent } from '../../lib/format';
 import type { ExportTable } from '../../lib/reportExport';
 import { cn } from '../../lib/utils';
 import { Panel as Section, PanelEmpty as EmptyText, PanelNote as Note } from '../ui/Card';
+import { ProgressBar } from '../ui/ProgressBar';
 
 export { Stat, StatGrid } from '../ui/Card';
 export { Section, Note, EmptyText };
@@ -11,8 +12,8 @@ export { Section, Note, EmptyText };
 export function RateBar({ value }: { value: number | null }) {
   return (
     <div className="flex items-center gap-2 min-w-24">
-      <div className="flex-1 h-1.5 rounded-full bg-line-soft overflow-hidden" aria-hidden="true">
-        {value !== null && <div className="h-full bg-action" style={{ width: `${Math.min(100, Math.max(value, 2))}%` }} />}
+      <div className="flex-1 min-w-0" aria-hidden="true">
+        {value !== null ? <ProgressBar value={value} min={2} /> : <ProgressBar value={0} />}
       </div>
       <span className="w-10 text-right text-caption font-medium text-ink">{formatPercent(value)}</span>
     </div>

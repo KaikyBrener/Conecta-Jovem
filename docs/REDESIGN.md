@@ -83,6 +83,25 @@ O Playwright localiza alguns elementos por classe. Ao mexer nesses pontos, mante
 `span.text-red-600` no prazo vencido do painel, `bg-blue-50` na linha selecionada da tabela de Jovens,
 `.animate-spin` dentro de `main` (carregamento), `span.font-mono` no código do incidente.
 
+## Refino das telas (P2)
+
+- **Chamada:** a barra de salvar é uma linha só (estado à esquerda, botão à direita; cerca de 70px no celular, antes ~170px).
+  "Marcar encontro como realizado" saiu da barra e fica logo acima dela. Os contadores ganharam barra de progresso
+  (`role="progressbar"`, "x de y com registro") e o rótulo "Não registrados" por extenso.
+- **Painel:** "1 crítico" / "2 críticos" (antes "crítico(s)"); faixa lateral vermelha/âmbar em "Precisam de atenção" (o selo continua
+  dizendo a situação em texto); a frequência média fica em âmbar e diz "abaixo do limite de N%" quando está abaixo do limite de
+  frequência baixa configurado (`app_settings.low_attendance_threshold`, leitura liberada a todos); o gráfico mostra o limite como linha
+  tracejada, com legenda em texto.
+- **Alertas:** ações com alvo de 44px no celular, dois por linha; o que fazer com o alerta (acompanhamento, e-mail, tarefa) fica à esquerda
+  e encerrá-lo (dispensar, resolver) à direita. Descrição do topo mais curta.
+- **Jovens (celular):** o nome usa a largura toda; a situação vai para uma terceira linha; o ícone de "ativo" saiu (só "inativo" é marcado).
+- **Encontros (desktop):** "Fazer chamada" direto na linha (não aparece em encontro cancelado).
+- **Grupos (desktop):** nome do grupo e do líder não quebram em duas linhas.
+
+Ficou para depois: grupos "Próximos / Anteriores" na lista de Encontros (a lista é paginada no servidor; agrupar só a página atual
+confundiria), proteção contra fechar uma janela com formulário alterado (precisa de um sinal "alterado" dos formulários) e o
+"Mais ações" em menu nos Alertas (os testes e o uso diário pedem as cinco ações à vista).
+
 ## Classes de paleta × tokens
 
 Todo o `src` usa os tokens semânticos (`bg-surface`, `text-ink-muted`, `border-line`, `bg-action`, `*-danger|success|warning-soft|line|ink`).

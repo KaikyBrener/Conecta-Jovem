@@ -22,6 +22,7 @@ import { ArrowLeft, AlertCircle, AlertTriangle, CheckCircle2, XCircle, Loader2, 
 import { SearchInput } from '../components/ui/SearchInput';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
+import { ProgressBar } from '../components/ui/ProgressBar';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { cn } from '../lib/utils';
 import { primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
@@ -243,7 +244,7 @@ export function Chamada() {
   const stat = (label: string, value: string | number, testId: string, tone?: string) => (
     <div className="text-center min-w-0">
       <p className={cn('text-xl font-semibold leading-none text-ink', tone)} data-testid={testId}>{value}</p>
-      <p className="text-xs text-ink-muted mt-1">{label}</p>
+      <p className="mt-1 text-xs leading-tight text-ink-muted">{label}</p>
     </div>
   );
 
@@ -267,15 +268,30 @@ export function Chamada() {
       )}
 
       {/* Resumo */}
-      <div
-        data-testid="chamada-contadores"
-        className="grid grid-cols-5 gap-2 bg-surface p-3 sm:p-4 rounded-card border border-line"
-      >
-        {stat('Total', counts.total, 'contador-total')}
-        {stat('Presentes', counts.present, 'contador-presentes', 'text-success-ink')}
-        {stat('Ausentes', counts.absent, 'contador-ausentes', 'text-danger-ink')}
-        {stat('Não reg.', counts.unregistered, 'contador-nao-registrados')}
-        {stat('Frequência', formatAttendanceRate(counts.rate), 'contador-percentual')}
+      <div className="rounded-card border border-line bg-surface p-3 sm:p-4">
+        <div data-testid="chamada-contadores" className="grid grid-cols-5 gap-2">
+          {stat('Total', counts.total, 'contador-total')}
+          {stat('Presentes', counts.present, 'contador-presentes', 'text-success-ink')}
+          {stat('Ausentes', counts.absent, 'contador-ausentes', 'text-danger-ink')}
+          {stat('Não registrados', counts.unregistered, 'contador-nao-registrados')}
+          {stat('Frequência', formatAttendanceRate(counts.rate), 'contador-percentual')}
+        </div>
+        {counts.total > 0 && (
+          <div className="mt-3" data-testid="chamada-progresso">
+            <div
+              role="progressbar"
+              aria-label="Jovens com presença registrada"
+              aria-valuemin={0}
+              aria-valuemax={counts.total}
+              aria-valuenow={counts.total - counts.unregistered}
+            >
+              <ProgressBar value={((counts.total - counts.unregistered) / counts.total) * 100} min={1} />
+            </div>
+            <p className="mt-1.5 text-xs text-ink-muted">
+              {counts.total - counts.unregistered} de {counts.total} com registro
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Filtros */}
@@ -388,9 +404,22 @@ export function Chamada() {
         </ul>
       )}
 
-      {/* Salvar */}
-      <div className="sticky bottom-20 md:bottom-0 z-[5] bg-surface border border-line rounded-card shadow-lg p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-1 min-w-0">
+      {/* Ao salvar: só o coordenador, e só em encontro agendado */}
+      {isCoordinator && event.status === 'scheduled' && !isCancelled && (
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-card border border-line bg-surface px-4 text-sm text-ink-soft">
+          <input
+            type="checkbox"
+            checked={markCompleted}
+            onChange={(e) => setMarkCompleted(e.target.checked)}
+            className="h-4 w-4 rounded border-line-strong accent-action"
+          />
+          Marcar encontro como realizado
+        </label>
+      )}
+
+      {/* Salvar: uma linha só (estado à esquerda, botão à direita) para cobrir pouco da lista no celular */}
+      <div className="sticky bottom-20 md:bottom-0 z-[5] flex items-center justify-between gap-3 rounded-card border border-line bg-surface p-3 shadow-lg">
+        <div className="flex min-w-0 flex-col gap-0.5">
           {counts.unregistered > 0 && counts.total > 0 && (
             <p className="text-xs text-ink-muted" data-testid="aviso-sem-registro">
               {counts.unregistered === 1
@@ -405,23 +434,12 @@ export function Chamada() {
                 ? '1 alteração será salva'
                 : `${pending.length} alterações serão salvas`}
           </p>
-          {isCoordinator && event.status === 'scheduled' && !isCancelled && (
-            <label className="flex items-center gap-2 text-sm text-ink-soft min-h-8">
-              <input
-                type="checkbox"
-                checked={markCompleted}
-                onChange={(e) => setMarkCompleted(e.target.checked)}
-                className="h-4 w-4 rounded border-line-strong accent-action"
-              />
-              Marcar encontro como realizado
-            </label>
-          )}
         </div>
         <button
           onClick={handleSave}
           disabled={!canSave}
           aria-describedby="chamada-salvar-status"
-          className={cn('w-full md:w-auto md:px-6', primaryBtnCls)}
+          className={cn('flex-shrink-0 md:px-6', primaryBtnCls)}
         >
           {saving ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>
