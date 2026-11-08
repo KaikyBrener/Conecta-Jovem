@@ -242,6 +242,11 @@
 }
 
 @layer base {
+  /* Reserva o espaço da barra de rolagem: abrir uma janela (que trava a rolagem do documento) não desloca a página */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
@@ -283,6 +288,26 @@
 
 .dark body {
   color-scheme: dark;
+}
+
+/*
+ * Movimento reduzido: quem pediu menos movimento ao sistema não vê transições nem animações decorativas
+ * (menu que recolhe, esmaecer de listas, entrada de janelas). O indicador de carregamento (`animate-spin`) continua
+ * girando, porque é ele que diz que algo está em andamento.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-spin {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 /*

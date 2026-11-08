@@ -145,8 +145,8 @@ export function Tarefas() {
           </>
         }
         action={
-          <button onClick={() => setCreating({})} className={primaryBtnCls}>
-            <Plus className="w-4 h-4" />
+          <button onClick={() => setCreating({})} className={primaryBtnCls} aria-label="Nova tarefa">
+            <Plus className="w-4 h-4" aria-hidden="true" />
             <span className="hidden sm:inline">Nova tarefa</span>
           </button>
         }

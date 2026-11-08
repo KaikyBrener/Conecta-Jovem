@@ -12,6 +12,7 @@ import { SeriesForm } from '../components/events/SeriesForm';
 import { SeriesManager } from '../components/events/SeriesManager';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { IconButton } from '../components/ui/IconButton';
 import { Modal } from '../components/Modal';
 import { EventForm } from '../components/events/EventForm';
 import { EventDetail } from '../components/events/EventDetail';
@@ -240,8 +241,8 @@ export function Encontros() {
               <CalendarClock className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Nova série</span>
             </button>
-            <button onClick={openCreate} className={primaryBtnCls}>
-              <Plus className="w-4 h-4" />
+            <button onClick={openCreate} className={primaryBtnCls} aria-label="Novo encontro">
+              <Plus className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Novo encontro</span>
             </button>
           </div>
@@ -298,7 +299,7 @@ export function Encontros() {
                     <button onClick={() => openView(ev)} className="flex items-center gap-3 text-left">
                       <div className="flex-shrink-0 w-10 text-center">
                         <p className="text-base font-semibold text-blue-700 leading-none">{new Date(ev.event_date).getDate()}</p>
-                        <p className="text-[10px] text-gray-400 uppercase">{new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}</p>
+                        <p className="text-xs text-gray-400 uppercase">{new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}</p>
                       </div>
                       <span className="font-medium text-gray-900">{ev.title}</span>
                     </button>
@@ -312,9 +313,7 @@ export function Encontros() {
                     <Badge color={STATUS_BADGE_COLOR[ev.status]}>{STATUS_LABEL[ev.status]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openView(ev)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <IconButton label="Abrir encontro" icon={ChevronRight} onClick={() => openView(ev)} className="ml-auto" />
                   </td>
                 </tr>
               ))}
@@ -337,7 +336,7 @@ export function Encontros() {
                   <p className="text-lg font-semibold text-blue-700 leading-none">
                     {new Date(ev.event_date).getDate()}
                   </p>
-                  <p className="text-[10px] text-gray-400 uppercase">
+                  <p className="text-xs text-gray-400 uppercase">
                     {new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}
                   </p>
                 </div>

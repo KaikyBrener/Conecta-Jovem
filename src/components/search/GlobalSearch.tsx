@@ -227,7 +227,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                           <p className="truncate text-xs text-gray-500">{hitSubtitle(hit)}</p>
                         </div>
                         {hit.kind === 'youth' && hit.inactive && (
-                          <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">Inativo</span>
+                          <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Inativo</span>
                         )}
                       </div>
                     );

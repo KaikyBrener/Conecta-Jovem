@@ -152,15 +152,15 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-gray-50 rounded-control p-3 text-center">
-                <span className="block text-[10px] text-gray-500 uppercase font-medium">Presenças</span>
+                <span className="block text-xs text-gray-500 uppercase font-medium">Presenças</span>
                 <span className="block text-lg font-semibold text-green-600">{stats.present}</span>
               </div>
               <div className="bg-gray-50 rounded-control p-3 text-center">
-                <span className="block text-[10px] text-gray-500 uppercase font-medium">Faltas</span>
+                <span className="block text-xs text-gray-500 uppercase font-medium">Faltas</span>
                 <span className="block text-lg font-semibold text-red-600">{stats.absent}</span>
               </div>
               <div className="bg-gray-50 rounded-control p-3 text-center">
-                <span className="block text-[10px] text-gray-500 uppercase font-medium">Frequência</span>
+                <span className="block text-xs text-gray-500 uppercase font-medium">Frequência</span>
                 <span className="block text-lg font-semibold text-blue-600">{stats.percentage}%</span>
               </div>
             </div>

@@ -44,7 +44,7 @@ function TransferHistory({ followUp }: { followUp: FollowUpWithRelations }) {
 
   return (
     <div data-testid="historico-transferencias" className="mt-2 rounded-control bg-gray-50 px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Histórico de transferências</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Histórico de transferências</p>
       {failed && <p className="mt-1 text-xs text-gray-500">Não foi possível carregar os nomes.</p>}
       <ul className="mt-1 space-y-1">
         {sortTransfers(followUp.transfers).map((t) => (

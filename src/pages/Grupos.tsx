@@ -14,6 +14,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Pagination } from '../components/ui/Pagination';
 import { RefreshingNote } from '../components/ui/RefreshingNote';
+import { IconButton } from '../components/ui/IconButton';
 import { primaryBtnCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { Group, GroupInsert, GroupUpdate } from '../types/database.types';
@@ -97,7 +98,7 @@ export function Grupos() {
         subtitle={`${totalAll} grupo${totalAll !== 1 ? 's' : ''} cadastrado${totalAll !== 1 ? 's' : ''}`}
         action={isCoordinator && (
           <button onClick={openCreate} className={primaryBtnCls}>
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" aria-hidden="true" />
             <span>Novo grupo</span>
           </button>
         )}
@@ -183,21 +184,9 @@ export function Grupos() {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       {canEditGroup(g) && (
-                        <button
-                          onClick={() => openEdit(g)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-control transition-colors"
-                          title="Editar grupo"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
+                        <IconButton label="Editar grupo" icon={Pencil} tone="action" onClick={() => openEdit(g)} />
                       )}
-                      <button
-                        onClick={() => openMembers(g)}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors"
-                        title="Ver integrantes"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                      <IconButton label="Ver integrantes" icon={ChevronRight} onClick={() => openMembers(g)} />
                     </div>
                   </td>
                 </tr>
@@ -213,7 +202,7 @@ export function Grupos() {
           {groups.map((g) => (
             <li key={g.id} data-testid="grupo-card">
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-card bg-action-soft text-action-ink font-semibold text-[1.0625rem] flex items-center justify-center uppercase" aria-hidden="true">
+                <div className="flex-shrink-0 w-10 h-10 rounded-card bg-action-soft text-action-ink font-semibold text-base flex items-center justify-center uppercase" aria-hidden="true">
                   {g.name.charAt(0)}
                 </div>
 
@@ -222,7 +211,7 @@ export function Grupos() {
                   <p className="text-xs text-gray-500 truncate flex items-center gap-1.5 mt-0.5">
                     <UsersRound className="w-3 h-3" />
                     {g.leader_name ?? '—'}
-                    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold ml-1">
+                    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold ml-1">
                       {g.member_count}
                     </span>
                   </p>
@@ -230,21 +219,9 @@ export function Grupos() {
 
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {canEditGroup(g) && (
-                    <button
-                      onClick={() => openEdit(g)}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-control transition-colors"
-                      title="Editar grupo"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                    <IconButton label="Editar grupo" icon={Pencil} tone="action" onClick={() => openEdit(g)} />
                   )}
-                  <button
-                    onClick={() => openMembers(g)}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors"
-                    title="Ver integrantes"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <IconButton label="Ver integrantes" icon={ChevronRight} onClick={() => openMembers(g)} />
                 </div>
               </div>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-4 pb-3 pl-[4.25rem] text-xs">

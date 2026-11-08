@@ -44,7 +44,8 @@ Como funciona:
 | `Stat` (= `StatCard`), `StatGrid` | `components/ui/Card.tsx` | faixa única de indicadores com divisórias de 1px |
 | `Tabs` | `components/ui/Card.tsx` | abas dos relatórios |
 | `DataTable` | `components/reports/ReportParts.tsx` | tabela no desktop, cartões no celular |
-| `Modal` | `components/Modal.tsx` | janela no desktop, folha inferior no celular; `size="lg"` para a ficha do jovem |
+| `Modal` | `components/Modal.tsx` | janela no desktop, folha inferior no celular; `size="lg"` para a ficha do jovem. Esc fecha a janela do topo (menos num `<select>`), o foco entra, fica preso e volta a quem abriu, o documento não rola, clicar fora só fecha se o clique começou fora |
+| `IconButton` | `components/ui/IconButton.tsx` | botão só com ícone: `label` obrigatório (nome acessível + dica), 44px no celular e 34px no desktop, `tone`, `busy` |
 | `PageHeader`, `EmptyState`, `LoadingBlock`, `SearchInput`, `FilterChips`, `Pagination` | `components/ui/` | já existiam; passaram aos tokens. `EmptyState`: ícone em círculo de 44px e `hint` opcional (DS-5). `FilterChips`: `shortLabel` e `segmentedOnMobile` (Encontros no celular) |
 | `RefreshingNote` | `components/ui/RefreshingNote.tsx` | "Atualizando…" abaixo de uma lista que já tem resultado (DS-5); a lista continua esmaecida |
 | `ConfirmProvider` / `useConfirm` | `contexts/ConfirmContext.tsx` | confirmação em janela própria (DS-6) sobre o `Modal`: foco inicial em "Cancelar", Esc cancela, foco volta a quem abriu; recusa sozinha se a rota mudar |

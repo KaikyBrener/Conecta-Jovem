@@ -13,6 +13,7 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useYouthSituations } from '../hooks/useYouthSituation';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { IconButton } from '../components/ui/IconButton';
 import { Modal } from '../components/Modal';
 import { YouthForm } from '../components/youth/YouthForm';
 import { YouthDetail } from '../components/youth/YouthDetail';
@@ -253,8 +254,8 @@ export function Jovens() {
         title="Jovens"
         subtitle={`${activeCount} ativo${activeCount !== 1 ? 's' : ''} · ${inactiveCount} inativo${inactiveCount !== 1 ? 's' : ''}`}
         action={canCreate && (
-          <button onClick={openCreate} className={primaryBtnCls}>
-            <Plus className="w-4 h-4" />
+          <button onClick={openCreate} className={primaryBtnCls} aria-label="Novo jovem">
+            <Plus className="w-4 h-4" aria-hidden="true" />
             <span className="hidden sm:inline">Novo jovem</span>
           </button>
         )}
@@ -371,9 +372,7 @@ export function Jovens() {
                   </td>
                   <td className="px-4 py-3">{situationCell(y)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openView(y)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-control transition-colors">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <IconButton label="Abrir ficha" icon={ChevronRight} onClick={() => openView(y)} className="ml-auto" />
                   </td>
                 </tr>
               ))}

@@ -22,7 +22,7 @@ const PANEL_TONE: Record<SituationTone, string> = {
 function Metric({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
     <div className="rounded-control bg-white px-2.5 py-2 border border-gray-100">
-      <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium text-gray-900 break-words" data-testid={testId}>{value}</dd>
     </div>
   );
@@ -79,7 +79,7 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
         <Metric label="Último acompanhamento" value={situation.last_follow_up ? formatDateOnly(situation.last_follow_up) : 'Nenhum'} testId="metrica-ultimo-acompanhamento" />
       </dl>
 
-      <p className="mt-3 text-[11px] leading-snug text-gray-500" data-testid="situacao-criterio">
+      <p className="mt-3 text-xs leading-snug text-gray-500" data-testid="situacao-criterio">
         {situationCriteriaText(limits)}
       </p>
     </section>

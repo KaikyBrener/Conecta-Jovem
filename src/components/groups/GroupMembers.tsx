@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, UserMinus, Loader2, AlertCircle } from 'lucide-react';
 import type { Youth } from '../../types/database.types';
+import { IconButton } from '../ui/IconButton';
 
 interface GroupMembersProps {
   groupId: string;
@@ -85,7 +86,7 @@ export function GroupMembers({
       <div>
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
           Integrantes
-          <span className="ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold normal-case">
+          <span className="ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold normal-case">
             {members.length}
           </span>
         </h4>
@@ -102,20 +103,18 @@ export function GroupMembers({
                   <div>
                     <p className="text-sm font-medium text-gray-900">{y.full_name}</p>
                     {!y.is_active && (
-                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-medium">Inativo</span>
+                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 text-xs font-medium">Inativo</span>
                     )}
                   </div>
                 </div>
-                <button
+                <IconButton
+                  label="Remover do grupo"
+                  icon={UserMinus}
+                  tone="danger"
+                  busy={actionId === y.id}
                   onClick={() => handleRemove(y.id)}
                   disabled={actionId === y.id}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-40 p-1.5 rounded-control transition-colors"
-                  title="Remover do grupo"
-                >
-                  {actionId === y.id
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <UserMinus className="w-4 h-4" />}
-                </button>
+                />
               </li>
             ))}
           </ul>
@@ -146,16 +145,14 @@ export function GroupMembers({
                   {unassigned.map((y) => (
                     <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
                       <p className="text-sm text-gray-900">{y.full_name}</p>
-                      <button
+                      <IconButton
+                        label="Adicionar ao grupo"
+                        icon={UserPlus}
+                        tone="success"
+                        busy={actionId === y.id}
                         onClick={() => handleAssign(y.id)}
                         disabled={actionId === y.id}
-                        className="text-green-600 hover:text-green-800 hover:bg-green-50 disabled:opacity-40 p-1.5 rounded-control transition-colors"
-                        title="Adicionar ao grupo"
-                      >
-                        {actionId === y.id
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <UserPlus className="w-4 h-4" />}
-                      </button>
+                      />
                     </li>
                   ))}
                 </ul>

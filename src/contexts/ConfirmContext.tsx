@@ -27,44 +27,21 @@ interface Pending extends ConfirmOptions {
   path: string;
 }
 
-/** Corpo da janela: foco inicial em "Cancelar", Esc cancela, Tab fica preso e o foco volta a quem abriu. */
+/**
+ * Corpo da janela: foco inicial em "Cancelar" (a ação segura). Esc, Tab preso e devolução do foco a quem abriu
+ * são do `Modal`, que envolve esta janela.
+ */
 function ConfirmBody({ pending, onAnswer }: { pending: Pending; onAnswer: (ok: boolean) => void }) {
-  const rootRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // `onAnswer` é estável (useCallback no provider): o efeito roda uma vez por janela aberta
   useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    // o diálogo inteiro (inclui o "Fechar janela" do Modal) é o escopo do teclado e do foco
-    const dialog = rootRef.current?.closest<HTMLElement>('[role="dialog"]') ?? null;
     cancelRef.current?.focus();
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        onAnswer(false);
-        return;
-      }
-      if (e.key !== 'Tab' || !dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled])'));
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    };
-    dialog?.addEventListener('keydown', onKeyDown);
-    return () => {
-      dialog?.removeEventListener('keydown', onKeyDown);
-      if (opener && document.contains(opener)) opener.focus();
-    };
-  }, [onAnswer]);
+  }, []);
 
   const paragraphs = pending.message === undefined ? [] : Array.isArray(pending.message) ? pending.message : [pending.message];
 
   return (
-    <div ref={rootRef} className="space-y-4">
+    <div className="space-y-4">
       {paragraphs.map((p, i) => (
         <p key={i} className="text-sm text-ink-soft">{p}</p>
       ))}
