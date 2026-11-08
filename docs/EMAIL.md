@@ -5,7 +5,7 @@ Só e-mail. Nada é automático: nenhum alerta dispara envio. "Enviada" só exis
 
 ## Peças
 - Migration `018_communications_server_send.sql`: estados `draft, sending, sent, failed, cancelled`; RPCs `begin_communication_send` /
-  `finish_communication_send` (EXECUTE só para `service_role`); rate limit (20 envios iniciados/h por usuário).
+  `finish_communication_send` (EXECUTE só para `service_role`); limite de envios por usuário (valores finais na migration 019: ver "Limites" abaixo).
   Clientes **não** conseguem definir `sending`/`sent`/`failed` (nem por UPDATE, nem por `mark_communication`, que só aceita `draft`/`cancelled`).
 - Edge Function `supabase/functions/send-communication` (`handler.ts` puro e testado; `provider.ts`; `index.ts` liga o Deno).
 
@@ -22,9 +22,12 @@ supabase functions deploy send-communication
 supabase secrets set RESEND_API_KEY=... MAIL_FROM="ConectJovem <no-reply@seudominio>" \
   ALLOWED_ORIGIN=https://seu-app MAIL_PROVIDER=resend
 ```
-- Aplicar a migration 018 no SQL Editor (após a 017).
+- Aplicar as migrations 018 e 019 no SQL Editor (após a 017). A 019 traz os limites de envio e a regra "líder só envia ao e-mail do próprio jovem".
 - `verify_jwt` fica no padrão (true); não há `supabase/config.toml`. `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY` são injetadas pela plataforma.
-- `ALLOWED_ORIGIN`: origem exata do app. Sem ela, nenhuma origem recebe CORS (restrito por padrão).
+- `ALLOWED_ORIGIN`: origem exata do app. Sem ela, nenhuma origem recebe CORS (restrito por padrão). **Aceita uma única origem**: em produção é `https://conectjovem.com.br`.
+  Por isso o envio de e-mail **só funciona no site publicado**: ao rodar `npm run dev` (`http://localhost:5173`) o navegador bloqueia a chamada com erro de CORS
+  ("No 'Access-Control-Allow-Origin' header"). Isso é esperado, não é defeito. Para testar e-mail durante o desenvolvimento, use o site publicado ou um
+  projeto Supabase só de desenvolvimento com `ALLOWED_ORIGIN=http://localhost:5173`. **Não** troque o valor do projeto de produção para `localhost`: o envio no site para.
 - `REPLY_TO_EMAIL` (**opcional**): endereço único (ex.: `contato@seudominio`, sem nome nem `< >`). Quando definido e válido, ele
   **sempre** vira o `reply_to` e o e-mail pessoal de quem enviou NÃO é repassado ao destinatário. Ausente ou vazio: comportamento
   anterior (`reply_to` = e-mail de quem enviou). **Definido e inválido: a função não envia** (`failed/provider_not_configured`,

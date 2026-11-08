@@ -10,7 +10,7 @@
 | `communications` | Guardado para sempre. O coordenador só pode excluir `draft` e `cancelled` (policy `coordinator_delete_communications`). `sent`/`failed` ficam com e-mail e nome do destinatário, assunto e corpo. |
 | `communication_send_log` | Linhas com mais de 2 dias são apagadas **dentro** de `begin_communication_send` (019, linha 150). Ou seja, a limpeza só acontece quando alguém envia um e-mail; sem envios, linhas antigas ficam. Conteúdo: usuário, horário e id da comunicação. |
 | `activity_log` | Guardado para sempre. O trigger `activity_log_immutable` bloqueia UPDATE/DELETE só para `anon`/`authenticated`; uma função do banco (dono `postgres`) consegue apagar. Guarda `actor_name` (cópia do nome do líder ou coordenador), `youth_id`, `group_id`, um resumo curto e `meta`. |
-| Jovens inativos | Desativação lógica (`is_active = false`). Todos os dados pessoais permanecem. A anonimização manual é a RPC `anonymize_youth` (migration 021, **escrita mas ainda não aplicada** no banco real e **sem botão na interface**). |
+| Jovens inativos | Desativação lógica (`is_active = false`). Todos os dados pessoais permanecem. A anonimização manual é a RPC `anonymize_youth` (migration 021) e **tem tela**: ficha do jovem → "Anonimizar dados" (só coordenador, irreversível, confirmação digitando o nome). Só funciona se a 021 estiver **aplicada no banco real**: conferir com a consulta Q10 de `docs/sql/verificacao-migrations.sql`. |
 | Backups do Supabase | Mantidos conforme o plano do projeto. Um expurgo no banco **não** apaga cópias em backup até que expirem. Confirmar o prazo no painel. |
 
 ## Opções por tabela

@@ -51,3 +51,6 @@ blob-report
 
 # Supabase CLI: config.toml e SO local (config push e proibido neste projeto; ver README)
 supabase/config.toml
+
+# Logs exportados do painel do Supabase (trazem usuário e IP: dado pessoal). Nunca versionar.
+supabase_logs*.json
