@@ -112,7 +112,7 @@ export function FollowUpFormModal({
   return (
     <Modal title={isEdit ? 'Editar acompanhamento' : 'Novo acompanhamento'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4" aria-label="Formulário de acompanhamento">
-        <p className="text-sm text-gray-600">Jovem: <strong className="text-gray-900">{youthName}</strong></p>
+        <p className="text-sm text-ink-soft">Jovem: <strong className="text-ink">{youthName}</strong></p>
         {err && <p role="alert" className={formErrorCls}>{err}</p>}
         <ErrorBanner message={mutations.error} />
         <ErrorBanner message={links.error ?? responsibles.error} />
@@ -167,7 +167,7 @@ export function FollowUpFormModal({
 
         <div>
           {isEdit ? (
-            <p className="text-xs text-gray-500">O responsável só muda pela opção &ldquo;Transferir responsável&rdquo;.</p>
+            <p className="text-xs text-ink-muted">O responsável só muda pela opção &ldquo;Transferir responsável&rdquo;.</p>
           ) : isCoordinator ? (
             <>
               <label className={labelCls} htmlFor="fu-responsible">Responsável</label>
@@ -181,15 +181,15 @@ export function FollowUpFormModal({
               </select>
             </>
           ) : (
-            <p className="text-sm text-gray-600">
-              Responsável: <strong className="text-gray-900">você</strong>
-              <span className="block text-xs text-gray-400">Líderes registram acompanhamentos sob a própria responsabilidade.</span>
+            <p className="text-sm text-ink-soft">
+              Responsável: <strong className="text-ink">você</strong>
+              <span className="block text-xs text-ink-faint">Líderes registram acompanhamentos sob a própria responsabilidade.</span>
             </p>
           )}
         </div>
 
-        <fieldset className="space-y-3 rounded-control border border-gray-200 px-3 py-3">
-          <legend className="px-1 text-xs font-medium text-gray-500">Vínculos (opcional)</legend>
+        <fieldset className="space-y-3 rounded-control border border-line px-3 py-3">
+          <legend className="px-1 text-xs font-medium text-ink-muted">Vínculos (opcional)</legend>
           <div>
             <label className={labelCls} htmlFor="fu-alert">Alerta</label>
             <select id="fu-alert" value={form.alert_id} onChange={(e) => set('alert_id', e.target.value)} className={inputCls}>
@@ -209,15 +209,15 @@ export function FollowUpFormModal({
             </select>
           </div>
           {form.task_id && (
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label className="flex items-start gap-2 text-sm text-ink-soft">
               <input
                 type="checkbox" checked={form.completes_task} disabled={alreadyCompletes}
                 onChange={(e) => set('completes_task', e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600"
+                className="mt-0.5 h-4 w-4 rounded border-line-strong accent-action"
               />
               <span>
                 Concluir a ação ao registrar
-                <span className="block text-xs text-gray-400">A ação vira &ldquo;Concluída&rdquo;. A presença não é alterada.</span>
+                <span className="block text-xs text-ink-faint">A ação vira &ldquo;Concluída&rdquo;. A presença não é alterada.</span>
               </span>
             </label>
           )}

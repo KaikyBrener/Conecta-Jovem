@@ -23,7 +23,7 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
       aria-busy={loading}
       onSubmit={(e) => { e.preventDefault(); if (canConfirm) onConfirm(); }}
     >
-      <div role="note" className="flex items-start gap-2 text-sm text-red-800 bg-red-50 border border-red-200 rounded-control px-3 py-2">
+      <div role="note" className="flex items-start gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-3 py-2">
         <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
         <p>
           Esta ação é <strong>IRREVERSÍVEL</strong>. Os dados pessoais de <strong>{youthName}</strong> serão apagados e
@@ -31,14 +31,14 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
         </p>
       </div>
 
-      <div className="text-sm text-gray-700 space-y-2">
-        <p className="font-medium text-gray-900">Será apagado:</p>
+      <div className="text-sm text-ink-soft space-y-2">
+        <p className="font-medium text-ink">Será apagado:</p>
         <ul className="list-disc pl-5 space-y-0.5">
           <li>nome (passa a ser "Jovem anonimizado"), data de nascimento e gênero;</li>
           <li>telefone, e-mail, endereço e observações;</li>
           <li>os textos de presença, tarefas, acompanhamentos, alertas e e-mails deste jovem.</li>
         </ul>
-        <p className="font-medium text-gray-900">Será mantido:</p>
+        <p className="font-medium text-ink">Será mantido:</p>
         <ul className="list-disc pl-5 space-y-0.5">
           <li>o grupo e os registros de presença e falta, para as estatísticas;</li>
           <li>o jovem fica inativo.</li>
@@ -62,7 +62,7 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
 
       {error && <p role="alert" className={formErrorCls}>{error}</p>}
 
-      <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-gray-100">
+      <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-line-soft">
         <button type="button" onClick={onCancel} disabled={loading} className={secondaryBtnCls}>
           Cancelar
         </button>

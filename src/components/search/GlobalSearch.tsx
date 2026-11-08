@@ -130,10 +130,10 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
         aria-modal="true"
         aria-label="Busca global"
         onKeyDown={handleKeyDown}
-        className="bg-white w-full h-[100dvh] md:h-auto md:max-h-[70vh] md:max-w-xl flex flex-col md:rounded-card md:shadow-xl md:border md:border-gray-200"
+        className="bg-surface w-full h-[100dvh] md:h-auto md:max-h-[70vh] md:max-w-xl flex flex-col md:rounded-card md:shadow-xl md:border md:border-line"
       >
-        <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2">
-          <Search className="w-5 h-5 flex-shrink-0 text-gray-400" aria-hidden="true" />
+        <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+          <Search className="w-5 h-5 flex-shrink-0 text-ink-faint" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
@@ -148,15 +148,15 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setActive(0); }}
             onKeyDown={handleInputKeyDown}
-            className="min-w-0 flex-1 border-0 bg-transparent py-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none"
+            className="min-w-0 flex-1 border-0 bg-transparent py-2 text-base text-ink placeholder:text-ink-faint focus:outline-none"
             data-testid="busca-global-input"
           />
-          {busy && <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-blue-600" aria-hidden="true" />}
+          {busy && <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-action" aria-hidden="true" />}
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar busca"
-            className="rounded-control p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="rounded-control p-2 text-ink-faint hover:bg-surface-muted hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -169,25 +169,25 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
           </p>
 
           {!searchable && (
-            <p className="px-3 py-6 text-center text-sm text-gray-500" data-testid="busca-global-dica">
+            <p className="px-3 py-6 text-center text-sm text-ink-muted" data-testid="busca-global-dica">
               Digite pelo menos {SEARCH_MIN_CHARS} caracteres para buscar jovens, grupos e encontros.
             </p>
           )}
 
           {searchable && busy && hits.length === 0 && (
-            <p className="flex items-center justify-center gap-2 px-3 py-6 text-sm text-gray-500" data-testid="busca-global-carregando">
+            <p className="flex items-center justify-center gap-2 px-3 py-6 text-sm text-ink-muted" data-testid="busca-global-carregando">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Buscando...
             </p>
           )}
 
           {error && (
-            <p role="alert" className="flex items-start gap-2 m-2 rounded-control border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-testid="busca-global-erro">
+            <p role="alert" className="flex items-start gap-2 m-2 rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger-ink" data-testid="busca-global-erro">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" /> {error}
             </p>
           )}
 
           {showEmpty && (
-            <p className="px-3 py-6 text-center text-sm text-gray-500" data-testid="busca-global-vazio">
+            <p className="px-3 py-6 text-center text-sm text-ink-muted" data-testid="busca-global-vazio">
               Nenhum resultado para “{normalizeSearchTerm(query)}”.
             </p>
           )}
@@ -201,7 +201,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
               const Icon = KIND_ICON[section.kind];
               return (
                 <div key={section.kind} role="group" aria-labelledby={headingId} className="mb-1">
-                  <p id={headingId} className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <p id={headingId} className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
                     {section.label}
                   </p>
                   {sectionHits.map((hit, i) => {
@@ -218,16 +218,16 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                         data-testid={`busca-global-${hit.kind}`}
                         className={cn(
                           'flex cursor-pointer items-center gap-3 rounded-control px-3 py-2.5',
-                          isActive ? 'bg-blue-50' : 'hover:bg-gray-50',
+                          isActive ? 'bg-action-soft' : 'hover:bg-surface-hover',
                         )}
                       >
-                        <Icon className="w-4 h-4 flex-shrink-0 text-gray-400" aria-hidden="true" />
+                        <Icon className="w-4 h-4 flex-shrink-0 text-ink-faint" aria-hidden="true" />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-gray-900">{hit.title}</p>
-                          <p className="truncate text-xs text-gray-500">{hitSubtitle(hit)}</p>
+                          <p className="truncate text-sm font-medium text-ink">{hit.title}</p>
+                          <p className="truncate text-xs text-ink-muted">{hitSubtitle(hit)}</p>
                         </div>
                         {hit.kind === 'youth' && hit.inactive && (
-                          <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">Inativo</span>
+                          <span className="flex-shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium text-ink-soft">Inativo</span>
                         )}
                       </div>
                     );
@@ -238,7 +238,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-4 border-t border-gray-200 px-4 py-2 text-xs text-gray-500">
+        <div className="hidden md:flex items-center gap-4 border-t border-line px-4 py-2 text-xs text-ink-muted">
           <span>↑↓ navegar</span>
           <span>Enter abrir</span>
           <span>Esc fechar</span>

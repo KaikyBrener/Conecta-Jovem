@@ -15,8 +15,7 @@
  *    utilities (bg-surface, text-ink-muted, border-line, bg-action...) e trocam de valor sozinhos no modo escuro.
  * 3. Tipografia e raios por papel (text-title, rounded-card...).
  *
- * Código novo usa os tokens semânticos. As classes de paleta continuam funcionando no modo escuro pela
- * "ponte de legado" no fim do arquivo.
+ * O código usa os tokens semânticos; a "ponte de legado" no fim do arquivo cobre as poucas classes de paleta que sobraram.
  */
 @theme {
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -154,6 +153,17 @@
   --color-danger-line: #f3c4be;
   --color-danger-ink: #9f1d12;
 
+  /* Avatares (iniciais): quatro matizes SEM significado de estado (verde, âmbar e vermelho ficam para sucesso, atenção e
+     crítico). Cada par é fundo + texto com contraste mínimo de 4,5:1. */
+  --color-avatar-1: #e8f0fd;
+  --color-avatar-1-ink: #174aa6;
+  --color-avatar-2: #def3f4;
+  --color-avatar-2-ink: #0e5a63;
+  --color-avatar-3: #ece8fa;
+  --color-avatar-3-ink: #4a3a9a;
+  --color-avatar-4: #e6eaf1;
+  --color-avatar-4-ink: #33415c;
+
   /* Tipografia por papel (design system): título de página 24/600, título de seção 15/600, título de janela
      16/600, corpo 14, tabela 13.5, legenda 12.5, cabeçalho de tabela 11.5/600 em caixa-alta, numeral 30/600 */
   --text-display: 1.75rem;
@@ -239,9 +249,23 @@
   --color-danger-soft: rgba(239, 68, 68, 0.12);
   --color-danger-line: rgba(239, 68, 68, 0.35);
   --color-danger-ink: #fca5a5;
+
+  --color-avatar-1: rgba(47, 111, 224, 0.18);
+  --color-avatar-1-ink: #93c5fd;
+  --color-avatar-2: rgba(45, 190, 200, 0.16);
+  --color-avatar-2-ink: #7fd6df;
+  --color-avatar-3: rgba(139, 120, 235, 0.18);
+  --color-avatar-3-ink: #c4b8f5;
+  --color-avatar-4: rgba(148, 163, 184, 0.16);
+  --color-avatar-4-ink: #cbd5e1;
 }
 
 @layer base {
+  /* Reserva o espaço da barra de rolagem: abrir uma janela (que trava a rolagem do documento) não desloca a página */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
@@ -286,105 +310,41 @@
 }
 
 /*
- * Ponte de legado — as páginas ainda usam classes de paleta (bg-white, text-gray-700, border-gray-200...).
- * No modo escuro elas são redirecionadas para os tokens semânticos acima, sem `dark:` em cada componente.
- * Ao migrar um componente para os tokens (bg-surface, text-ink...), ele deixa de depender destas regras.
+ * Movimento reduzido: quem pediu menos movimento ao sistema não vê transições nem animações decorativas
+ * (menu que recolhe, esmaecer de listas, entrada de janelas). O indicador de carregamento (`animate-spin`) continua
+ * girando, porque é ele que diz que algo está em andamento.
  */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-spin {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
 
-/* Superfícies */
-.dark .bg-gray-50 { background-color: var(--color-canvas); }
-.dark .bg-white { background-color: var(--color-surface); }
-.dark .bg-gray-100,
-.dark .hover\:bg-gray-100:hover,
-.dark .hover\:bg-gray-50:hover { background-color: var(--color-surface-muted); }
-.dark .bg-gray-200,
-.dark .bg-gray-300 { background-color: var(--color-line-strong); }
-
-/* Bordas e divisores */
-.dark .border-gray-100,
-.dark .border-gray-200,
-.dark .border-gray-200\/80 { border-color: var(--color-line); }
-.dark .border-gray-300 { border-color: var(--color-line-strong); }
-.dark .ring-blue-100 { --tw-ring-color: var(--color-action-line); }
-/* o Tailwind v4 põe a borda do divide-* em `> :not(:last-child)` (não mais nos irmãos seguintes) */
-.dark .divide-gray-100 > :not(:last-child),
-.dark .divide-gray-200 > :not(:last-child) { border-color: var(--color-line); }
-
-/* Texto */
-.dark .text-gray-900,
-.dark .text-gray-800 { color: var(--color-ink); }
-.dark .text-gray-700,
-.dark .text-gray-600,
-.dark .hover\:text-gray-600:hover,
-.dark .hover\:text-gray-700:hover,
-.dark .hover\:text-gray-900:hover { color: var(--color-ink-soft); }
-.dark .text-gray-500 { color: var(--color-ink-muted); }
-.dark .text-gray-400,
-.dark .placeholder\:text-gray-400::placeholder { color: var(--color-ink-faint); }
-.dark .text-gray-300 { color: var(--color-line-strong); }
-
-/* Ações e seleção */
+/*
+ * Ponte de legado — sobraram poucas classes de paleta no código, todas de propósito: seletores do E2E
+ * (`bg-blue-600` no item ativo do menu, `bg-blue-50` na linha selecionada, `text-red-600` no painel) e as cores
+ * cheias dos botões Presente/Ausente, que ainda não têm token. No modo escuro elas são redirecionadas aos tokens.
+ * Todo o resto usa os tokens semânticos (bg-surface, text-ink, border-line...), que trocam sozinhos.
+ */
 .dark .bg-blue-600 { background-color: var(--color-action); }
-.dark .hover\:bg-blue-700:hover { background-color: var(--color-action-hover); }
-.dark .bg-blue-50,
-.dark .hover\:bg-blue-50:hover { background-color: var(--color-action-soft); }
-.dark .bg-blue-100,
-.dark .hover\:bg-blue-100:hover { background-color: rgba(47, 111, 224, 0.24); }
-.dark .border-blue-200,
-.dark .border-blue-300 { border-color: var(--color-action-line); }
-.dark .text-blue-600,
-.dark .text-blue-700,
-.dark .text-blue-800,
-.dark .hover\:text-blue-700:hover,
-.dark .hover\:text-blue-800:hover { color: var(--color-action-ink); }
+.dark .bg-blue-50 { background-color: var(--color-action-soft); }
+.dark .text-red-600 { color: var(--color-danger-ink); }
+.dark .bg-green-600,
+.dark .bg-green-700,
+.dark .hover\:bg-green-700:hover { background-color: #15803d; }
 /* texto de ação (links) no escuro: o azul de botão não tem contraste sobre as superfícies; usa o azul claro */
 .dark .text-action { color: var(--color-action-ink); }
 /* idem para o vermelho: `--color-danger` é o fundo do botão destrutivo; como texto (botão em contorno) usa o tom claro */
 .dark .text-danger { color: var(--color-danger-ink); }
-
-/* Estados (alertas, selos, mensagens): fundo translúcido + texto/borda claros */
-.dark .bg-red-50,
-.dark .hover\:bg-red-50:hover { background-color: var(--color-danger-soft); }
-.dark .bg-red-100,
-.dark .hover\:bg-red-100:hover { background-color: rgba(239, 68, 68, 0.18); }
-.dark .border-red-200,
-.dark .border-red-300 { border-color: var(--color-danger-line); }
-.dark .text-red-800,
-.dark .text-red-700,
-.dark .text-red-600,
-.dark .text-red-500,
-.dark .hover\:text-red-700:hover { color: var(--color-danger-ink); }
-
-.dark .bg-green-50,
-.dark .hover\:bg-green-50:hover { background-color: var(--color-success-soft); }
-.dark .bg-green-100,
-.dark .hover\:bg-green-100:hover { background-color: rgba(34, 197, 94, 0.18); }
-.dark .border-green-200,
-.dark .border-green-300 { border-color: var(--color-success-line); }
-.dark .text-green-800,
-.dark .text-green-700,
-.dark .text-green-600,
-.dark .hover\:text-green-800:hover { color: var(--color-success-ink); }
-.dark .bg-green-600,
-.dark .bg-green-700,
-.dark .hover\:bg-green-700:hover { background-color: #15803d; }
-
-.dark .bg-amber-50,
-.dark .hover\:bg-amber-50:hover { background-color: var(--color-warning-soft); }
-.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.18); }
-.dark .border-amber-200,
-.dark .border-amber-300 { border-color: var(--color-warning-line); }
-.dark .text-amber-600,
-.dark .text-amber-700,
-.dark .text-amber-800,
-.dark .text-amber-900 { color: var(--color-warning-ink); }
-
-/* Índigo (selos antigos): mesmo tratamento do azul de informação */
-.dark .bg-indigo-50,
-.dark .bg-indigo-100,
-.dark .hover\:bg-indigo-100:hover { background-color: var(--color-action-soft); }
-.dark .border-indigo-200 { border-color: var(--color-action-line); }
-.dark .text-indigo-700 { color: var(--color-action-ink); }
 
 /* Inputs, selects e textareas (sem bg utilitário explícito nas páginas) */
 .dark input,

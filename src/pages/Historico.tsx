@@ -9,7 +9,7 @@ import { parseHistoryYouthParam } from '../lib/deepLinks';
 import { activityBounds, HISTORY_PERIODS, type HistoryPeriod } from '../lib/activity';
 import { ACTIVITY_ACTIONS, ACTIVITY_ACTION_LABEL } from '../lib/labels';
 import { appToday, formatTimestampSP } from '../lib/format';
-import { inputCls, labelCls } from '../lib/formStyles';
+import { inputCls, labelCls, tableCls, tableWrapCls, thCls, trCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import { ActivityBadge } from '../components/activity/ActivityBadge';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -22,11 +22,11 @@ import { RefreshingNote } from '../components/ui/RefreshingNote';
 import type { ActivityAction, ActivityEntry } from '../types/database.types';
 
 function YouthLink({ entry }: { entry: ActivityEntry }) {
-  if (!entry.youth_id) return <span className="text-gray-400">—</span>;
+  if (!entry.youth_id) return <span className="text-ink-faint">—</span>;
   return (
     <Link
       to={`/jovens?ficha=${encodeURIComponent(entry.youth_id)}`}
-      className="text-blue-600 hover:underline"
+      className="text-action hover:underline"
       data-testid="historico-jovem"
     >
       {entry.youth?.full_name ?? 'Ver ficha'}
@@ -78,7 +78,7 @@ export function Historico() {
         subtitle="Registro das ações feitas no sistema: chamadas, acompanhamentos, ações, alertas e mudanças de jovens."
       />
 
-      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
+      <div className="bg-surface border border-line rounded-card px-4 py-3 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchInput
             value={search}
@@ -91,7 +91,7 @@ export function Historico() {
             value={action}
             onChange={(e) => setAction(e.target.value as ActivityAction | 'all')}
             aria-label="Filtrar por tipo de ação"
-            className="sm:w-64 px-3 py-2 text-sm border border-gray-300 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+            className="sm:w-64 px-3 py-2 text-sm border border-line-strong rounded-control bg-surface focus:outline-none focus:ring-2 focus:ring-action/20 focus:border-action"
           >
             <option value="all">Todas as ações</option>
             {ACTIVITY_ACTIONS.map((a) => (
@@ -117,19 +117,19 @@ export function Historico() {
           </div>
         )}
         {period === 'custom' && bounds.error && (
-          <p role="alert" className="text-sm text-red-700">{bounds.error}</p>
+          <p role="alert" className="text-sm text-danger-ink">{bounds.error}</p>
         )}
 
         {youthId && (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="historico-filtro-jovem">
-            <span className="text-gray-500">Jovem:</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 pl-3 pr-1 py-0.5 font-medium">
+            <span className="text-ink-muted">Jovem:</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-action-soft text-action-ink border border-action-line pl-3 pr-1 py-0.5 font-medium">
               {youthName.loading ? 'Carregando…' : youthName.data ?? 'Jovem selecionado'}
               <button
                 type="button"
                 onClick={clearYouth}
                 aria-label="Remover filtro de jovem"
-                className="rounded-full p-1 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="rounded-full p-1 hover:bg-action-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
               >
                 <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
@@ -139,7 +139,7 @@ export function Historico() {
       </div>
 
       {error && (
-        <div role="alert" className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
+        <div role="alert" className="flex items-center gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -156,25 +156,25 @@ export function Historico() {
 
       {/* Tabela - Desktop */}
       {rows.length > 0 && (
-        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
-          <table className="w-full text-sm" data-testid="historico-tabela">
+        <div className={cn('hidden lg:block', tableWrapCls, 'transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          <table className={tableCls} data-testid="historico-tabela">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-2">Data e hora</th>
-                <th className="px-4 py-2">Ação</th>
-                <th className="px-4 py-2">Resumo</th>
-                <th className="px-4 py-2">Jovem</th>
-                <th className="px-4 py-2">Feito por</th>
+              <tr className="text-left">
+                <th className={thCls}>Data e hora</th>
+                <th className={thCls}>Ação</th>
+                <th className={thCls}>Resumo</th>
+                <th className={thCls}>Jovem</th>
+                <th className={thCls}>Feito por</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {rows.map((a) => (
-                <tr key={a.id} data-testid="historico-linha" className="align-top hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatTimestampSP(a.occurred_at)}</td>
+                <tr key={a.id} data-testid="historico-linha" className={cn(trCls, 'align-top')}>
+                  <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{formatTimestampSP(a.occurred_at)}</td>
                   <td className="px-4 py-3"><ActivityBadge action={a.action} /></td>
-                  <td className="px-4 py-3 text-gray-800">{a.summary}</td>
+                  <td className="px-4 py-3 text-ink">{a.summary}</td>
                   <td className="px-4 py-3"><YouthLink entry={a} /></td>
-                  <td className="px-4 py-3 text-gray-600">{a.actor_name ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-soft">{a.actor_name ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -184,15 +184,15 @@ export function Historico() {
 
       {/* Cards - Mobile */}
       {rows.length > 0 && (
-        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-surface rounded-card border border-line divide-y divide-line-soft overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {rows.map((a) => (
             <li key={a.id} data-testid="historico-card" className="px-4 py-3 space-y-1">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <ActivityBadge action={a.action} />
-                <span className="text-xs text-gray-500">{formatTimestampSP(a.occurred_at)}</span>
+                <span className="text-xs text-ink-muted">{formatTimestampSP(a.occurred_at)}</span>
               </div>
-              <p className="text-sm text-gray-800">{a.summary}</p>
-              <p className="text-xs text-gray-500 break-words">
+              <p className="text-sm text-ink">{a.summary}</p>
+              <p className="text-xs text-ink-muted break-words">
                 {a.youth_id && <><YouthLink entry={a} /> · </>}
                 por {a.actor_name ?? '—'}
               </p>

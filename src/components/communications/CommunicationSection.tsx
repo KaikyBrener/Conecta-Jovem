@@ -138,11 +138,11 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
   };
 
   return (
-    <section className="border-t border-gray-100 pt-4" aria-labelledby="comunicacoes-title" data-testid="secao-comunicacoes">
+    <section className="border-t border-line-soft pt-4" aria-labelledby="comunicacoes-title" data-testid="secao-comunicacoes">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h4 id="comunicacoes-title" className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-          <Mail className="h-4 w-4 text-gray-500" aria-hidden="true" /> Comunicações
-          {total > 0 && <span className="text-xs font-normal text-gray-500">({total})</span>}
+        <h4 id="comunicacoes-title" className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+          <Mail className="h-4 w-4 text-ink-muted" aria-hidden="true" /> Comunicações
+          {total > 0 && <span className="text-xs font-normal text-ink-muted">({total})</span>}
         </h4>
         <button
           type="button" data-testid="jovem-enviar-email"
@@ -157,7 +157,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
       {loading && communications.length === 0 ? (
         <LoadingBlock size="sm" />
       ) : !error && communications.length === 0 ? (
-        <p className="rounded-control bg-gray-50 p-3 text-center text-xs italic text-gray-500">
+        <p className="rounded-control bg-canvas p-3 text-center text-xs italic text-ink-muted">
           Nenhum e-mail registrado para este jovem ainda.
         </p>
       ) : (
@@ -173,23 +173,23 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
             return (
               <li
                 key={c.id} data-testid="comunicacao-item" data-status={c.status}
-                className="rounded-control border border-gray-200 bg-white px-3 py-3"
+                className="rounded-control border border-line bg-surface px-3 py-3"
               >
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <CommunicationStatusBadge status={c.status} />
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-ink-muted">
                     {c.status === 'sent' && c.sent_at ? `Enviado em ${formatDateTime(c.sent_at)}` : `Criado em ${formatDateTime(c.created_at)}`}
                   </span>
                 </div>
 
-                <p className="mt-1 break-words text-sm font-medium text-gray-900">{c.subject}</p>
-                <p className="mt-0.5 break-words text-xs text-gray-600">
+                <p className="mt-1 break-words text-sm font-medium text-ink">{c.subject}</p>
+                <p className="mt-0.5 break-words text-xs text-ink-soft">
                   Para: {c.recipient_name ? `${c.recipient_name} · ` : ''}{c.recipient_email} ({RECIPIENT_KIND_LABEL[c.recipient_kind]})
                 </p>
-                <p className="mt-0.5 text-xs text-gray-500">Responsável: {author}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">Responsável: {author}</p>
 
                 {c.status === 'failed' && c.failure_reason && (
-                  <p data-testid="comunicacao-motivo-falha" className="mt-1 text-xs font-medium text-red-700">
+                  <p data-testid="comunicacao-motivo-falha" className="mt-1 text-xs font-medium text-danger-ink">
                     Motivo: {failureReasonLabel(c.failure_reason)}
                   </p>
                 )}
@@ -198,7 +198,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
                   <p
                     role={stuck ? 'alert' : 'status'}
                     data-testid={stuck ? 'comunicacao-envio-sem-resposta' : 'comunicacao-enviando-item'}
-                    className={`mt-1 flex items-start gap-1.5 text-xs font-medium ${stuck ? 'text-amber-800' : 'text-gray-600'}`}
+                    className={`mt-1 flex items-start gap-1.5 text-xs font-medium ${stuck ? 'text-warning-ink' : 'text-ink-soft'}`}
                   >
                     {stuck
                       ? <TriangleAlert className="mt-0.5 h-3 w-3 flex-shrink-0" aria-hidden="true" />
@@ -208,7 +208,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
                 )}
 
                 {(c.alert || c.follow_up) && (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
                     {c.alert && (
                       <span className="inline-flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" /> Alerta: {alertDescription(c.alert)}
@@ -225,7 +225,7 @@ export function CommunicationSection({ youth, groupName, alertChoices, refreshKe
                 {open && (
                   <div
                     data-testid="comunicacao-corpo-item"
-                    className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-control border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800"
+                    className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-control border border-line bg-canvas px-3 py-2 text-sm text-ink"
                   >
                     {c.body}
                   </div>

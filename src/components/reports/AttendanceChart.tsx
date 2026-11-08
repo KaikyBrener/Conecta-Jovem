@@ -14,7 +14,7 @@ const shortDay = (date: string) => formatDay(date).slice(0, 5);
  * texto e os valores exatos ficam numa tabela logo abaixo ("Ver valores"). Não é uma classificação: as barras
  * seguem a ordem das datas.
  */
-export function AttendanceChart({ points, title }: { points: AttendanceSeriesPoint[]; title: string }) {
+export function AttendanceChart({ points, title, threshold = null }: { points: AttendanceSeriesPoint[]; title: string; threshold?: number | null }) {
   const uid = useId();
   if (points.length === 0) return null;
 
@@ -48,6 +48,9 @@ export function AttendanceChart({ points, title }: { points: AttendanceSeriesPoi
           {TICKS.map((v) => (
             <line key={v} x1="0" x2="100%" y1={y(v)} y2={y(v)} stroke={v === 0 ? 'var(--color-line-strong)' : 'var(--color-line)'} />
           ))}
+          {threshold !== null && threshold > 0 && threshold < 100 && (
+            <line x1="0" x2="100%" y1={y(threshold)} y2={y(threshold)} stroke="var(--color-warning)" strokeWidth="1.5" strokeDasharray="5 4" data-testid="grafico-limite" />
+          )}
           <g fill="var(--color-action)">
             {points.map((p, i) => {
               const top = y(p.rate);
@@ -64,6 +67,12 @@ export function AttendanceChart({ points, title }: { points: AttendanceSeriesPoi
         {labelIdx.map((i) => <span key={points[i].date}>{shortDay(points[i].date)}</span>)}
       </div>
       <p className="ml-11 mt-2 text-center text-xs text-ink-muted">Dias com chamada, do mais antigo ao mais recente</p>
+      {threshold !== null && threshold > 0 && threshold < 100 && (
+        <p className="ml-11 mt-1 flex items-center justify-center gap-2 text-xs text-ink-muted">
+          <span className="inline-block h-0 w-5 border-t-2 border-dashed border-warning" aria-hidden="true" />
+          Limite de frequência baixa: {threshold}%
+        </p>
+      )}
 
       <details className="mt-3 text-sm">
         <summary className="inline-block cursor-pointer rounded-tag text-label font-medium text-action hover:underline">Ver valores</summary>
@@ -81,10 +90,10 @@ export function AttendanceChart({ points, title }: { points: AttendanceSeriesPoi
             <tbody className="divide-y divide-line-soft">
               {points.map((p) => (
                 <tr key={p.date}>
-                  <td className="px-3 py-1.5 text-gray-900">{formatDay(p.date)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-gray-600">{p.present}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-gray-600">{p.registered}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-gray-900">{p.rate}%</td>
+                  <td className="px-3 py-1.5 text-ink">{formatDay(p.date)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-soft">{p.present}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-soft">{p.registered}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{p.rate}%</td>
                 </tr>
               ))}
             </tbody>

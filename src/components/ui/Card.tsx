@@ -74,9 +74,10 @@ interface StatProps {
   hint?: ReactNode;
   /**
    * `danger` destaca o valor em vermelho (só quando o dado é crítico; o texto de apoio explica o motivo).
+   * `warning` pede atenção sem alarme (valor abaixo de um limite configurado).
    * `muted` apaga o valor: zero sem problema ou informação indisponível.
    */
-  tone?: 'danger' | 'muted';
+  tone?: 'danger' | 'warning' | 'muted';
   /** Com `to`, o indicador inteiro vira um link */
   to?: string;
   testId?: string;
@@ -88,7 +89,7 @@ export function Stat({ label, value, hint, tone, to, testId }: StatProps) {
     <>
       <p className="text-label font-medium text-ink-soft">{label}</p>
       {/* `text-red-600` é usado como seletor pelo E2E do painel: mantenha a classe */}
-      <p className={cn('mt-1 text-[1.625rem] font-semibold leading-[1.15] tracking-[-0.02em] sm:text-stat', tone === 'danger' ? 'text-red-600' : tone === 'muted' ? 'text-ink-muted' : 'text-ink')}>
+      <p className={cn('mt-1 text-[1.625rem] font-semibold leading-[1.15] tracking-[-0.02em] sm:text-stat', tone === 'danger' ? 'text-red-600' : tone === 'warning' ? 'text-warning-ink' : tone === 'muted' ? 'text-ink-muted' : 'text-ink')}>
         {value}
       </p>
       {hint && <p className="mt-0.5 text-caption text-ink-muted">{hint}</p>}

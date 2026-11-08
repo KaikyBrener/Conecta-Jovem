@@ -41,7 +41,7 @@ export function FollowUpsTab({ range, groupId, groupName, allGroupsLabel }: Repo
             </StatGrid>
             <ExportTableView table={doc.tables[0]} />
             <ExportTableView table={doc.tables[1]} />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-muted">
               {r.transfers.count} {r.transfers.count === 1 ? 'transferência' : 'transferências'} de responsável no período
               ({r.transfers.follow_ups} {r.transfers.follow_ups === 1 ? 'acompanhamento' : 'acompanhamentos'}).
             </p>

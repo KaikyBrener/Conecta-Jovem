@@ -15,9 +15,9 @@ import type { AppSettings, Role } from '../types/database.types';
 
 function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-card border border-gray-200 p-5 space-y-4">
-      <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900">
-        <Icon className="w-5 h-5 text-blue-600" />
+    <section className="bg-surface rounded-card border border-line p-5 space-y-4">
+      <h3 className="flex items-center gap-2 text-base font-semibold text-ink">
+        <Icon className="w-5 h-5 text-action" />
         {title}
       </h3>
       {children}
@@ -64,7 +64,7 @@ function ProfileSection() {
     <Section icon={UserIcon} title="Meu perfil">
       <ErrorBanner message={err} />
       <SuccessBanner message={ok} />
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-ink-muted">
         {user?.email} · {role === 'coordinator' ? 'Coordenador' : 'Líder'}
       </p>
       <form onSubmit={saveName} className="flex flex-col sm:flex-row sm:items-end gap-3">
@@ -140,30 +140,30 @@ function SettingsForm({ settings, onSave, onRecalculate }: {
         <div>
           <label className={labelCls} htmlFor="abs">Faltas consecutivas para gerar alerta</label>
           <input id="abs" type="number" min={1} max={20} className={inputCls} value={absence} onChange={(e) => setAbsence(e.target.value)} />
-          <p className="mt-1 text-xs text-gray-500">O alerta é criado automaticamente ao salvar a chamada.</p>
+          <p className="mt-1 text-xs text-ink-muted">O alerta é criado automaticamente ao salvar a chamada.</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="crit">Faltas consecutivas para alerta crítico</label>
           <input id="crit" type="number" min={1} max={50} className={inputCls} value={critical} onChange={(e) => setCritical(e.target.value)} aria-describedby="crit-help" />
-          <p id="crit-help" className="mt-1 text-xs text-gray-500">
+          <p id="crit-help" className="mt-1 text-xs text-ink-muted">
             A partir de quantas faltas seguidas o alerta passa de “Atenção” para “Crítico”. Deve ser igual ou maior que o limite para gerar alerta.
           </p>
         </div>
         <div>
           <label className={labelCls} htmlFor="low">Frequência mínima esperada (%)</label>
           <input id="low" type="number" min={0} max={100} className={inputCls} value={low} onChange={(e) => setLow(e.target.value)} />
-          <p className="mt-1 text-xs text-gray-500">Jovens abaixo deste percentual são destacados no painel e nos relatórios.</p>
+          <p className="mt-1 text-xs text-ink-muted">Jovens abaixo deste percentual são destacados no painel e nos relatórios.</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="grace">Prazo de carência do acompanhamento (dias)</label>
           <input id="grace" type="number" min={1} max={90} className={inputCls} value={graceDays} onChange={(e) => setGraceDays(e.target.value)} aria-describedby="grace-help" />
-          <p id="grace-help" className="mt-1 text-xs text-gray-500">
+          <p id="grace-help" className="mt-1 text-xs text-ink-muted">
             Dias que um alerta aberto pode ficar sem acompanhamento antes de gerar o alerta “Sem acompanhamento” (entre 1 e 90).
           </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-gray-400">Última alteração: {formatDateTime(settings.updated_at)}</p>
+        <p className="text-xs text-ink-faint">Última alteração: {formatDateTime(settings.updated_at)}</p>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={recalc} disabled={busy !== null} className={secondaryBtnCls}>
             {busy === 'recalc' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -194,7 +194,7 @@ function SystemSection() {
           onRecalculate={recalculateAlerts}
         />
       ) : (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink-muted">
           Configurações não encontradas. Verifique se a migration <code>006_settings_alerts_tasks.sql</code> foi aplicada.
         </p>
       )}
@@ -217,7 +217,7 @@ function UsersSection() {
 
   return (
     <Section icon={Users} title="Usuários e papéis">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-ink-muted">
         Novos usuários são cadastrados pelo administrador do sistema e entram como líderes.
         Aqui você define quem é coordenador.
       </p>
@@ -225,24 +225,24 @@ function UsersSection() {
       {loading && users.length === 0 ? (
         <LoadingBlock size="sm" />
       ) : users.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum usuário cadastrado.</p>
+        <p className="text-sm text-ink-muted">Nenhum usuário cadastrado.</p>
       ) : (
-        <ul className="divide-y divide-gray-100 border border-gray-200 rounded-control overflow-hidden">
+        <ul className="divide-y divide-line-soft border border-line rounded-control overflow-hidden">
           {users.map((u) => (
             <li key={u.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {u.full_name || 'Sem nome'} {u.id === user?.id && <span className="text-xs text-gray-400">(você)</span>}
+                <p className="text-sm font-medium text-ink truncate">
+                  {u.full_name || 'Sem nome'} {u.id === user?.id && <span className="text-xs text-ink-faint">(você)</span>}
                 </p>
-                <p className="text-xs text-gray-500">Desde {formatDateTime(u.created_at)}</p>
+                <p className="text-xs text-ink-muted">Desde {formatDateTime(u.created_at)}</p>
               </div>
               <div className="flex items-center gap-2">
-                {busyId === u.id && <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />}
+                {busyId === u.id && <Loader2 className="w-4 h-4 text-action animate-spin" />}
                 <select
                   value={u.role}
                   disabled={busyId !== null}
                   onChange={(e) => change(u.id, e.target.value as Role)}
-                  className="px-2 py-1.5 text-sm border border-gray-300 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                  className="px-2 py-1.5 text-sm border border-line-strong rounded-control bg-surface focus:outline-none focus:ring-2 focus:ring-action/20 focus:border-action"
                   aria-label={`Papel de ${u.full_name ?? 'usuário'}`}
                 >
                   <option value="leader">Líder</option>

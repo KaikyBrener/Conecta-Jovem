@@ -55,7 +55,7 @@ export function RecuperarSenha() {
         <div className="mt-4 space-y-5">
           {/* Mesma resposta exista ou não a conta: não revela quem tem cadastro */}
           <AuthAlert tone="success">{RECOVER_NEUTRAL_MESSAGE}</AuthAlert>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink-soft">
             O link vale por tempo limitado e só pode ser usado uma vez. Confira também a caixa de spam.
           </p>
           <Link to="/login" className={cn(authPrimaryBtnCls, 'no-underline')}>Voltar ao login</Link>

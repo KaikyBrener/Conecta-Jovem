@@ -17,8 +17,8 @@ const eventColumns: Column<AttendanceByEvent>[] = [
     primary: true,
     render: (e) => (
       <>
-        <span className="text-gray-900">{e.title}</span>
-        <span className="block text-xs text-gray-500">{formatTimestampSP(e.event_date)} · {EVENT_STATUS[e.status] ?? e.status}</span>
+        <span className="text-ink">{e.title}</span>
+        <span className="block text-xs text-ink-muted">{formatTimestampSP(e.event_date)} · {EVENT_STATUS[e.status] ?? e.status}</span>
       </>
     ),
   },
@@ -93,13 +93,13 @@ export function AttendanceTab({ range, groupId, groupName, allGroupsLabel }: Rep
             </Section>
 
             <Section title="Jovens com muitas faltas" testId="rel-faltas">
-              <div className="px-4 py-3 border-b border-gray-100 max-w-xs">
+              <div className="px-4 py-3 border-b border-line-soft max-w-xs">
                 <label htmlFor="rel-min-faltas" className={labelCls}>Mínimo de faltas no período</label>
                 <select
                   id="rel-min-faltas"
                   value={minAbsences}
                   onChange={(e) => setMinAbsences(Number(e.target.value))}
-                  className={`${inputCls} bg-white`}
+                  className={`${inputCls} bg-surface`}
                 >
                   {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v} ou mais</option>)}
                 </select>
@@ -114,7 +114,7 @@ export function AttendanceTab({ range, groupId, groupName, allGroupsLabel }: Rep
               />
               {ab.total > ab.items.length && <Note>Mostrando {ab.items.length} de {ab.total} jovens (em ordem alfabética).</Note>}
             </Section>
-            <p className="text-xs text-gray-500">Chamadas não registradas não são contadas como falta. Encontros cancelados não entram.</p>
+            <p className="text-xs text-ink-muted">Chamadas não registradas não são contadas como falta. Encontros cancelados não entram.</p>
           </div>
         );
       }}

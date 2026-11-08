@@ -40,11 +40,11 @@ function formatDatetime(iso: string): string {
 
 function Row({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
   return (
-    <div className="flex gap-3 py-2.5 border-b border-gray-100 last:border-0">
-      <Icon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+    <div className="flex gap-3 py-2.5 border-b border-line-soft last:border-0">
+      <Icon className="w-4 h-4 text-ink-faint mt-0.5 flex-shrink-0" />
       <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm text-gray-900 mt-0.5">{value || '—'}</p>
+        <p className="text-xs text-ink-muted">{label}</p>
+        <p className="text-sm text-ink mt-0.5">{value || '—'}</p>
       </div>
     </div>
   );
@@ -56,7 +56,7 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
     <div className="space-y-4">
       {/* Title + status */}
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-lg font-semibold text-gray-900 leading-snug">{event.title}</h3>
+        <h3 className="text-lg font-semibold text-ink leading-snug">{event.title}</h3>
         <div className="flex-shrink-0">
           <Badge color={STATUS_BADGE_COLOR[event.status]}>{STATUS_LABEL[event.status]}</Badge>
         </div>
@@ -70,7 +70,7 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
       )}
 
       {/* Info rows */}
-      <div className="bg-gray-50 rounded-control px-4 py-1">
+      <div className="bg-canvas rounded-control px-4 py-1">
         <Row icon={Calendar} label="Data e hora" value={formatDatetime(event.event_date)} />
         <Row icon={Users} label="Grupos participantes" value={event.group_names.length ? event.group_names.join(', ') : 'Nenhum grupo'} />
         <Row icon={Tag} label="Status" value={STATUS_LABEL[event.status]} />
@@ -80,7 +80,7 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
       {/* Actions */}
       <div className="flex flex-col gap-3 pt-2">
         {event.status === 'cancelled' ? (
-          <p className="text-sm text-gray-500 bg-gray-50 rounded-control px-4 py-3 text-center">
+          <p className="text-sm text-ink-muted bg-canvas rounded-control px-4 py-3 text-center">
             Encontro cancelado — não há chamada.
           </p>
         ) : (
@@ -93,7 +93,7 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
         </button>
         )}
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-line-soft pt-3">
           <button onClick={onClose} className={secondaryBtnCls}>
             Fechar
           </button>
@@ -102,14 +102,14 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
             <button
               onClick={onDelete}
               disabled={actionLoading}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-control hover:bg-red-100 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-danger-ink bg-danger-soft border border-danger-line rounded-control hover:bg-danger-soft disabled:opacity-50 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
               {actionLoading ? '...' : 'Excluir'}
             </button>
             <button
               onClick={onEdit}
-              className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-control hover:bg-blue-700 transition-colors"
+              className="px-3 py-2 text-sm font-medium text-white bg-action rounded-control hover:bg-action-hover transition-colors"
             >
               Editar
             </button>

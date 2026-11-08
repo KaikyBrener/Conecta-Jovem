@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { Group, GroupInsert, GroupUpdate } from '../../types/database.types';
 import type { Profile } from '../../types/database.types';
-import { inputCls, labelCls, primaryBtnCls, secondaryBtnCls, formErrorCls } from '../../lib/formStyles';
+import { formErrorCls } from '../../lib/formStyles';
+import { Button } from '../ui/Button';
+import { Field, Select, Textarea } from '../ui/Field';
 
 interface GroupFormProps {
   initial?: Group | null;
@@ -65,62 +67,50 @@ export function GroupForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {err && <p className={formErrorCls}>{err}</p>}
+      {err && <p className={formErrorCls} role="alert">{err}</p>}
 
-      <div>
-        <label className={labelCls}>Nome do grupo *</label>
-        <input
+      <Field
+        label="Nome do grupo"
+        mandatory
+        type="text"
+        value={form.name}
+        onChange={(e) => set('name', e.target.value)}
+        placeholder="Ex.: Grupo Esperança"
+      />
+
+      {isCoordinator ? (
+        <Select label="Líder responsável" mandatory value={form.leader_id} onChange={(e) => set('leader_id', e.target.value)}>
+          <option value="">Selecionar líder</option>
+          {leaders.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.full_name}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <Field
+          label="Líder responsável"
+          mandatory
           type="text"
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          className={inputCls}
-          placeholder="Ex.: Grupo Esperança"
+          value={leaders.find((l) => l.id === currentUserId)?.full_name ?? 'Você'}
+          disabled
+          readOnly
         />
-      </div>
+      )}
 
-      <div>
-        <label className={labelCls}>Líder responsável *</label>
-        {isCoordinator ? (
-          <select
-            value={form.leader_id}
-            onChange={(e) => set('leader_id', e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Selecionar líder</option>
-            {leaders.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.full_name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type="text"
-            value={leaders.find((l) => l.id === currentUserId)?.full_name ?? 'Você'}
-            disabled
-            className={`${inputCls} bg-gray-50 text-gray-500 cursor-not-allowed`}
-          />
-        )}
-      </div>
-
-      <div>
-        <label className={labelCls}>Descrição</label>
-        <textarea
-          value={form.description}
-          onChange={(e) => set('description', e.target.value)}
-          rows={3}
-          className={inputCls}
-          placeholder="Informações adicionais sobre o grupo..."
-        />
-      </div>
+      <Textarea
+        label="Descrição"
+        value={form.description}
+        onChange={(e) => set('description', e.target.value)}
+        rows={3}
+        placeholder="Informações adicionais sobre o grupo..."
+      />
 
       <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 mt-2 sm:flex-row sm:justify-end sm:gap-3">
-        <button type="button" onClick={onCancel} className={secondaryBtnCls}>
-          Cancelar
-        </button>
-        <button type="submit" disabled={loading} className={primaryBtnCls}>
+        <Button onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : initial ? 'Salvar alterações' : 'Criar grupo'}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -24,7 +24,7 @@ export function AlertsTab({ range, groupId, groupName, allGroupsLabel }: ReportT
               />
             </StatGrid>
             {doc.tables.map((t) => <ExportTableView key={t.title} table={t} />)}
-            <p className="text-xs text-gray-500">&quot;Abertos agora&quot; mostra a situação de hoje e não depende do período escolhido.</p>
+            <p className="text-xs text-ink-muted">&quot;Abertos agora&quot; mostra a situação de hoje e não depende do período escolhido.</p>
           </div>
         );
       }}

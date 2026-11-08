@@ -22,7 +22,7 @@ export function GeneralTab({ range, groupId, groupName, allGroupsLabel }: Report
             <Stat label="Alertas abertos agora" value={String(r.alerts.open_now)} hint={`${r.alerts.created} criado(s) no período`} />
             <Stat label="Ações atrasadas agora" value={String(r.actions.overdue_now)} hint={`${r.actions.completed} concluída(s) no período`} />
           </StatGrid>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ink-muted">
             {r.active_youth} {r.active_youth === 1 ? 'jovem ativo' : 'jovens ativos'} agora. Itens com referência &quot;Situação atual&quot; não dependem do período escolhido.
           </p>
           {buildGeneralDoc(r, ctx).tables.map((t) => (

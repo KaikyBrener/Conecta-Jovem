@@ -80,11 +80,11 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
     setSelected((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
 
   return (
-    <li className="rounded-card border border-gray-200 p-4 space-y-3" data-testid="serie-item">
+    <li className="rounded-card border border-line p-4 space-y-3" data-testid="serie-item">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-gray-900 break-words">{series.name}</h3>
-          <p className="text-xs text-gray-500">
+          <h3 className="text-sm font-semibold text-ink break-words">{series.name}</h3>
+          <p className="text-xs text-ink-muted">
             {describeRecurrence(series.weekday, series.recurrence, series.start_date).replace(/^./, (c) => c.toUpperCase())}
             {' '}às {series.start_time.slice(0, 5)}
           </p>
@@ -93,12 +93,12 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
       </div>
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-        <dt className="text-gray-500">Período</dt>
-        <dd className="text-gray-800">{formatDay(series.start_date)} a {formatDay(series.end_date)}</dd>
-        <dt className="text-gray-500">Encontros</dt>
-        <dd className="text-gray-800">{series.events_count}</dd>
-        <dt className="text-gray-500">Grupos</dt>
-        <dd className="text-gray-800 break-words">
+        <dt className="text-ink-muted">Período</dt>
+        <dd className="text-ink">{formatDay(series.start_date)} a {formatDay(series.end_date)}</dd>
+        <dt className="text-ink-muted">Encontros</dt>
+        <dd className="text-ink">{series.events_count}</dd>
+        <dt className="text-ink-muted">Grupos</dt>
+        <dd className="text-ink break-words">
           {pendingGroups ? <Badge color="amber">Grupos pendentes</Badge> : series.group_names.join(', ')}
         </dd>
       </dl>
@@ -129,7 +129,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
             type="button"
             onClick={cancelFuture}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-control hover:bg-red-100 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-danger-ink bg-danger-soft border border-danger-line rounded-control hover:bg-danger-soft disabled:opacity-50 transition-colors"
             data-testid="serie-cancelar-proximos"
           >
             <XCircle className="w-4 h-4" aria-hidden="true" /> Cancelar próximos encontros
@@ -138,13 +138,13 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
       )}
 
       {panel === 'groups' && (
-        <div className="space-y-3 rounded-control bg-gray-50 p-3" data-testid="serie-painel-grupos">
-          <p className="text-xs text-gray-600">
+        <div className="space-y-3 rounded-control bg-canvas p-3" data-testid="serie-painel-grupos">
+          <p className="text-xs text-ink-soft">
             Os grupos escolhidos valem para os próximos encontros ainda agendados. Encontros editados individualmente
             não são alterados.
           </p>
           {allGroups.length === 0 ? (
-            <p className="text-sm text-gray-400">Nenhum grupo cadastrado.</p>
+            <p className="text-sm text-ink-faint">Nenhum grupo cadastrado.</p>
           ) : (
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {allGroups.map((g) => (
@@ -153,9 +153,9 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
                     type="checkbox"
                     checked={selected.includes(g.id)}
                     onChange={() => toggleGroup(g.id)}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-line-strong accent-action"
                   />
-                  <span className="text-sm text-gray-800">{g.name}</span>
+                  <span className="text-sm text-ink">{g.name}</span>
                 </label>
               ))}
             </div>
@@ -170,7 +170,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
       )}
 
       {panel === 'extend' && (
-        <form onSubmit={submitExtend} className="space-y-3 rounded-control bg-gray-50 p-3" data-testid="serie-painel-estender" noValidate>
+        <form onSubmit={submitExtend} className="space-y-3 rounded-control bg-canvas p-3" data-testid="serie-painel-estender" noValidate>
           {localErr && <p role="alert" className={formErrorCls}>{localErr}</p>}
           <div>
             <label htmlFor={`serie-nova-data-${series.id}`} className={labelCls}>Nova data final</label>
@@ -183,7 +183,7 @@ function SeriesCard({ series, allGroups, onSetGroups, onExtend, onCancelFuture, 
               onChange={(e) => setNewEnd(e.target.value)}
               className={inputCls}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink-muted">
               Atual: {formatDay(series.end_date)}. O máximo são 2 anos desde {formatDay(series.start_date)}.
             </p>
           </div>
@@ -214,7 +214,7 @@ export function SeriesManager({ series, loading, error, allGroups, onSetGroups, 
           bare
           icon={CalendarClock}
           title="Nenhuma série de encontros criada ainda."
-          action={<button type="button" onClick={onNew} className="mt-3 text-blue-600 text-sm font-medium hover:underline">Criar a primeira série</button>}
+          action={<button type="button" onClick={onNew} className="mt-3 text-action text-sm font-medium hover:underline">Criar a primeira série</button>}
         />
       )}
 

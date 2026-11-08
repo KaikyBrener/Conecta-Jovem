@@ -26,7 +26,7 @@ const Configuracoes = lazy(() => import('./pages/Configuracoes').then((m) => ({ 
 function PageLoader() {
   return (
     <div className="flex justify-center py-16">
-      <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+      <Loader2 className="w-6 h-6 text-action animate-spin" />
     </div>
   );
 }

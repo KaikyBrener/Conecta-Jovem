@@ -74,7 +74,7 @@ test.describe('Painel — coordenador com dados', () => {
     expect(al.total).toBeGreaterThanOrEqual(2); // Ana (3 faltas) e Caio (6 faltas)
     const alertCard = page.getByTestId('dash-alertas');
     await expect(alertCard).toContainText(String(al.total));
-    await expect(alertCard).toContainText(`${al.crit} crítico(s) · ${al.att} em atenção`);
+    await expect(alertCard).toContainText(`${al.crit} ${al.crit === 1 ? 'crítico' : 'críticos'} · ${al.att} em atenção`);
 
     // ações atrasadas: 1 (a tarefa da Ana), em vermelho
     const overdueCard = page.getByTestId('dash-acoes-atrasadas');

@@ -343,9 +343,9 @@ export const Layout = () => {
             >
               <Icon {...BAR_ICON} />
               {!!item.badge && (
-                <CounterPill n={item.badge} className="absolute left-1/2 top-2 ml-1.5 h-4 min-w-4 px-1 text-[0.625rem]" />
+                <CounterPill n={item.badge} className="absolute left-1/2 top-2 ml-1.5 h-[18px] min-w-[18px] px-1 text-xs" />
               )}
-              <span className="text-[0.6875rem] font-medium leading-none">{item.name}</span>
+              <span className="text-xs font-medium leading-none">{item.name}</span>
             </Link>
           );
         })}
@@ -359,7 +359,7 @@ export const Layout = () => {
           aria-expanded={moreOpen}
         >
           {moreOpen ? <X {...BAR_ICON} /> : <Menu {...BAR_ICON} />}
-          <span className="text-[0.6875rem] font-medium leading-none">Mais</span>
+          <span className="text-xs font-medium leading-none">Mais</span>
         </button>
       </nav>
     </div>

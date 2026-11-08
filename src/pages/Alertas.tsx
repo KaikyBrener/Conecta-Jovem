@@ -16,7 +16,8 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { FilterChips } from '../components/ui/FilterChips';
 import { Pagination } from '../components/ui/Pagination';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
-import { controlCls, inputCls, labelCls, primaryBtnCls, secondaryBtnCls, smallBtnCls, smallPrimaryBtnCls } from '../lib/formStyles';
+import { controlCls, inputCls, labelCls, primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
+import { cn } from '../lib/utils';
 import { formatDate, formatDateOnly, formatDateTime, isOverdue } from '../lib/format';
 import {
   ALERT_SEVERITY_LABEL, ALERT_TYPE_NAME, ALERT_TYPES, FOLLOW_UP_TYPE_LABEL, TASK_STATUS_LABEL, alertDescription,
@@ -54,11 +55,11 @@ function CloseAlertForm({ alert, action, onConfirm, onCancel }: {
       className="space-y-4"
       onSubmit={async (e) => { e.preventDefault(); setBusy(true); await onConfirm(notes.trim()); setBusy(false); }}
     >
-      <p className="text-sm text-gray-700">
+      <p className="text-sm text-ink-soft">
         {action === 'resolved' ? 'Resolver' : 'Dispensar'} o alerta de <strong>{alert.youth?.full_name ?? 'jovem'}</strong>
         {' '}({alertDescription(alert)})?
       </p>
-      <p data-testid="aviso-historico" className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-control px-3 py-2">
+      <p data-testid="aviso-historico" className="text-xs text-ink-soft bg-canvas border border-line rounded-control px-3 py-2">
         {action === 'resolved' ? 'Resolver' : 'Dispensar'} não apaga as faltas; elas continuam no histórico.
 
         {' '}O alerta não é recriado enquanto a situação continuar a mesma. Ele só volta se uma presença quebrar a sequência.
@@ -122,10 +123,10 @@ export function Alertas() {
     <div className="space-y-5">
       <PageHeader
         title="Alertas"
-        subtitle="Gerados automaticamente pelo sistema: faltas seguidas, frequência baixa ou em queda, falta de acompanhamento e ações atrasadas. Os alertas encerrados ficam no histórico."
+        subtitle="Gerados automaticamente pelo sistema. Os encerrados ficam no histórico."
       />
 
-      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
+      <div className="bg-surface border border-line rounded-card px-4 py-3 space-y-3">
         <FilterChips options={statusFilters} value={status} onChange={setStatus} />
         <div className="flex flex-col sm:flex-row gap-3">
           <select
@@ -169,28 +170,28 @@ export function Alertas() {
             const critical = a.severity === 'critical';
             const SeverityIcon = critical ? OctagonAlert : AlertTriangle;
             return (
-              <li key={a.id} data-testid="alerta-item" data-tipo={a.type} data-severidade={a.severity} className="bg-white rounded-card border border-gray-200 p-4 space-y-3">
+              <li key={a.id} data-testid="alerta-item" data-tipo={a.type} data-severidade={a.severity} className="bg-surface rounded-card border border-line p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <SeverityIcon
-                      className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isOpen ? (critical ? 'text-red-600' : 'text-amber-500') : 'text-gray-300'}`}
+                      className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isOpen ? (critical ? 'text-red-600' : 'text-warning-ink') : 'text-ink-faint'}`}
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{a.youth?.full_name ?? 'Jovem'}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-semibold text-ink truncate">{a.youth?.full_name ?? 'Jovem'}</p>
+                      <p className="text-xs text-ink-muted">
                         {a.groups?.name ?? 'Sem grupo'} · <span data-testid="alerta-descricao">{alertDescription(a)}</span>
                       </p>
                       {a.type !== 'consecutive_absences' && (
-                        <p className="text-xs text-gray-400">{ALERT_TYPE_NAME[a.type]}</p>
+                        <p className="text-xs text-ink-faint">{ALERT_TYPE_NAME[a.type]}</p>
                       )}
                       {a.last_event && (
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-ink-faint">
                           {a.type === 'consecutive_absences' ? 'Última falta' : 'Último encontro'}: {a.last_event.title} ({formatDate(a.last_event.event_date)})
                         </p>
                       )}
                       {a.youth?.phone && (
-                        <a href={`tel:${a.youth.phone}`} className="inline-flex items-center gap-1 text-xs text-blue-600 mt-1">
+                        <a href={`tel:${a.youth.phone}`} className="inline-flex items-center gap-1 text-xs text-action mt-1">
                           <Phone className="w-3 h-3" /> {a.youth.phone}
                         </a>
                       )}
@@ -214,15 +215,15 @@ export function Alertas() {
                 </div>
 
                 {(a.tasks.length > 0 || a.follow_ups.length > 0) ? (
-                  <div data-testid="alerta-cadeia" className="text-xs bg-gray-50 rounded-control px-3 py-2 space-y-2">
+                  <div data-testid="alerta-cadeia" className="text-xs bg-canvas rounded-control px-3 py-2 space-y-2">
                     {a.tasks.length > 0 && (
                       <div className="space-y-1">
-                        <p className="font-medium text-gray-500">Ações</p>
+                        <p className="font-medium text-ink-muted">Ações</p>
                         {a.tasks.map((t) => (
-                          <p key={t.id} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-gray-600">
+                          <p key={t.id} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-ink-soft">
                             <ListChecks className="w-3.5 h-3.5" aria-hidden="true" />
                             <span>{t.title} — {TASK_STATUS_LABEL[t.status]}</span>
-                            {t.due_date && <span className="text-gray-400">· prazo {formatDateOnly(t.due_date)}</span>}
+                            {t.due_date && <span className="text-ink-faint">· prazo {formatDateOnly(t.due_date)}</span>}
                             {isOverdue(t.due_date, t.status) && <Badge color="red">Atrasada</Badge>}
                             {t.completed_by_follow_up_id && <Badge color="green">Concluída por acompanhamento</Badge>}
                           </p>
@@ -231,9 +232,9 @@ export function Alertas() {
                     )}
                     {a.follow_ups.length > 0 && (
                       <div className="space-y-1">
-                        <p className="font-medium text-gray-500">Acompanhamentos</p>
+                        <p className="font-medium text-ink-muted">Acompanhamentos</p>
                         {a.follow_ups.map((f) => (
-                          <p key={f.id} className="flex items-center gap-1.5 text-gray-600">
+                          <p key={f.id} className="flex items-center gap-1.5 text-ink-soft">
                             <HeartHandshake className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
                             <span className="min-w-0 break-words">{formatDateOnly(f.occurred_at)} · {FOLLOW_UP_TYPE_LABEL[f.type]} — {f.reason}</span>
                           </p>
@@ -242,60 +243,68 @@ export function Alertas() {
                     )}
                   </div>
                 ) : isOpen && (
-                  <p className="text-xs text-gray-400">Ainda sem ação nem acompanhamento ligados a este alerta.</p>
+                  <p className="text-xs text-ink-faint">Ainda sem ação nem acompanhamento ligados a este alerta.</p>
                 )}
 
                 {!isOpen && (a.resolution_notes || a.resolved_at) && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-ink-muted">
                     {a.resolved_at && `Encerrado em ${formatDateTime(a.resolved_at)}. `}
                     {a.resolution_notes}
                   </p>
                 )}
 
-                <div className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3">
+                {/* Ações: o que fazer com o alerta (acompanhar, avisar, criar tarefa) à esquerda; encerrá-lo (dispensar,
+                    resolver) à direita. No celular, dois por linha com alvo de 44px. */}
+                <div className="border-t border-line-soft pt-3">
                   {isOpen ? (
-                    <>
-                      <button
-                        onClick={() => setClosing({ alert: a, action: 'dismissed' })}
-                        className={smallBtnCls}
-                      >
-                        <XCircle className="w-3.5 h-3.5" /> Dispensar
-                      </button>
-                      <button
-                        onClick={() => setClosing({ alert: a, action: 'resolved' })}
-                        className={smallBtnCls}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Resolver
-                      </button>
-                      <button
-                        onClick={() => setFollowing(a)}
-                        className={smallBtnCls}
-                      >
-                        <HeartHandshake className="w-3.5 h-3.5" /> Registrar acompanhamento
-                      </button>
-                      <button
-                        onClick={() => setEmailing(a)}
-                        data-testid="alerta-enviar-email"
-                        className={smallBtnCls}
-                      >
-                        <Mail className="w-3.5 h-3.5" aria-hidden="true" /> Enviar e-mail
-                      </button>
-                      <button
-                        onClick={() => navigate(`/tarefas?novo=1&alerta=${a.id}`)}
-                        className={smallPrimaryBtnCls}
-                      >
-                        <ListPlus className="w-3.5 h-3.5" /> {openTasks.length ? 'Outra tarefa' : 'Criar tarefa'}
-                      </button>
-                    </>
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
+                      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
+                        <button
+                          onClick={() => setFollowing(a)}
+                          className={cn(secondaryBtnCls, 'col-span-2 md:col-span-1')}
+                        >
+                          <HeartHandshake className="w-4 h-4" aria-hidden="true" /> Registrar acompanhamento
+                        </button>
+                        <button
+                          onClick={() => setEmailing(a)}
+                          data-testid="alerta-enviar-email"
+                          className={secondaryBtnCls}
+                        >
+                          <Mail className="w-4 h-4" aria-hidden="true" /> Enviar e-mail
+                        </button>
+                        <button
+                          onClick={() => navigate(`/tarefas?novo=1&alerta=${a.id}`)}
+                          className={primaryBtnCls}
+                        >
+                          <ListPlus className="w-4 h-4" aria-hidden="true" /> {openTasks.length ? 'Outra tarefa' : 'Criar tarefa'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
+                        <button
+                          onClick={() => setClosing({ alert: a, action: 'dismissed' })}
+                          className={secondaryBtnCls}
+                        >
+                          <XCircle className="w-4 h-4" aria-hidden="true" /> Dispensar
+                        </button>
+                        <button
+                          onClick={() => setClosing({ alert: a, action: 'resolved' })}
+                          className={secondaryBtnCls}
+                        >
+                          <CheckCircle2 className="w-4 h-4" aria-hidden="true" /> Resolver
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <button
-                      onClick={() => reopen(a)}
-                      disabled={busyId === a.id}
-                      className={smallBtnCls}
-                    >
-                      {busyId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
-                      {busyId === a.id ? 'Reabrindo…' : 'Reabrir'}
-                    </button>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => reopen(a)}
+                        disabled={busyId === a.id}
+                        className={secondaryBtnCls}
+                      >
+                        {busyId === a.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" aria-hidden="true" />}
+                        {busyId === a.id ? 'Reabrindo…' : 'Reabrir'}
+                      </button>
+                    </div>
                   )}
                 </div>
               </li>
