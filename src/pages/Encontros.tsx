@@ -58,8 +58,14 @@ function EventBadges({ ev }: { ev: EventWithGroups }) {
   const pending = hasPendingGroups(ev);
   if (!ev.series_id && !pending) return null;
   return (
-    <span className="inline-flex flex-wrap items-center gap-1">
-      {ev.series_id && <Badge color="indigo">Série: {ev.series_name ?? 'sem nome'}</Badge>}
+    <span className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
+      {ev.series_id && (
+        <Badge color="indigo" dot className="min-w-0 max-w-full">
+          <span className="truncate" title={`Série: ${ev.series_name ?? 'sem nome'}`}>
+            Série: {ev.series_name ?? 'sem nome'}
+          </span>
+        </Badge>
+      )}
       {pending && <Badge color="amber">Grupos pendentes</Badge>}
     </span>
   );
