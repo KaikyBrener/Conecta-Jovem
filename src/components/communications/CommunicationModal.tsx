@@ -61,7 +61,7 @@ const NO_CHOICES: AlertChoice[] = [];
 
 const LEADER_NO_EMAIL = 'Este jovem não tem e-mail cadastrado. Peça à coordenação para cadastrar ou enviar.';
 
-const footerCls = 'flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end sm:gap-3';
+const footerCls = 'flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3';
 
 /**
  * Assistente de e-mail em 3 passos (Destinatário, Mensagem, Revisar). "Enviar e-mail" (clique do usuário) salva o
@@ -263,7 +263,7 @@ export function CommunicationModal({
   const sendingStatus = (
     <p
       role="status" aria-live="polite" data-testid="comunicacao-enviando"
-      className={sending ? 'flex items-center gap-2 text-sm text-gray-700' : 'sr-only'}
+      className={sending ? 'flex items-center gap-2 text-sm text-ink-soft' : 'sr-only'}
     >
       {sending && (
         <>
@@ -277,7 +277,7 @@ export function CommunicationModal({
   return (
     <Modal title="Enviar e-mail" onClose={close}>
       <div className="space-y-4" data-testid="comunicacao-modal" data-etapa={view ? 'resultado' : step}>
-        <p className="text-sm text-gray-600">Jovem: <strong className="text-gray-900">{youthName}</strong></p>
+        <p className="text-sm text-ink-soft">Jovem: <strong className="text-ink">{youthName}</strong></p>
 
         {!view && (
           <ol aria-label="Etapas" className="flex items-center gap-2 text-xs">
@@ -286,7 +286,7 @@ export function CommunicationModal({
                 key={s.id}
                 aria-current={s.id === step ? 'step' : undefined}
                 className={`flex flex-1 items-center gap-1.5 rounded-control border px-2 py-1.5 ${
-                  s.id === step ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700' : i < stepIndex ? 'border-gray-200 text-gray-700' : 'border-gray-200 text-gray-400'
+                  s.id === step ? 'border-action bg-action-soft font-semibold text-action-ink' : i < stepIndex ? 'border-line text-ink-soft' : 'border-line text-ink-faint'
                 }`}
               >
                 <span className="tabular-nums">{i + 1}.</span> {s.label}
@@ -314,7 +314,7 @@ export function CommunicationModal({
             )}
 
             {isLeader && (
-              <p className="flex items-start gap-2 text-xs text-gray-500">
+              <p className="flex items-start gap-2 text-xs text-ink-muted">
                 <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
                 <span>Você envia ao e-mail cadastrado do jovem.</span>
               </p>
@@ -326,19 +326,19 @@ export function CommunicationModal({
             )}
 
             {leaderNoEmail && (
-              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-sm text-warning-ink">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>{LEADER_NO_EMAIL}</span>
               </p>
             )}
             {!isLeader && noYouthEmail && (
-              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-sm text-warning-ink">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>Este jovem não tem e-mail cadastrado. Digite um endereço para continuar ou atualize o cadastro do jovem.</span>
               </p>
             )}
             {!isLeader && kind !== 'youth' && (
-              <p className="flex items-start gap-2 text-xs text-gray-500">
+              <p className="flex items-start gap-2 text-xs text-ink-muted">
                 <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
                 <span>O sistema não guarda o e-mail de responsáveis, líderes ou coordenadores: digite o endereço.</span>
               </p>
@@ -359,7 +359,7 @@ export function CommunicationModal({
                 placeholder="nome@exemplo.com"
               />
               {kind === 'youth' && suggestion && emailEdit === null && (
-                <p className="mt-1 text-xs text-gray-500">E-mail cadastrado do jovem.</p>
+                <p className="mt-1 text-xs text-ink-muted">E-mail cadastrado do jovem.</p>
               )}
             </div>
 
@@ -374,7 +374,7 @@ export function CommunicationModal({
           <form onSubmit={goReview} noValidate className="space-y-4" aria-label="Mensagem do e-mail">
             {fixed ? (
               (alertChoice || followUp) && (
-                <p data-testid="comunicacao-vinculo" className="rounded-control bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <p data-testid="comunicacao-vinculo" className="rounded-control bg-canvas px-3 py-2 text-xs text-ink-soft">
                   {alertChoice && <span className="block">Relacionada ao alerta: {alertChoice.label}</span>}
                   {followUp && <span className="block">Relacionada ao acompanhamento: {followUp.label}</span>}
                 </p>
@@ -400,7 +400,7 @@ export function CommunicationModal({
               >
                 {TEMPLATE_IDS.map((t) => <option key={t} value={t}>{TEMPLATE_LABEL[t]}</option>)}
               </select>
-              <p className="mt-1 text-xs text-gray-500">Revise e ajuste o texto antes de enviar. Os modelos não citam números nem diagnósticos.</p>
+              <p className="mt-1 text-xs text-ink-muted">Revise e ajuste o texto antes de enviar. Os modelos não citam números nem diagnósticos.</p>
             </div>
 
             <div>
@@ -409,7 +409,7 @@ export function CommunicationModal({
                 id="com-subject" data-testid="comunicacao-assunto" type="text" value={subject}
                 onChange={(e) => setSubjectEdit(e.target.value)} className={inputCls} aria-describedby="com-subject-count"
               />
-              <p id="com-subject-count" className={`mt-1 text-right text-xs tabular-nums ${textLength(subject) > SUBJECT_MAX ? 'text-red-600' : 'text-gray-500'}`}>
+              <p id="com-subject-count" className={`mt-1 text-right text-xs tabular-nums ${textLength(subject) > SUBJECT_MAX ? 'text-red-600' : 'text-ink-muted'}`}>
                 {textLength(subject)}/{SUBJECT_MAX}
               </p>
             </div>
@@ -419,7 +419,7 @@ export function CommunicationModal({
                 id="com-body" data-testid="comunicacao-corpo" rows={10} value={body}
                 onChange={(e) => setBodyEdit(e.target.value)} className={inputCls} aria-describedby="com-body-count"
               />
-              <p id="com-body-count" className={`mt-1 text-right text-xs tabular-nums ${textLength(body) > BODY_MAX ? 'text-red-600' : 'text-gray-500'}`}>
+              <p id="com-body-count" className={`mt-1 text-right text-xs tabular-nums ${textLength(body) > BODY_MAX ? 'text-red-600' : 'text-ink-muted'}`}>
                 {textLength(body)}/{BODY_MAX}
               </p>
             </div>
@@ -435,27 +435,27 @@ export function CommunicationModal({
           <div data-testid="comunicacao-revisao" className="space-y-4">
             <dl className="space-y-3 text-sm">
               <div>
-                <dt className="text-xs font-medium text-gray-500">Para</dt>
-                <dd data-testid="comunicacao-revisao-destinatario" className="break-words text-gray-900">
+                <dt className="text-xs font-medium text-ink-muted">Para</dt>
+                <dd data-testid="comunicacao-revisao-destinatario" className="break-words text-ink">
                   {name.trim() ? `${name.trim()} · ` : ''}{email.trim().toLowerCase()} ({RECIPIENT_KIND_LABEL[kind]})
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-gray-500">Assunto</dt>
-                <dd data-testid="comunicacao-revisao-assunto" className="break-words font-medium text-gray-900">{subject}</dd>
+                <dt className="text-xs font-medium text-ink-muted">Assunto</dt>
+                <dd data-testid="comunicacao-revisao-assunto" className="break-words font-medium text-ink">{subject}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-gray-500">Mensagem</dt>
+                <dt className="text-xs font-medium text-ink-muted">Mensagem</dt>
                 <dd
                   data-testid="comunicacao-revisao-corpo"
-                  className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-control border border-gray-200 bg-gray-50 px-3 py-2 text-gray-900"
+                  className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-control border border-line bg-canvas px-3 py-2 text-ink"
                 >
                   {body}
                 </dd>
               </div>
             </dl>
 
-            <p data-testid="comunicacao-aviso-envio" className="flex items-start gap-2 rounded-control border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            <p data-testid="comunicacao-aviso-envio" className="flex items-start gap-2 rounded-control border border-action-line bg-action-soft px-3 py-2 text-sm text-action-ink">
               <Info className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
               <span>
                 Ao clicar em &ldquo;Enviar e-mail&rdquo;, a mensagem é enviada de verdade ao destinatário e o envio não pode
@@ -464,7 +464,7 @@ export function CommunicationModal({
             </p>
 
             {leaderNoEmail && (
-              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p data-testid="comunicacao-sem-email" className="flex items-start gap-2 rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-sm text-warning-ink">
                 <TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span>{LEADER_NO_EMAIL}</span>
               </p>
@@ -472,7 +472,7 @@ export function CommunicationModal({
             {sendErr && <p role="alert" data-testid="comunicacao-erro-envio" className={formErrorCls}>{sendErr}</p>}
             {sendingStatus}
 
-            <div className="flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:flex-wrap sm:justify-end">
+            <div className="flex flex-col gap-2 border-t border-line-soft pt-4 sm:flex-row sm:flex-wrap sm:justify-end">
               <button
                 type="button" onClick={() => { setFormErr(''); setSendErr(''); setStep('message'); }}
                 disabled={working} className={secondaryBtnCls}
@@ -498,7 +498,7 @@ export function CommunicationModal({
             className="space-y-4"
           >
             {view.kind === 'sent' && (
-              <div className="flex items-start gap-2 rounded-control border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-700">
+              <div className="flex items-start gap-2 rounded-control border border-success-line bg-success-soft px-3 py-3 text-sm text-success-ink">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <div>
                   <p className="font-semibold">E-mail enviado</p>
@@ -508,7 +508,7 @@ export function CommunicationModal({
               </div>
             )}
             {view.kind === 'failed' && (
-              <div className="flex items-start gap-2 rounded-control border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
+              <div className="flex items-start gap-2 rounded-control border border-danger-line bg-danger-soft px-3 py-3 text-sm text-danger-ink">
                 <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <div>
                   <p className="font-semibold">O e-mail não foi enviado</p>
@@ -517,7 +517,7 @@ export function CommunicationModal({
               </div>
             )}
             {(view.kind === 'unconfirmed' || view.kind === 'in_progress') && (
-              <div className="flex items-start gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+              <div className="flex items-start gap-2 rounded-control border border-warning-line bg-warning-soft px-3 py-3 text-sm text-warning-ink">
                 <TriangleAlert className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
                 <p>{view.kind === 'unconfirmed' ? SEND_UNCONFIRMED_MESSAGE : SEND_IN_PROGRESS_MESSAGE}</p>
               </div>

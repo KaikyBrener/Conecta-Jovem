@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, UserMinus, Loader2, AlertCircle } from 'lucide-react';
 import type { Youth } from '../../types/database.types';
 import { IconButton } from '../ui/IconButton';
+import { Avatar } from '../ui/Avatar';
 
 interface GroupMembersProps {
   groupId: string;
@@ -68,7 +69,7 @@ export function GroupMembers({
   if (loadingMembers) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+        <Loader2 className="w-5 h-5 text-action animate-spin" />
       </div>
     );
   }
@@ -76,7 +77,7 @@ export function GroupMembers({
   return (
     <div className="space-y-4">
       {err && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-3 py-2">
+        <div className="flex items-center gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-3 py-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {err}
         </div>
@@ -84,26 +85,24 @@ export function GroupMembers({
 
       {/* Lista de integrantes */}
       <div>
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">
           Integrantes
-          <span className="ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold normal-case">
+          <span className="ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-surface-muted text-ink-soft text-xs font-semibold normal-case">
             {members.length}
           </span>
         </h4>
         {members.length === 0 ? (
-          <p className="text-sm text-gray-400 py-3 text-center border border-dashed border-gray-200 rounded-control">Nenhum integrante ainda.</p>
+          <p className="text-sm text-ink-faint py-3 text-center border border-dashed border-line rounded-control">Nenhum integrante ainda.</p>
         ) : (
-          <ul className="divide-y divide-gray-100 rounded-control border border-gray-200 bg-white overflow-hidden">
+          <ul className="divide-y divide-line-soft rounded-control border border-line bg-surface overflow-hidden">
             {members.map((y) => (
-              <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
+              <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-surface-hover transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 font-semibold text-xs flex items-center justify-center uppercase">
-                    {y.full_name.charAt(0)}
-                  </div>
+                  <Avatar name={y.full_name} size="sm" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{y.full_name}</p>
+                    <p className="text-sm font-medium text-ink">{y.full_name}</p>
                     {!y.is_active && (
-                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 text-xs font-medium">Inativo</span>
+                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-surface-muted text-ink-muted text-xs font-medium">Inativo</span>
                     )}
                   </div>
                 </div>
@@ -125,10 +124,10 @@ export function GroupMembers({
           que o líder atribua a si um jovem cujo group_id atual não é um dos seus
           grupos — leader_update_youth exige que o grupo ATUAL já pertença a ele) */}
       {isCoordinator && (
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-line-soft">
           <button
             onClick={() => setShowAdd((s) => !s)}
-            className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="flex items-center gap-2 text-sm font-medium text-action hover:text-action-ink"
           >
             <UserPlus className="w-4 h-4" />
             {showAdd ? 'Ocultar jovens disponíveis' : 'Adicionar jovem ao grupo'}
@@ -137,14 +136,14 @@ export function GroupMembers({
           {showAdd && (
             <div className="mt-2">
               {unassigned.length === 0 ? (
-                <p className="text-sm text-gray-400 py-2 text-center border border-dashed border-gray-200 rounded-control">
+                <p className="text-sm text-ink-faint py-2 text-center border border-dashed border-line rounded-control">
                   Todos os jovens ativos já estão em grupos.
                 </p>
               ) : (
-                <ul className="divide-y divide-gray-100 rounded-control border border-gray-200 bg-white overflow-hidden">
+                <ul className="divide-y divide-line-soft rounded-control border border-line bg-surface overflow-hidden">
                   {unassigned.map((y) => (
-                    <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                      <p className="text-sm text-gray-900">{y.full_name}</p>
+                    <li key={y.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-surface-hover transition-colors">
+                      <p className="text-sm text-ink">{y.full_name}</p>
                       <IconButton
                         label="Adicionar ao grupo"
                         icon={UserPlus}

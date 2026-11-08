@@ -15,7 +15,8 @@ import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Pagination } from '../components/ui/Pagination';
 import { RefreshingNote } from '../components/ui/RefreshingNote';
 import { IconButton } from '../components/ui/IconButton';
-import { primaryBtnCls } from '../lib/formStyles';
+import { Avatar } from '../components/ui/Avatar';
+import { primaryBtnCls, tableCls, tableWrapCls, thCls, trCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { Group, GroupInsert, GroupUpdate } from '../types/database.types';
 import type { GroupWithLeader } from '../hooks/useGroups';
@@ -105,20 +106,20 @@ export function Grupos() {
       />
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-card px-4 py-3">
+      <div className="bg-surface border border-line rounded-card px-4 py-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por grupo ou líder..." className="max-w-sm" />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
       )}
 
       {indicatorsFailed && groups.length > 0 && (
-        <p className="text-xs text-gray-500" role="status" data-testid="grupos-indicadores-indisponiveis">
+        <p className="text-xs text-ink-muted" role="status" data-testid="grupos-indicadores-indisponiveis">
           Não foi possível carregar os indicadores dos grupos agora. A lista continua disponível.
         </p>
       )}
@@ -132,7 +133,7 @@ export function Grupos() {
           icon={Users}
           title="Nenhum grupo cadastrado ainda."
           action={isCoordinator && (
-            <button onClick={openCreate} className="mt-3 text-blue-600 text-sm font-medium hover:underline">
+            <button onClick={openCreate} className="mt-3 text-action text-sm font-medium hover:underline">
               Criar o primeiro grupo
             </button>
           )}
@@ -146,34 +147,32 @@ export function Grupos() {
 
       {/* Tabela - Desktop */}
       {groups.length > 0 && (
-        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
-          <table className="w-full text-sm">
+        <div className={cn('hidden lg:block', tableWrapCls, 'transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          <table className={tableCls}>
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-2">Grupo</th>
-                <th className="px-4 py-2">Líder</th>
-                <th className="px-4 py-2">Integrantes</th>
-                <th className="px-4 py-2">Frequência</th>
-                <th className="px-4 py-2">Tendência</th>
-                <th className="px-4 py-2">Em atenção</th>
-                <th className="px-4 py-2">Ações atrasadas</th>
-                <th className="px-4 py-2 text-right">Ações</th>
+              <tr className="text-left">
+                <th className={thCls}>Grupo</th>
+                <th className={thCls}>Líder</th>
+                <th className={thCls}>Integrantes</th>
+                <th className={thCls}>Frequência</th>
+                <th className={thCls}>Tendência</th>
+                <th className={thCls}>Em atenção</th>
+                <th className={thCls}>Ações atrasadas</th>
+                <th className={cn(thCls, 'text-right')}>Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {groups.map((g) => (
-                <tr key={g.id} data-testid="grupo-linha" className="hover:bg-gray-50 transition-colors">
+                <tr key={g.id} data-testid="grupo-linha" className={trCls}>
                   <td className="px-4 py-3">
                     <button onClick={() => openMembers(g)} className="flex items-center gap-3 text-left">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-card bg-action-soft text-action-ink font-semibold text-label flex items-center justify-center uppercase" aria-hidden="true">
-                        {g.name.charAt(0)}
-                      </div>
-                      <span className="font-medium text-gray-900">{g.name}</span>
+                      <Avatar name={g.name} size="sm" shape="square" />
+                      <span className="font-medium text-ink">{g.name}</span>
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{g.leader_name ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-soft">{g.leader_name ?? '—'}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                    <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-action-soft text-action-ink text-xs font-semibold">
                       {g.member_count}
                     </span>
                   </td>
@@ -198,20 +197,18 @@ export function Grupos() {
 
       {/* Cards - Mobile */}
       {groups.length > 0 && (
-        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-surface rounded-card border border-line divide-y divide-line-soft overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {groups.map((g) => (
             <li key={g.id} data-testid="grupo-card">
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-card bg-action-soft text-action-ink font-semibold text-base flex items-center justify-center uppercase" aria-hidden="true">
-                  {g.name.charAt(0)}
-                </div>
+                <Avatar name={g.name} size="lg" shape="square" />
 
                 <button onClick={() => openMembers(g)} className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-gray-900 truncate">{g.name}</p>
-                  <p className="text-xs text-gray-500 truncate flex items-center gap-1.5 mt-0.5">
+                  <p className="text-sm font-medium text-ink truncate">{g.name}</p>
+                  <p className="text-xs text-ink-muted truncate flex items-center gap-1.5 mt-0.5">
                     <UsersRound className="w-3 h-3" />
                     {g.leader_name ?? '—'}
-                    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold ml-1">
+                    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-action-soft text-action-ink text-xs font-semibold ml-1">
                       {g.member_count}
                     </span>
                   </p>
@@ -226,19 +223,19 @@ export function Grupos() {
               </div>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-4 pb-3 pl-[4.25rem] text-xs">
                 <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-gray-500">Frequência</dt>
+                  <dt className="text-ink-muted">Frequência</dt>
                   <dd><GroupMetric kind="rate" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-gray-500">Em atenção</dt>
+                  <dt className="text-ink-muted">Em atenção</dt>
                   <dd><GroupMetric kind="attention" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-gray-500">Atrasadas</dt>
+                  <dt className="text-ink-muted">Atrasadas</dt>
                   <dd><GroupMetric kind="overdue" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
                 </div>
                 <div className="col-span-2 flex flex-wrap items-baseline justify-between gap-x-2">
-                  <dt className="text-gray-500">Tendência</dt>
+                  <dt className="text-ink-muted">Tendência</dt>
                   <dd><GroupMetric kind="trend" indicator={indicators.get(g.id)} loading={indicatorsLoading} /></dd>
                 </div>
               </dl>

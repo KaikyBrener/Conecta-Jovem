@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { EventInsert, EventUpdate, EventStatus, Group } from '../../types/database.types';
 import type { EventWithGroups } from '../../hooks/useEvents';
-import { inputCls, labelCls, primaryBtnCls, secondaryBtnCls, formErrorCls } from '../../lib/formStyles';
+import { formErrorCls, labelCls } from '../../lib/formStyles';
+import { Button } from '../ui/Button';
+import { Field, Select, Textarea } from '../ui/Field';
 
 interface EventFormProps {
   initial?: EventWithGroups | null;
@@ -77,83 +79,67 @@ export function EventForm({ initial, allGroups, onSubmit, onCancel, loading }: E
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {err && <p className={formErrorCls}>{err}</p>}
+      {err && <p className={formErrorCls} role="alert">{err}</p>}
 
-      <div>
-        <label className={labelCls}>Título *</label>
-        <input
-          type="text"
-          value={form.title}
-          onChange={(e) => set('title', e.target.value)}
-          className={inputCls}
-          placeholder="Ex.: Encontro Mensal de Líderes"
-        />
-      </div>
+      <Field
+        label="Título"
+        mandatory
+        type="text"
+        value={form.title}
+        onChange={(e) => set('title', e.target.value)}
+        placeholder="Ex.: Encontro Mensal de Líderes"
+      />
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Data e hora *</label>
-          <input
-            type="datetime-local"
-            value={form.event_date}
-            onChange={(e) => set('event_date', e.target.value)}
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Status</label>
-          <select
-            value={form.status}
-            onChange={(e) => set('status', e.target.value as EventStatus)}
-            className={inputCls}
-          >
-            {(Object.keys(STATUS_LABEL) as EventStatus[]).map((s) => (
-              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className={labelCls}>Descrição</label>
-        <textarea
-          value={form.description}
-          onChange={(e) => set('description', e.target.value)}
-          rows={3}
-          className={inputCls}
-          placeholder="Informações adicionais sobre o encontro..."
+        <Field
+          label="Data e hora"
+          mandatory
+          type="datetime-local"
+          value={form.event_date}
+          onChange={(e) => set('event_date', e.target.value)}
         />
+        <Select label="Status" value={form.status} onChange={(e) => set('status', e.target.value as EventStatus)}>
+          {(Object.keys(STATUS_LABEL) as EventStatus[]).map((s) => (
+            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+          ))}
+        </Select>
       </div>
 
-      {/* Seleção de grupos participantes */}
-      <div>
-        <label className={labelCls}>Grupos participantes</label>
+      <Textarea
+        label="Descrição"
+        value={form.description}
+        onChange={(e) => set('description', e.target.value)}
+        rows={3}
+        placeholder="Informações adicionais sobre o encontro..."
+      />
+
+      {/* Grupos participantes: conjunto de caixas de marcação = fieldset com legenda */}
+      <fieldset className="min-w-0">
+        <legend className={labelCls}>Grupos participantes</legend>
         {allGroups.length === 0 ? (
-          <p className="mt-1 text-sm text-gray-400">Nenhum grupo cadastrado.</p>
+          <p className="mt-1 text-sm text-ink-faint">Nenhum grupo cadastrado.</p>
         ) : (
-          <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-control p-3">
+          <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border border-line rounded-control p-3">
             {allGroups.map((g) => (
-              <label key={g.id} className="flex items-center gap-3 cursor-pointer">
+              <label key={g.id} className="flex min-h-8 items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={selectedGroups.includes(g.id)}
                   onChange={() => toggleGroup(g.id)}
-                  className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-line-strong accent-action"
                 />
-                <span className="text-sm text-gray-800">{g.name}</span>
+                <span className="text-sm text-ink">{g.name}</span>
               </label>
             ))}
           </div>
         )}
-      </div>
+      </fieldset>
 
       <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 mt-2 sm:flex-row sm:justify-end sm:gap-3">
-        <button type="button" onClick={onCancel} className={secondaryBtnCls}>
-          Cancelar
-        </button>
-        <button type="submit" disabled={loading} className={primaryBtnCls}>
+        <Button onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : initial ? 'Salvar alterações' : 'Criar encontro'}
-        </button>
+        </Button>
       </div>
     </form>
   );

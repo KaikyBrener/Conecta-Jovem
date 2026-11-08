@@ -90,7 +90,7 @@ export function TaskForm({ initial, isEdit, options, currentUserId, isCoordinato
       {err && <p className={formErrorCls}>{err}</p>}
 
       {initial?.alert_id && (
-        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+        <p className="text-xs text-warning-ink bg-warning-soft border border-warning-line rounded px-3 py-2">
           Vinculada a um alerta. Ao concluir a tarefa, o alerta será resolvido automaticamente.
         </p>
       )}
@@ -138,7 +138,7 @@ export function TaskForm({ initial, isEdit, options, currentUserId, isCoordinato
               <option key={a.id} value={a.id}>{a.id === currentUserId ? `${a.full_name ?? 'Eu'} (eu)` : (a.full_name ?? 'Sem nome')}</option>
             ))}
           </select>
-          {!isCoordinator && <p className="mt-1 text-xs text-gray-400">Líderes atribuem tarefas apenas a si.</p>}
+          {!isCoordinator && <p className="mt-1 text-xs text-ink-faint">Líderes atribuem tarefas apenas a si.</p>}
         </div>
       </div>
 

@@ -152,11 +152,11 @@ export function Tarefas() {
         }
       />
 
-      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
+      <div className="bg-surface border border-line rounded-card px-4 py-3 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar por título ou jovem..." className="flex-1" />
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600" />
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} className="h-4 w-4 rounded border-line-strong accent-action" />
             Só as minhas
           </label>
         </div>
@@ -172,17 +172,17 @@ export function Tarefas() {
       )}
 
       {tasks.length > 0 && (
-        <ul className={cn('bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('bg-surface rounded-card border border-line divide-y divide-line-soft overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {tasks.map((t) => {
             const overdue = isOverdue(t.due_date, t.status);
             return (
               <li key={t.id} data-testid="tarefa-item" data-atrasada={overdue ? 'true' : 'false'} className="px-4 py-3 space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className={`text-sm font-medium truncate ${t.status === 'done' || t.status === 'cancelled' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                    <p className={`text-sm font-medium truncate ${t.status === 'done' || t.status === 'cancelled' ? 'text-ink-faint line-through' : 'text-ink'}`}>
                       {t.title}
                     </p>
-                    <p className="text-xs text-gray-500 flex flex-wrap gap-x-2">
+                    <p className="text-xs text-ink-muted flex flex-wrap gap-x-2">
                       <PriorityTag priority={t.priority} />
                       {t.youth && <span>{t.youth.full_name}</span>}
                       {t.groups && <span>{t.groups.name}</span>}
@@ -196,12 +196,12 @@ export function Tarefas() {
                         {t.assigned_to === user?.id ? 'Eu' : t.assignee?.full_name ?? (t.assigned_to ? 'Outro usuário' : 'Sem responsável')}
                       </span>
                       {t.alert && (
-                        <span className="inline-flex items-center gap-1 text-amber-600">
+                        <span className="inline-flex items-center gap-1 text-warning-ink">
                           <AlertTriangle className="w-3 h-3" /> Alerta {t.alert.status === 'open' ? 'aberto' : 'encerrado'}
                         </span>
                       )}
                     </p>
-                    {t.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description}</p>}
+                    {t.description && <p className="text-xs text-ink-muted mt-1 line-clamp-2">{t.description}</p>}
                   </div>
                   <div className="flex-shrink-0 flex flex-col items-end gap-1">
                     <Badge color={STATUS_BADGE_COLOR[t.status]}>{TASK_STATUS_LABEL[t.status]}</Badge>
@@ -218,7 +218,7 @@ export function Tarefas() {
                   </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  {busyId === t.id && <Loader2 className="w-4 h-4 text-blue-600 animate-spin self-center" />}
+                  {busyId === t.id && <Loader2 className="w-4 h-4 text-action animate-spin self-center" />}
                   {t.status === 'pending' && (
                     <button onClick={() => quickStatus(t, 'in_progress')} disabled={busyId !== null}
                       className={smallBtnCls}>

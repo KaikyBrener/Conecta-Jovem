@@ -81,10 +81,10 @@ export function AttendanceChart({ points, title }: { points: AttendanceSeriesPoi
             <tbody className="divide-y divide-line-soft">
               {points.map((p) => (
                 <tr key={p.date}>
-                  <td className="px-3 py-1.5 text-gray-900">{formatDay(p.date)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-gray-600">{p.present}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-gray-600">{p.registered}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-gray-900">{p.rate}%</td>
+                  <td className="px-3 py-1.5 text-ink">{formatDay(p.date)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-soft">{p.present}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-soft">{p.registered}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{p.rate}%</td>
                 </tr>
               ))}
             </tbody>

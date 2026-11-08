@@ -25,13 +25,21 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingBlock } from '../components/ui/LoadingBlock';
 import { Badge } from '../components/ui/Badge';
+import { Avatar } from '../components/ui/Avatar';
+import { FilterChips } from '../components/ui/FilterChips';
 import { Pagination } from '../components/ui/Pagination';
 import { RefreshingNote } from '../components/ui/RefreshingNote';
-import { primaryBtnCls } from '../lib/formStyles';
+import { primaryBtnCls, tableCls, tableWrapCls, thCls, trCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { Youth, YouthInsert, YouthUpdate } from '../types/database.types';
 
 const NO_SELECTION: ReadonlyMap<string, Youth> = new Map();
+
+const STATUS_FILTERS: { label: string; value: YouthStatusFilter }[] = [
+  { label: 'Todos', value: 'all' },
+  { label: 'Ativos', value: 'active' },
+  { label: 'Inativos', value: 'inactive' },
+];
 
 export function Jovens() {
   const toast = useToast();
@@ -64,7 +72,7 @@ export function Jovens() {
   );
   const situationCell = (y: Youth) => {
     const s = situations.get(y.id);
-    return s ? <SituationBadge situation={s} /> : <span className="text-xs text-gray-400" aria-label="Situação indisponível">—</span>;
+    return s ? <SituationBadge situation={s} /> : <span className="text-xs text-ink-faint" aria-label="Situação indisponível">—</span>;
   };
 
   const canCreate = role === 'coordinator';
@@ -262,12 +270,12 @@ export function Jovens() {
       />
 
       {/* Search + filters */}
-      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 flex flex-col sm:flex-row sm:flex-wrap gap-3">
+      <div className="bg-surface border border-line rounded-card px-4 py-3 flex flex-col sm:flex-row sm:flex-wrap gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome..." className="flex-1 sm:min-w-60" />
         <select
           value={groupFilter}
           onChange={(e) => setGroupFilter(e.target.value)}
-          className="sm:w-44 px-3 py-2 text-sm border border-gray-300 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+          className="sm:w-44 px-3 py-2 text-sm border border-line-strong rounded-control bg-surface focus:outline-none focus:ring-2 focus:ring-action/20 focus:border-action"
           aria-label="Filtrar por grupo"
         >
           <option value="all">Todos os grupos</option>
@@ -276,24 +284,12 @@ export function Jovens() {
           ))}
           {role === 'coordinator' && <option value="none">Sem grupo</option>}
         </select>
-        <div className="flex rounded-control border border-gray-300 overflow-hidden text-sm">
-          {(['all', 'active', 'inactive'] as YouthStatusFilter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilterStatus(f)}
-              className={`px-3 py-2 font-medium transition-colors ${
-                filterStatus === f ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {f === 'all' ? 'Todos' : f === 'active' ? 'Ativos' : 'Inativos'}
-            </button>
-          ))}
-        </div>
+        <FilterChips options={STATUS_FILTERS} value={filterStatus} onChange={setFilterStatus} segmentedOnMobile />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -308,7 +304,7 @@ export function Jovens() {
           icon={UserCheck}
           title={search ? `Nenhum jovem encontrado para "${search}".` : 'Nenhum jovem cadastrado ainda.'}
           action={canCreate && !search && (
-            <button onClick={openCreate} className="mt-3 text-blue-600 text-sm font-medium hover:underline">
+            <button onClick={openCreate} className="mt-3 text-action text-sm font-medium hover:underline">
               Cadastrar o primeiro jovem
             </button>
           )}
@@ -317,10 +313,10 @@ export function Jovens() {
 
       {/* Tabela - Desktop */}
       {youth.length > 0 && (
-        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
-          <table className="w-full text-sm">
+        <div className={cn('hidden lg:block', tableWrapCls, 'transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          <table className={tableCls}>
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <tr className="text-left">
                 {canEdit && (
                   <th className="pl-4 pr-0 py-2 w-10">
                     <input
@@ -330,21 +326,21 @@ export function Jovens() {
                       onChange={toggleAllPage}
                       aria-label="Selecionar todos da página"
                       data-testid="lote-selecionar-pagina"
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-line-strong accent-action"
                     />
                   </th>
                 )}
-                <th className="px-4 py-2">Jovem</th>
-                <th className="px-4 py-2">Grupo</th>
-                <th className="px-4 py-2">Contato</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Situação</th>
-                <th className="px-4 py-2 text-right">Ações</th>
+                <th className={thCls}>Jovem</th>
+                <th className={thCls}>Grupo</th>
+                <th className={thCls}>Contato</th>
+                <th className={thCls}>Status</th>
+                <th className={thCls}>Situação</th>
+                <th className={cn(thCls, 'text-right')}>Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {youth.map((y) => (
-                <tr key={y.id} className={cn('hover:bg-gray-50 transition-colors', selection.has(y.id) && 'bg-blue-50')}>
+                <tr key={y.id} className={cn(trCls, selection.has(y.id) && 'bg-blue-50')}>
                   {canEdit && (
                     <td className="pl-4 pr-0 py-3 w-10">
                       <input
@@ -353,20 +349,18 @@ export function Jovens() {
                         onChange={() => toggleOne(y)}
                         aria-label={`Selecionar ${y.full_name}`}
                         data-testid="lote-selecionar"
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-line-strong accent-action"
                       />
                     </td>
                   )}
                   <td className="px-4 py-3">
                     <button onClick={() => openView(y)} className="flex items-center gap-3 text-left">
-                      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-50 text-blue-700 font-semibold text-sm flex items-center justify-center uppercase">
-                        {y.full_name.charAt(0)}
-                      </div>
-                      <span className="font-medium text-gray-900">{y.full_name}</span>
+                      <Avatar name={y.full_name} />
+                      <span className="font-medium text-ink">{y.full_name}</span>
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{(y.group_id && groupName.get(y.group_id)) || 'Sem grupo'}</td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{y.phone ?? y.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-soft">{(y.group_id && groupName.get(y.group_id)) || 'Sem grupo'}</td>
+                  <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{y.phone ?? y.email ?? '—'}</td>
                   <td className="px-4 py-3">
                     <Badge color={y.is_active ? 'green' : 'gray'}>{y.is_active ? 'Ativo' : 'Inativo'}</Badge>
                   </td>
@@ -383,20 +377,20 @@ export function Jovens() {
 
       {/* Cards - Mobile */}
       {youth.length > 0 && canEdit && (
-        <label className="lg:hidden flex items-center gap-3 px-1 text-sm text-gray-700">
+        <label className="lg:hidden flex items-center gap-3 px-1 text-sm text-ink-soft">
           <input
             ref={selectAllRef}
             type="checkbox"
             checked={allPageSelected}
             onChange={toggleAllPage}
             data-testid="lote-selecionar-pagina-mobile"
-            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="h-5 w-5 rounded border-line-strong accent-action"
           />
           Selecionar todos da página
         </label>
       )}
       {youth.length > 0 && (
-        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-surface rounded-card border border-line divide-y divide-line-soft overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {youth.map((y) => (
             <li key={y.id} className={cn('flex items-stretch', selection.has(y.id) && 'bg-blue-50')}>
               {canEdit && (
@@ -406,22 +400,20 @@ export function Jovens() {
                     checked={selection.has(y.id)}
                     onChange={() => toggleOne(y)}
                     data-testid="lote-selecionar"
-                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="h-5 w-5 rounded border-line-strong accent-action"
                   />
                 </label>
               )}
               <button
                 onClick={() => openView(y)}
-                className="flex-1 min-w-0 flex items-center gap-3 px-3 py-3 hover:bg-gray-50 transition-colors text-left"
+                className="flex-1 min-w-0 flex items-center gap-3 px-3 py-3 hover:bg-surface-hover transition-colors text-left"
               >
                 {/* Avatar inicial */}
-                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-50 text-blue-700 font-semibold text-sm flex items-center justify-center uppercase">
-                  {y.full_name.charAt(0)}
-                </div>
+                <Avatar name={y.full_name} />
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{y.full_name}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-sm font-medium text-ink truncate">{y.full_name}</p>
+                  <p className="text-xs text-ink-muted truncate">
                     {(y.group_id && groupName.get(y.group_id)) || 'Sem grupo'} · {y.phone ?? y.email ?? 'Sem contato'}
                   </p>
                 </div>
@@ -429,11 +421,11 @@ export function Jovens() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {situationCell(y)}
                   {y.is_active ? (
-                    <UserCheck className="w-4 h-4 text-green-500" aria-label="Ativo" />
+                    <UserCheck className="w-4 h-4 text-success-ink" aria-label="Ativo" />
                   ) : (
-                    <UserX className="w-4 h-4 text-gray-400" aria-label="Inativo" />
+                    <UserX className="w-4 h-4 text-ink-faint" aria-label="Inativo" />
                   )}
-                  <ChevronRight className="w-4 h-4 text-gray-300" aria-hidden="true" />
+                  <ChevronRight className="w-4 h-4 text-ink-faint" aria-hidden="true" />
                 </div>
               </button>
             </li>
@@ -444,7 +436,7 @@ export function Jovens() {
       <RefreshingNote show={loading && youth.length > 0} />
 
       {situationsError && youth.length > 0 && (
-        <p role="status" className="text-xs text-gray-500">A situação dos jovens não pôde ser carregada agora. A lista continua disponível.</p>
+        <p role="status" className="text-xs text-ink-muted">A situação dos jovens não pôde ser carregada agora. A lista continua disponível.</p>
       )}
 
       <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} noun={total === 1 ? 'jovem' : 'jovens'} disabled={loading} />

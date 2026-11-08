@@ -95,28 +95,28 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
       <div className="space-y-4" data-testid="serie-confirmacao">
         {message && <p role="alert" className={formErrorCls}>{message}</p>}
 
-        <div className="rounded-control bg-blue-50 border border-blue-200 px-4 py-3">
-          <p className="text-sm font-semibold text-blue-700" data-testid="serie-previa-total" role="status">
+        <div className="rounded-control bg-action-soft border border-action-line px-4 py-3">
+          <p className="text-sm font-semibold text-action-ink" data-testid="serie-previa-total" role="status">
             {previewSentence(dates.length)}
           </p>
-          <p className="mt-1 text-sm text-gray-700">
+          <p className="mt-1 text-sm text-ink-soft">
             <strong>{name.trim()}</strong> · {describeRecurrence(Number(weekday), recurrence, startDate)} às {startTime}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ink-muted">
             De {formatDay(dates[0])} a {formatDay(dates[dates.length - 1])}
           </p>
         </div>
 
-        <ul className="max-h-40 overflow-y-auto rounded-control border border-gray-200 divide-y divide-gray-100 text-sm" aria-label="Datas dos encontros">
+        <ul className="max-h-40 overflow-y-auto rounded-control border border-line divide-y divide-line-soft text-sm" aria-label="Datas dos encontros">
           {dates.slice(0, PREVIEW_LIMIT).map((d) => (
-            <li key={d} className="px-3 py-1.5 text-gray-700">{shortDate(d)}</li>
+            <li key={d} className="px-3 py-1.5 text-ink-soft">{shortDate(d)}</li>
           ))}
           {dates.length > PREVIEW_LIMIT && (
-            <li className="px-3 py-1.5 text-gray-500">… e mais {dates.length - PREVIEW_LIMIT} (última: {shortDate(dates[dates.length - 1])})</li>
+            <li className="px-3 py-1.5 text-ink-muted">… e mais {dates.length - PREVIEW_LIMIT} (última: {shortDate(dates[dates.length - 1])})</li>
           )}
         </ul>
 
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-ink-soft">
           {groupsMode === 'now' && chosenGroupNames.length > 0
             ? <>Grupos: {chosenGroupNames.join(', ')}.</>
             : <>Grupos: a definir depois. Os encontros ficarão com o aviso &quot;Grupos pendentes&quot; até você escolher os grupos.</>}
@@ -180,7 +180,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
           ))}
         </select>
         {weekday !== '' && /^\d{4}-\d{2}-\d{2}$/.test(startDate) && (
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-ink-muted">
             {describeRecurrence(Number(weekday), recurrence, startDate).replace(/^./, (c) => c.toUpperCase())}
           </p>
         )}
@@ -192,7 +192,7 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
           <input id="serie-inicio" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label htmlFor="serie-fim" className={labelCls}>Data final * <span className="font-normal text-gray-500">(até 2 anos)</span></label>
+          <label htmlFor="serie-fim" className={labelCls}>Data final * <span className="font-normal text-ink-muted">(até 2 anos)</span></label>
           <input
             id="serie-fim"
             type="date"
@@ -220,47 +220,47 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
       <fieldset>
         <legend className={labelCls}>Grupos participantes</legend>
         <div className="mt-2 space-y-2">
-          <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer">
             <input
               type="radio"
               name="serie-grupos"
               checked={groupsMode === 'now'}
               onChange={() => setGroupsMode('now')}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              className="h-4 w-4 accent-action border-line-strong"
             />
             Escolher grupos agora
           </label>
           {groupsMode === 'now' && (
             allGroups.length === 0 ? (
-              <p className="ml-6 text-sm text-gray-400">Nenhum grupo cadastrado.</p>
+              <p className="ml-6 text-sm text-ink-faint">Nenhum grupo cadastrado.</p>
             ) : (
-              <div className="ml-6 space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-control p-3">
+              <div className="ml-6 space-y-2 max-h-40 overflow-y-auto border border-line rounded-control p-3">
                 {allGroups.map((g) => (
                   <label key={g.id} className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectedGroups.includes(g.id)}
                       onChange={() => toggleGroup(g.id)}
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-line-strong accent-action"
                     />
-                    <span className="text-sm text-gray-800">{g.name}</span>
+                    <span className="text-sm text-ink">{g.name}</span>
                   </label>
                 ))}
               </div>
             )
           )}
-          <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer">
             <input
               type="radio"
               name="serie-grupos"
               checked={groupsMode === 'later'}
               onChange={() => setGroupsMode('later')}
-              className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              className="h-4 w-4 accent-action border-line-strong"
             />
             Definir depois
           </label>
           {groupsMode === 'later' && (
-            <p className="ml-6 text-xs text-gray-500">
+            <p className="ml-6 text-xs text-ink-muted">
               Os encontros serão criados sem grupos e ficam com o aviso &quot;Grupos pendentes&quot; até você defini-los.
             </p>
           )}

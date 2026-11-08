@@ -13,8 +13,8 @@ const currentColumns: Column<GroupsReportRow>[] = [
     primary: true,
     render: (g) => (
       <>
-        <span className="text-gray-900">{g.name}</span>
-        {g.leader_name && <span className="block text-xs text-gray-500">Líder: {g.leader_name}</span>}
+        <span className="text-ink">{g.name}</span>
+        {g.leader_name && <span className="block text-xs text-ink-muted">Líder: {g.leader_name}</span>}
       </>
     ),
   },

@@ -51,9 +51,9 @@ export function TransferFollowUpModal({ followUp, youthName, names, userId, onCl
   return (
     <Modal title="Transferir responsável" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4" aria-label="Transferir responsável">
-        <p className="text-sm text-gray-600">
-          Acompanhamento de <strong className="text-gray-900">{youthName}</strong>
-          <span className="block text-xs text-gray-500">
+        <p className="text-sm text-ink-soft">
+          Acompanhamento de <strong className="text-ink">{youthName}</strong>
+          <span className="block text-xs text-ink-muted">
             Responsável atual: {personName(followUp.responsible_id, names, userId)}
           </span>
         </p>
@@ -71,7 +71,7 @@ export function TransferFollowUpModal({ followUp, youthName, names, userId, onCl
             ))}
           </select>
           {!responsibles.loading && options.length === 0 && (
-            <p className="mt-1 text-xs text-gray-500">Não há outra pessoa disponível: só coordenadores e o líder do grupo do jovem podem assumir.</p>
+            <p className="mt-1 text-xs text-ink-muted">Não há outra pessoa disponível: só coordenadores e o líder do grupo do jovem podem assumir.</p>
           )}
         </div>
 
@@ -81,7 +81,7 @@ export function TransferFollowUpModal({ followUp, youthName, names, userId, onCl
             id="tr-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}
             placeholder="Ex.: O jovem mudou de grupo."
           />
-          <p className="mt-1 text-xs text-gray-400">O histórico da transferência fica registrado e não pode ser alterado.</p>
+          <p className="mt-1 text-xs text-ink-faint">O histórico da transferência fica registrado e não pode ser alterado.</p>
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 sm:flex-row sm:justify-end sm:gap-3">

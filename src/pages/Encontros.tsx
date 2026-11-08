@@ -24,7 +24,7 @@ import { FilterChips } from '../components/ui/FilterChips';
 import { Badge, type BadgeColor } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
 import { RefreshingNote } from '../components/ui/RefreshingNote';
-import { primaryBtnCls, secondaryBtnCls } from '../lib/formStyles';
+import { primaryBtnCls, secondaryBtnCls, tableCls, tableWrapCls, thCls, trCls } from '../lib/formStyles';
 import { cn } from '../lib/utils';
 import type { EventInsert, EventUpdate, EventStatus } from '../types/database.types';
 import type { EventWithGroups } from '../hooks/useEvents';
@@ -250,14 +250,14 @@ export function Encontros() {
       />
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-card px-4 py-3 space-y-3">
+      <div className="bg-surface border border-line rounded-card px-4 py-3 space-y-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Buscar por título..." className="max-w-sm" />
         <FilterChips options={filters} value={filterStatus} onChange={setFilterStatus} segmentedOnMobile />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-control px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-4 py-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -272,7 +272,7 @@ export function Encontros() {
           icon={Calendar}
           title={search ? `Nenhum encontro encontrado para "${search}".` : 'Nenhum encontro cadastrado ainda.'}
           action={isCoordinator && !search && (
-            <button onClick={openCreate} className="mt-3 text-blue-600 text-sm font-medium hover:underline">
+            <button onClick={openCreate} className="mt-3 text-action text-sm font-medium hover:underline">
               Criar o primeiro encontro
             </button>
           )}
@@ -281,32 +281,32 @@ export function Encontros() {
 
       {/* Tabela - Desktop */}
       {events.length > 0 && (
-        <div className={cn('hidden lg:block bg-white border border-gray-200 rounded-card overflow-x-auto transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
-          <table className="w-full text-sm">
+        <div className={cn('hidden lg:block', tableWrapCls, 'transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+          <table className={tableCls}>
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-2">Encontro</th>
-                <th className="px-4 py-2">Data</th>
-                <th className="px-4 py-2">Grupos</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2 text-right">Ações</th>
+              <tr className="text-left">
+                <th className={thCls}>Encontro</th>
+                <th className={thCls}>Data</th>
+                <th className={thCls}>Grupos</th>
+                <th className={thCls}>Status</th>
+                <th className={cn(thCls, 'text-right')}>Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {events.map((ev) => (
-                <tr key={ev.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={ev.id} className={trCls}>
                   <td className="px-4 py-3">
                     <button onClick={() => openView(ev)} className="flex items-center gap-3 text-left">
                       <div className="flex-shrink-0 w-10 text-center">
-                        <p className="text-base font-semibold text-blue-700 leading-none">{new Date(ev.event_date).getDate()}</p>
-                        <p className="text-xs text-gray-400 uppercase">{new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}</p>
+                        <p className="text-base font-semibold text-action-ink leading-none">{new Date(ev.event_date).getDate()}</p>
+                        <p className="text-xs text-ink-faint uppercase">{new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}</p>
                       </div>
-                      <span className="font-medium text-gray-900">{ev.title}</span>
+                      <span className="font-medium text-ink">{ev.title}</span>
                     </button>
                     <div className="mt-1 pl-[3.25rem] empty:hidden"><EventBadges ev={ev} /></div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{formatDate(ev.event_date)}</td>
-                  <td className="px-4 py-3 text-gray-600 truncate max-w-xs">
+                  <td className="px-4 py-3 text-ink-soft">{formatDate(ev.event_date)}</td>
+                  <td className="px-4 py-3 text-ink-soft truncate max-w-xs">
                     {ev.group_names.length > 0 ? `${ev.group_names.slice(0, 2).join(', ')}${ev.group_names.length > 2 ? '…' : ''}` : '—'}
                   </td>
                   <td className="px-4 py-3">
@@ -324,28 +324,28 @@ export function Encontros() {
 
       {/* Cards - Mobile */}
       {events.length > 0 && (
-        <ul className={cn('lg:hidden bg-white rounded-card border border-gray-200 divide-y divide-gray-100 overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
+        <ul className={cn('lg:hidden bg-surface rounded-card border border-line divide-y divide-line-soft overflow-hidden transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
           {events.map((ev) => (
             <li key={ev.id}>
               <button
                 onClick={() => openView(ev)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors text-left"
               >
                 {/* Date badge */}
                 <div className="flex-shrink-0 w-12 text-center">
-                  <p className="text-lg font-semibold text-blue-700 leading-none">
+                  <p className="text-lg font-semibold text-action-ink leading-none">
                     {new Date(ev.event_date).getDate()}
                   </p>
-                  <p className="text-xs text-gray-400 uppercase">
+                  <p className="text-xs text-ink-faint uppercase">
                     {new Date(ev.event_date).toLocaleString('pt-BR', { month: 'short' })}
                   </p>
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{ev.title}</p>
+                  <p className="text-sm font-medium text-ink truncate">{ev.title}</p>
                   {(ev.series_id || hasPendingGroups(ev)) && <div className="mt-0.5"><EventBadges ev={ev} /></div>}
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-ink-muted truncate">
                     {formatDate(ev.event_date)}
                     {ev.group_names.length > 0 && ` · ${ev.group_names.slice(0, 2).join(', ')}${ev.group_names.length > 2 ? '…' : ''}`}
                   </p>
@@ -354,7 +354,7 @@ export function Encontros() {
                 {/* Status + chevron */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Badge color={STATUS_BADGE_COLOR[ev.status]}>{STATUS_LABEL[ev.status]}</Badge>
-                  <ChevronRight className="w-4 h-4 text-gray-300" />
+                  <ChevronRight className="w-4 h-4 text-ink-faint" />
                 </div>
               </button>
             </li>

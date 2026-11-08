@@ -22,23 +22,23 @@ export function BatchBar({ count, busy, atLimit, error, onChangeGroup, onActivat
       role="region"
       aria-label="Ações em lote"
       data-testid="lote-barra"
-      className="sticky bottom-20 md:bottom-4 z-20 rounded-card border border-blue-200 bg-white p-3 shadow-lg"
+      className="sticky bottom-20 md:bottom-4 z-20 rounded-card border border-action-line bg-surface p-3 shadow-lg"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold text-gray-900" role="status" data-testid="lote-contador">
+        <p className="text-sm font-semibold text-ink" role="status" data-testid="lote-contador">
           {count === 1 ? '1 selecionado' : `${count} selecionados`}
-          {atLimit && <span className="ml-2 text-xs font-normal text-amber-700">Limite de {BATCH_MAX} por lote.</span>}
+          {atLimit && <span className="ml-2 text-xs font-normal text-warning-ink">Limite de {BATCH_MAX} por lote.</span>}
         </p>
         <button
           type="button"
           onClick={onClear}
-          className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 hover:text-gray-900 rounded px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="inline-flex items-center gap-1 text-xs font-medium text-ink-soft hover:text-ink rounded px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
           data-testid="lote-limpar"
         >
           <X className="w-3.5 h-3.5" aria-hidden="true" /> Limpar seleção
         </button>
       </div>
-      {error && <p role="alert" className="mb-2 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="mb-2 text-sm text-danger-ink">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={onChangeGroup} disabled={busy} className={secondaryBtnCls} data-testid="lote-alterar-grupo">
           <UsersRound className="w-4 h-4" aria-hidden="true" /> Alterar grupo

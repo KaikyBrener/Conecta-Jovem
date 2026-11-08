@@ -12,7 +12,7 @@ interface GroupMetricProps {
   loading: boolean;
 }
 
-const MUTED = 'text-gray-400';
+const MUTED = 'text-ink-faint';
 
 /**
  * Um indicador do grupo (vem da RPC group_indicators). Sempre há texto: o sinal nunca depende só de cor ou seta.
@@ -28,7 +28,7 @@ export function GroupMetric({ kind, indicator, loading }: GroupMetricProps) {
     return indicator.attendance_rate === null ? (
       <span className={MUTED} data-testid="grupo-rate" title="Nenhum encontro com chamada registrada ainda.">sem chamadas</span>
     ) : (
-      <span className="font-medium text-gray-900 tabular-nums" data-testid="grupo-rate" title="Frequência nos últimos 8 encontros com chamada.">
+      <span className="font-medium text-ink tabular-nums" data-testid="grupo-rate" title="Frequência nos últimos 8 encontros com chamada.">
         {indicator.attendance_rate}%
       </span>
     );
@@ -43,9 +43,9 @@ export function GroupMetric({ kind, indicator, loading }: GroupMetricProps) {
         data-tendencia={t.kind}
         className={cn(
           'inline-flex items-center gap-1 text-xs',
-          t.kind === 'up' && 'text-green-700',
-          t.kind === 'down' && 'text-amber-700 font-medium',
-          t.kind === 'stable' && 'text-gray-600',
+          t.kind === 'up' && 'text-success-ink',
+          t.kind === 'down' && 'text-warning-ink font-medium',
+          t.kind === 'stable' && 'text-ink-soft',
           t.kind === 'insufficient' && MUTED,
         )}
         title="Compara os 4 encontros com chamada mais recentes com os 4 anteriores (mínimo de 8 encontros)."
@@ -62,7 +62,7 @@ export function GroupMetric({ kind, indicator, loading }: GroupMetricProps) {
     return (
       <span
         data-testid="grupo-attention"
-        className={cn('inline-flex items-center gap-1 tabular-nums', n > 0 ? 'text-amber-700 font-medium' : 'text-gray-600')}
+        className={cn('inline-flex items-center gap-1 tabular-nums', n > 0 ? 'text-warning-ink font-medium' : 'text-ink-soft')}
         title="Jovens ativos do grupo com situação Atenção ou Crítico."
       >
         {n > 0 && <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />}
@@ -75,7 +75,7 @@ export function GroupMetric({ kind, indicator, loading }: GroupMetricProps) {
   return (
     <span
       data-testid="grupo-overdue"
-      className={cn('inline-flex items-center gap-1 tabular-nums', n > 0 ? 'text-red-600 font-medium' : 'text-gray-600')}
+      className={cn('inline-flex items-center gap-1 tabular-nums', n > 0 ? 'text-red-600 font-medium' : 'text-ink-soft')}
       title="Ações atrasadas do grupo ou dos jovens ativos dele."
     >
       {n > 0 && <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />}

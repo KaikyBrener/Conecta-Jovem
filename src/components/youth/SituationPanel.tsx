@@ -13,17 +13,17 @@ interface SituationPanelProps {
 }
 
 const PANEL_TONE: Record<SituationTone, string> = {
-  green: 'border-green-200 bg-green-50',
-  amber: 'border-amber-200 bg-amber-50',
-  red: 'border-red-200 bg-red-50',
-  gray: 'border-gray-200 bg-gray-50',
+  green: 'border-success-line bg-success-soft',
+  amber: 'border-warning-line bg-warning-soft',
+  red: 'border-danger-line bg-danger-soft',
+  gray: 'border-line bg-canvas',
 };
 
 function Metric({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
-    <div className="rounded-control bg-white px-2.5 py-2 border border-gray-100">
-      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-sm font-medium text-gray-900 break-words" data-testid={testId}>{value}</dd>
+    <div className="rounded-control bg-surface px-2.5 py-2 border border-line-soft">
+      <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">{label}</dt>
+      <dd className="mt-0.5 text-sm font-medium text-ink break-words" data-testid={testId}>{value}</dd>
     </div>
   );
 }
@@ -36,7 +36,7 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
 
   if (!situation) {
     return (
-      <p role="status" className="rounded-control bg-gray-50 p-3 text-center text-xs text-gray-500">
+      <p role="status" className="rounded-control bg-canvas p-3 text-center text-xs text-ink-muted">
         {error ?? 'Situação indisponível para este jovem.'}
       </p>
     );
@@ -54,18 +54,18 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
       className={`rounded-card border px-3 py-3 ${PANEL_TONE[d.tone]}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 id="situacao-title" className="text-sm font-semibold text-gray-900">Situação do jovem</h4>
+        <h4 id="situacao-title" className="text-sm font-semibold text-ink">Situação do jovem</h4>
         <SituationBadge situation={situation} />
       </div>
 
       {situation.inactive ? (
-        <p className="mt-2 text-sm text-gray-600">Jovem inativo: a situação não é avaliada.</p>
+        <p className="mt-2 text-sm text-ink-soft">Jovem inativo: a situação não é avaliada.</p>
       ) : situation.reasons.length > 0 ? (
-        <ul data-testid="situacao-motivos" className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-gray-800">
+        <ul data-testid="situacao-motivos" className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-ink">
           {situation.reasons.map((r) => <li key={r}>{r}</li>)}
         </ul>
       ) : (
-        <p className="mt-2 text-sm text-gray-600">Nenhum sinal de atenção no momento.</p>
+        <p className="mt-2 text-sm text-ink-soft">Nenhum sinal de atenção no momento.</p>
       )}
 
       <dl className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -79,7 +79,7 @@ export function SituationPanel({ situation, loading, error, limits }: SituationP
         <Metric label="Último acompanhamento" value={situation.last_follow_up ? formatDateOnly(situation.last_follow_up) : 'Nenhum'} testId="metrica-ultimo-acompanhamento" />
       </dl>
 
-      <p className="mt-3 text-xs leading-snug text-gray-500" data-testid="situacao-criterio">
+      <p className="mt-3 text-xs leading-snug text-ink-muted" data-testid="situacao-criterio">
         {situationCriteriaText(limits)}
       </p>
     </section>

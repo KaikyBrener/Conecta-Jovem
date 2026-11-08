@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Youth, YouthInsert, YouthUpdate, Gender, GroupRef } from '../../types/database.types';
-import { inputCls, labelCls, primaryBtnCls, secondaryBtnCls, formErrorCls } from '../../lib/formStyles';
+import { formErrorCls } from '../../lib/formStyles';
+import { Button } from '../ui/Button';
+import { Field, Select, Textarea } from '../ui/Field';
 
 type FormData = {
   full_name: string;
@@ -84,104 +86,73 @@ export function YouthForm({ initial, groups = [], canChangeGroup = false, onSubm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className={formErrorCls}>{error}</p>}
+      {error && <p className={formErrorCls} role="alert">{error}</p>}
 
-      <div>
-        <label className={labelCls}>Nome completo *</label>
-        <input
-          type="text"
-          value={form.full_name}
-          onChange={(e) => set('full_name', e.target.value)}
-          className={inputCls}
-          placeholder="Ex.: Maria Silva"
+      <Field
+        label="Nome completo"
+        mandatory
+        type="text"
+        value={form.full_name}
+        onChange={(e) => set('full_name', e.target.value)}
+        placeholder="Ex.: Maria Silva"
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field
+          label="Data de nascimento"
+          type="date"
+          value={form.birth_date}
+          onChange={(e) => set('birth_date', e.target.value)}
         />
+        <Select label="Gênero" value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+          <option value="">Selecionar</option>
+          <option value="male">Masculino</option>
+          <option value="female">Feminino</option>
+          <option value="other">Outro</option>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Data de nascimento</label>
-          <input
-            type="date"
-            value={form.birth_date}
-            onChange={(e) => set('birth_date', e.target.value)}
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Gênero</label>
-          <select
-            value={form.gender}
-            onChange={(e) => set('gender', e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Selecionar</option>
-            <option value="male">Masculino</option>
-            <option value="female">Feminino</option>
-            <option value="other">Outro</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Telefone</label>
-          <input
-            type="tel"
-            value={form.phone}
-            onChange={(e) => set('phone', e.target.value)}
-            className={inputCls}
-            placeholder="(00) 00000-0000"
-          />
-        </div>
-        <div>
-          <label className={labelCls}>E-mail</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => set('email', e.target.value)}
-            className={inputCls}
-            placeholder="email@exemplo.com"
-          />
-        </div>
+        <Field
+          label="Telefone"
+          type="tel"
+          value={form.phone}
+          onChange={(e) => set('phone', e.target.value)}
+          placeholder="(00) 00000-0000"
+        />
+        <Field
+          label="E-mail"
+          type="email"
+          value={form.email}
+          onChange={(e) => set('email', e.target.value)}
+          placeholder="email@exemplo.com"
+        />
       </div>
 
       {canChangeGroup && (
-        <div>
-          <label className={labelCls}>Grupo</label>
-          <select
-            value={form.group_id}
-            onChange={(e) => set('group_id', e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Sem grupo</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-        </div>
+        <Select label="Grupo" value={form.group_id} onChange={(e) => set('group_id', e.target.value)}>
+          <option value="">Sem grupo</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </Select>
       )}
 
-      <div>
-        <label className={labelCls}>Endereço</label>
-        <input
-          type="text"
-          value={form.address}
-          onChange={(e) => set('address', e.target.value)}
-          className={inputCls}
-          placeholder="Rua, número, bairro"
-        />
-      </div>
+      <Field
+        label="Endereço"
+        type="text"
+        value={form.address}
+        onChange={(e) => set('address', e.target.value)}
+        placeholder="Rua, número, bairro"
+      />
 
-      <div>
-        <label className={labelCls}>Observações</label>
-        <textarea
-          value={form.notes}
-          onChange={(e) => set('notes', e.target.value)}
-          rows={3}
-          className={inputCls}
-          placeholder="Informações adicionais..."
-        />
-      </div>
+      <Textarea
+        label="Observações"
+        value={form.notes}
+        onChange={(e) => set('notes', e.target.value)}
+        rows={3}
+        placeholder="Informações adicionais..."
+      />
 
       {initial && (
         <div className="flex items-center gap-3">
@@ -189,28 +160,27 @@ export function YouthForm({ initial, groups = [], canChangeGroup = false, onSubm
             type="button"
             role="switch"
             aria-checked={form.is_active}
+            aria-labelledby="jovem-ativo-rotulo"
             onClick={() => set('is_active', !form.is_active)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              form.is_active ? 'bg-blue-600' : 'bg-gray-300'
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+              form.is_active ? 'bg-action' : 'bg-line-strong'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-surface transition-transform ${
                 form.is_active ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>
-          <span className="text-sm text-gray-700">{form.is_active ? 'Ativo' : 'Inativo'}</span>
+          <span id="jovem-ativo-rotulo" className="text-sm text-ink-soft">{form.is_active ? 'Ativo' : 'Inativo'}</span>
         </div>
       )}
 
       <div className="flex flex-col-reverse gap-2 border-t border-line-soft pt-4 mt-2 sm:flex-row sm:justify-end sm:gap-3">
-        <button type="button" onClick={onCancel} className={secondaryBtnCls}>
-          Cancelar
-        </button>
-        <button type="submit" disabled={loading} className={primaryBtnCls}>
+        <Button onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" variant="primary" disabled={loading}>
           {loading ? 'Salvando...' : initial ? 'Salvar alterações' : 'Cadastrar'}
-        </button>
+        </Button>
       </div>
     </form>
   );

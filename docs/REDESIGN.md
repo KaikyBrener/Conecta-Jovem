@@ -45,14 +45,18 @@ Como funciona:
 | `Tabs` | `components/ui/Card.tsx` | abas dos relatórios |
 | `DataTable` | `components/reports/ReportParts.tsx` | tabela no desktop, cartões no celular |
 | `Modal` | `components/Modal.tsx` | janela no desktop, folha inferior no celular; `size="lg"` para a ficha do jovem. Esc fecha a janela do topo (menos num `<select>`), o foco entra, fica preso e volta a quem abriu, o documento não rola, clicar fora só fecha se o clique começou fora |
+| `Avatar` | `components/ui/Avatar.tsx` | inicial colorida (decorativa); 4 matizes sem sentido de estado (`avatar-1..4`), estável por nome; `circle` para pessoas, `square` para grupos |
 | `IconButton` | `components/ui/IconButton.tsx` | botão só com ícone: `label` obrigatório (nome acessível + dica), 44px no celular e 34px no desktop, `tone`, `busy` |
 | `PageHeader`, `EmptyState`, `LoadingBlock`, `SearchInput`, `FilterChips`, `Pagination` | `components/ui/` | já existiam; passaram aos tokens. `EmptyState`: ícone em círculo de 44px e `hint` opcional (DS-5). `FilterChips`: `shortLabel` e `segmentedOnMobile` (Encontros no celular) |
 | `RefreshingNote` | `components/ui/RefreshingNote.tsx` | "Atualizando…" abaixo de uma lista que já tem resultado (DS-5); a lista continua esmaecida |
 | `ConfirmProvider` / `useConfirm` | `contexts/ConfirmContext.tsx` | confirmação em janela própria (DS-6) sobre o `Modal`: foco inicial em "Cancelar", Esc cancela, foco volta a quem abriu; recusa sozinha se a rota mudar |
 | Classes de botão, campo e tabela | `lib/formStyles.ts`, `lib/authStyles.ts` | usadas pelos componentes acima e pelas telas antigas |
 
-`Button` e `Field` são novos e estão disponíveis; as telas existentes continuam usando as classes de `formStyles.ts`
-(mesmo visual), para não trocar o DOM que os testes conhecem. Migre para os componentes ao mexer em cada formulário.
+`Field`, `Select`, `Textarea` e `Button` já são usados em `YouthForm`, `GroupForm` e `EventForm` (eram os únicos formulários com
+`<label>` sem `htmlFor`: o rótulo não estava ligado ao campo). Os demais formulários já ligam rótulo e campo com `htmlFor`
+e continuam com as classes de `formStyles.ts` (mesmo visual); migre-os para os componentes ao mexer em cada um.
+`Field` aceita `mandatory`: asterisco e `aria-required` sem o `required` nativo (a validação e a mensagem são do formulário).
+O filtro de situação de Jovens usa `FilterChips` (como Encontros), que já tem `aria-pressed` e alvo de 44px.
 
 ## Decisões de compatibilidade (o código prevalece sobre o desenho)
 
@@ -79,10 +83,26 @@ O Playwright localiza alguns elementos por classe. Ao mexer nesses pontos, mante
 `span.text-red-600` no prazo vencido do painel, `bg-blue-50` na linha selecionada da tabela de Jovens,
 `.animate-spin` dentro de `main` (carregamento), `span.font-mono` no código do incidente.
 
+## Classes de paleta × tokens
+
+Todo o `src` usa os tokens semânticos (`bg-surface`, `text-ink-muted`, `border-line`, `bg-action`, `*-danger|success|warning-soft|line|ink`).
+Sobraram, de propósito, poucas classes de paleta (a "ponte de legado" de `index.css` cobre só elas no modo escuro):
+
+| Classe | Onde | Por quê |
+|---|---|---|
+| `bg-blue-600` | item ativo do menu (`Layout.tsx`) | o E2E de navegação confere a classe |
+| `bg-blue-50` | linha selecionada em Jovens | o E2E de lote confere a classe |
+| `text-red-600` | indicador de ações atrasadas e prazo vencido no painel | o E2E do painel usa `p.text-red-600` / `span.text-red-600` |
+| `bg-green-600`, `bg-red-600` (+ borda e hover) | botões Presente / Ausente na Chamada | cor cheia sem token (`--color-success` é texto no escuro) |
+
+Para trocar qualquer uma, ajuste o teste correspondente no mesmo commit.
+
 ## Pendências
 
-- Migrar as ~715 classes de paleta (`bg-white`, `text-gray-*`...) para os tokens semânticos (decidido ficar para outra
-  etapa; ver `docs/REDESIGN-PLANO.md`).
-- Migrar os formulários antigos de `inputCls`/`labelCls` para `Field`/`Select`/`Textarea`, um por vez.
-- Mover `DataTable` para `components/ui` e usá-la nas tabelas escritas à mão (Jovens, Encontros, Grupos, Histórico).
+- Token de cor cheia para sucesso/crítico (botões Presente/Ausente) e troca dos seletores do E2E por `data-testid`; depois disso
+  a ponte de legado some.
+- Migrar os demais formulários para `Field`/`Select`/`Textarea` (já têm rótulo ligado ao campo), um por vez.
+- `Skeleton` no lugar do indicador de carregamento em bloco (o E2E de Grupos espera `main .animate-spin`).
+- Tabelas escritas à mão (Jovens, Encontros, Grupos, Histórico) já usam as classes compartilhadas de `formStyles.ts`; um
+  `DataTable` único (tabela no desktop, cartões no celular) fica para quando as telas forem refeitas.
 - Conferir em Safari, Firefox e iOS reais (a validação visual foi feita no Chromium do Playwright).

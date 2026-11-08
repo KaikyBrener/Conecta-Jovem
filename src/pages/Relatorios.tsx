@@ -62,7 +62,7 @@ export function Relatorios() {
       />
 
       {/* Filtros */}
-      <div className="bg-white rounded-card border border-gray-200 p-4 space-y-4">
+      <div className="bg-surface rounded-card border border-line p-4 space-y-4">
         <div className="space-y-2">
           <p className={labelCls} id="rel-periodo-rotulo">Período</p>
           <div role="group" aria-labelledby="rel-periodo-rotulo" data-testid="rel-periodos">
@@ -100,7 +100,7 @@ export function Relatorios() {
         {current.usesGroupFilter && (
           <div className="max-w-sm">
             <label className={labelCls} htmlFor="rel-grupo">Grupo</label>
-            <select id="rel-grupo" value={groupId} onChange={(e) => setGroupId(e.target.value)} className={cn(inputCls, 'bg-white')}>
+            <select id="rel-grupo" value={groupId} onChange={(e) => setGroupId(e.target.value)} className={cn(inputCls, 'bg-surface')}>
               <option value="all">{allGroupsLabel}</option>
               {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
@@ -108,7 +108,7 @@ export function Relatorios() {
         )}
 
         {validRange && (
-          <p className="text-xs text-gray-500" data-testid="rel-periodo">
+          <p className="text-xs text-ink-muted" data-testid="rel-periodo">
             Período: {validRange.from === validRange.to ? formatDay(validRange.from) : `${formatDay(validRange.from)} a ${formatDay(validRange.to)}`}
             {current.key === 'youth' || current.key === 'groups' ? '' : selectedGroup ? ` · ${selectedGroup.name}` : ` · ${allGroupsLabel.toLowerCase()}`}
           </p>

@@ -8,6 +8,11 @@ interface FieldShellProps {
   label: ReactNode;
   /** Mostra o asterisco vermelho; o campo opcional leva "(opcional)" no próprio rótulo */
   required?: boolean;
+  /**
+   * Obrigatório validado pelo próprio formulário (mensagem em português, sem o balão do navegador): mostra o
+   * asterisco e marca `aria-required`, mas não põe o atributo nativo `required`.
+   */
+  mandatory?: boolean;
   /** Ajuda abaixo do campo */
   help?: ReactNode;
   /** Mensagem de erro (em português claro, dizendo o que corrigir) */
@@ -22,7 +27,7 @@ interface ShellRenderProps {
 }
 
 function FieldShell({
-  id, label, required, help, error, className, children,
+  id, label, required, mandatory, help, error, className, children,
 }: FieldShellProps & { id: string | undefined; children: (p: ShellRenderProps) => ReactNode }) {
   const auto = useId();
   const fieldId = id ?? auto;
@@ -32,7 +37,7 @@ function FieldShell({
     <div className={cn('min-w-0', className)}>
       <label htmlFor={fieldId} className={labelCls}>
         {label}
-        {required && <span className="text-danger" aria-hidden="true"> *</span>}
+        {(required || mandatory) && <span className="text-danger" aria-hidden="true"> *</span>}
       </label>
       {children({ id: fieldId, describedBy: [errorId, helpId].filter(Boolean).join(' ') || undefined, invalid: !!error })}
       {error && (
@@ -49,13 +54,14 @@ function FieldShell({
 type FieldProps = FieldShellProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> & { inputClassName?: string };
 
 /** Campo de texto com rótulo, ajuda e erro. O `id` informado é preservado (os testes localizam por ele). */
-export function Field({ label, required, help, error, className, inputClassName, id, ...input }: FieldProps) {
+export function Field({ label, required, mandatory, help, error, className, inputClassName, id, ...input }: FieldProps) {
   return (
-    <FieldShell id={id} label={label} required={required} help={help} error={error} className={className}>
+    <FieldShell id={id} label={label} required={required} mandatory={mandatory} help={help} error={error} className={className}>
       {({ id: fieldId, describedBy, invalid }) => (
         <input
           id={fieldId}
           required={required}
+          aria-required={mandatory || undefined}
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           className={cn(inputCls, invalid && invalidCls, inputClassName)}
@@ -68,13 +74,14 @@ export function Field({ label, required, help, error, className, inputClassName,
 
 type SelectProps = FieldShellProps & Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className'> & { children: ReactNode };
 
-export function Select({ label, required, help, error, className, id, children, ...select }: SelectProps) {
+export function Select({ label, required, mandatory, help, error, className, id, children, ...select }: SelectProps) {
   return (
-    <FieldShell id={id} label={label} required={required} help={help} error={error} className={className}>
+    <FieldShell id={id} label={label} required={required} mandatory={mandatory} help={help} error={error} className={className}>
       {({ id: fieldId, describedBy, invalid }) => (
         <select
           id={fieldId}
           required={required}
+          aria-required={mandatory || undefined}
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           className={cn(inputCls, invalid && invalidCls)}
@@ -89,14 +96,15 @@ export function Select({ label, required, help, error, className, id, children, 
 
 type TextareaProps = FieldShellProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'className'>;
 
-export function Textarea({ label, required, help, error, className, id, rows = 3, ...textarea }: TextareaProps) {
+export function Textarea({ label, required, mandatory, help, error, className, id, rows = 3, ...textarea }: TextareaProps) {
   return (
-    <FieldShell id={id} label={label} required={required} help={help} error={error} className={className}>
+    <FieldShell id={id} label={label} required={required} mandatory={mandatory} help={help} error={error} className={className}>
       {({ id: fieldId, describedBy, invalid }) => (
         <textarea
           id={fieldId}
           rows={rows}
           required={required}
+          aria-required={mandatory || undefined}
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           className={cn(inputCls, invalid && invalidCls)}

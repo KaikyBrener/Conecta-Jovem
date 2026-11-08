@@ -36,8 +36,8 @@ export function RedefinirSenha() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-gray-50" role="status" aria-label="Verificando o link">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600 motion-reduce:animate-none" aria-hidden="true" />
+      <div className="flex min-h-dvh items-center justify-center bg-canvas" role="status" aria-label="Verificando o link">
+        <Loader2 className="h-8 w-8 animate-spin text-action motion-reduce:animate-none" aria-hidden="true" />
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function RedefinirSenha() {
           invalid={!!error}
           describedBy={error ? errorId : `${uid}-hint`}
         />
-        <p id={`${uid}-hint`} className="-mt-3 text-xs text-gray-500">Mínimo de {MIN_PASSWORD_LENGTH} caracteres.</p>
+        <p id={`${uid}-hint`} className="-mt-3 text-xs text-ink-muted">Mínimo de {MIN_PASSWORD_LENGTH} caracteres.</p>
         <PasswordInput
           id={`${uid}-pw2`}
           inputRef={confirmRef}

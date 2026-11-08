@@ -32,7 +32,7 @@ export function BatchGroupForm({ count, groups, loading, error, onSubmit, onCanc
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
       {message && <p role="alert" className={formErrorCls}>{message}</p>}
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-ink-soft">
         {count === 1 ? '1 jovem selecionado.' : `${count} jovens selecionados.`}
       </p>
       <div>

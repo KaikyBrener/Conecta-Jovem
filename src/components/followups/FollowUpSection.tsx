@@ -43,12 +43,12 @@ function TransferHistory({ followUp }: { followUp: FollowUpWithRelations }) {
   }, [followUp.id]);
 
   return (
-    <div data-testid="historico-transferencias" className="mt-2 rounded-control bg-gray-50 px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Histórico de transferências</p>
-      {failed && <p className="mt-1 text-xs text-gray-500">Não foi possível carregar os nomes.</p>}
+    <div data-testid="historico-transferencias" className="mt-2 rounded-control bg-canvas px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Histórico de transferências</p>
+      {failed && <p className="mt-1 text-xs text-ink-muted">Não foi possível carregar os nomes.</p>}
       <ul className="mt-1 space-y-1">
         {sortTransfers(followUp.transfers).map((t) => (
-          <li key={t.id} className="text-xs text-gray-600">
+          <li key={t.id} className="text-xs text-ink-soft">
             {transferLine(t, names ?? new Map())}
           </li>
         ))}
@@ -96,11 +96,11 @@ export function FollowUpSection({ youth, onChanged, groupName, onCommunicationCh
   };
 
   return (
-    <section className="border-t border-gray-100 pt-4" aria-labelledby="followups-title" data-testid="secao-acompanhamento">
+    <section className="border-t border-line-soft pt-4" aria-labelledby="followups-title" data-testid="secao-acompanhamento">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h4 id="followups-title" className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-          <HeartHandshake className="h-4 w-4 text-gray-500" aria-hidden="true" /> Acompanhamento
-          {total > 0 && <span className="text-xs font-normal text-gray-500">({total})</span>}
+        <h4 id="followups-title" className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+          <HeartHandshake className="h-4 w-4 text-ink-muted" aria-hidden="true" /> Acompanhamento
+          {total > 0 && <span className="text-xs font-normal text-ink-muted">({total})</span>}
         </h4>
         <button type="button" onClick={() => { clearError(); setCreating(true); }} className={smallPrimaryBtnCls}>
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Novo acompanhamento
@@ -112,7 +112,7 @@ export function FollowUpSection({ youth, onChanged, groupName, onCommunicationCh
       {loading && followUps.length === 0 ? (
         <LoadingBlock size="sm" />
       ) : !error && followUps.length === 0 ? (
-        <p className="rounded-control bg-gray-50 p-3 text-center text-xs italic text-gray-500">
+        <p className="rounded-control bg-canvas p-3 text-center text-xs italic text-ink-muted">
           Nenhum acompanhamento registrado para este jovem ainda.
         </p>
       ) : (
@@ -123,18 +123,18 @@ export function FollowUpSection({ youth, onChanged, groupName, onCommunicationCh
             const late = isNextActionOverdue(f, today, page === 1 && index === 0);
             const hasHistory = f.transfers.length > 0;
             return (
-              <li key={f.id} data-testid="acompanhamento-item" className="rounded-control border border-gray-200 bg-white px-3 py-3">
+              <li key={f.id} data-testid="acompanhamento-item" className="rounded-control border border-line bg-surface px-3 py-3">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-sm font-medium text-gray-900">{formatDateOnly(f.occurred_at)}</span>
+                  <span className="text-sm font-medium text-ink">{formatDateOnly(f.occurred_at)}</span>
                   <Badge color="blue">{FOLLOW_UP_TYPE_LABEL[f.type]}</Badge>
                   {f.completes_task && f.task && <Badge color="green"><CheckCircle2 className="h-3 w-3" aria-hidden="true" /> Concluiu a ação</Badge>}
                 </div>
 
-                <p className="mt-1 text-sm font-medium text-gray-900 break-words">{f.reason}</p>
-                {f.notes && <p className="mt-0.5 text-sm text-gray-600 whitespace-pre-line break-words">{f.notes}</p>}
+                <p className="mt-1 text-sm font-medium text-ink break-words">{f.reason}</p>
+                {f.notes && <p className="mt-0.5 text-sm text-ink-soft whitespace-pre-line break-words">{f.notes}</p>}
 
                 {(f.next_action || f.next_action_due) && (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-600">
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-soft">
                     <CalendarClock className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
                     <span>Próxima ação: {f.next_action ?? '—'}</span>
                     {f.next_action_due && (
@@ -146,7 +146,7 @@ export function FollowUpSection({ youth, onChanged, groupName, onCommunicationCh
                 )}
 
                 {(f.alert || f.task) && (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
                     {f.alert && (
                       <span className="inline-flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" /> Alerta: {alertDescription(f.alert)}
@@ -160,9 +160,9 @@ export function FollowUpSection({ youth, onChanged, groupName, onCommunicationCh
                   </p>
                 )}
 
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                   <Badge color="green">Responsável atual</Badge>
-                  <span data-testid="responsavel-atual" className="font-medium text-gray-900">
+                  <span data-testid="responsavel-atual" className="font-medium text-ink">
                     {personName(f.responsible_id, names, userId)}
                   </span>
                 </p>
