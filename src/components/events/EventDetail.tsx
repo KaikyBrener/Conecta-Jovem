@@ -63,8 +63,14 @@ export function EventDetail({ event, isCoordinator, onEdit, onDelete, onClose, a
       </div>
 
       {(event.series_id || pendingGroups) && (
-        <div className="flex flex-wrap items-center gap-2">
-          {event.series_id && <Badge color="indigo">Série: {event.series_name ?? 'sem nome'}</Badge>}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {event.series_id && (
+            <Badge color="indigo" dot className="min-w-0 max-w-full">
+              <span className="truncate" title={`Série: ${event.series_name ?? 'sem nome'}`}>
+                Série: {event.series_name ?? 'sem nome'}
+              </span>
+            </Badge>
+          )}
           {pendingGroups && <Badge color="amber">Grupos pendentes</Badge>}
         </div>
       )}
