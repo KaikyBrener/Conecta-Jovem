@@ -10,7 +10,9 @@
 -- COMO RODAR:
 --   Painel do Supabase > SQL Editor > cole este arquivo inteiro e clique em Run (roda como `postgres`).
 --   O resultado final é uma tabela de conferência; todas as quantidades devem ser 0.
---   Rodar de novo é seguro (não há mais nada para apagar).
+--   Rodar de novo é seguro (não há mais nada para apagar). Se der erro, nada é apagado (transação inteira); se o editor
+--   reclamar de "current transaction is aborted", rode ROLLBACK; e corrija o que a mensagem indicar.
+--   Validado num PGlite com todas as migrations (veja a seção VALIDAÇÃO do seed-teste.sql).
 --
 -- O QUE NÃO TOCA: profiles, user_roles, app_settings e auth.users (inclusive o usuário líder de teste, se você criou
 --   um: apague-o à mão em Authentication > Users). Também não toca em communication_send_log (estado do limite de

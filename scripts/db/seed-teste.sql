@@ -6,13 +6,22 @@
 --   1 cancelado, 3 agendados), ~176 registros de chamada, acompanhamentos (6 tipos, 3 transferências), 11 tarefas
 --   (4 status, 3 prioridades, 3 vencidas), 3 e-mails (rascunho, enviado, falhou) e 9 linhas no Histórico.
 --   Os ALERTAS não são inseridos à mão: nascem dos triggers do banco quando a chamada é gravada (faltas
---   consecutivas, frequência baixa, queda de frequência, sem acompanhamento, ação atrasada). Por leitura das
---   migrations, o esperado é ~28 alertas: 23 abertos, 3 resolvidos e 2 dispensados, 2 deles críticos.
+--   consecutivas, frequência baixa, queda de frequência, sem acompanhamento, ação atrasada). Resultado esperado
+--   (conferido na validação abaixo, com os limites padrão): 29 alertas, sendo 23 abertos, 4 resolvidos e 2 dispensados;
+--   2 deles críticos.
 --
 -- COMO RODAR:
 --   1. Painel do Supabase > SQL Editor > cole este arquivo inteiro e clique em Run (o editor roda como `postgres`).
 --   2. Confira o resultado da tabela "tabela | quantidade" que aparece no final.
 --   3. Pode rodar de novo: é idempotente (UUIDs fixos com prefixo 5eed5eed- e ON CONFLICT DO NOTHING).
+--   4. Se der erro, a transação inteira é desfeita (nada fica gravado). Se o editor reclamar de "current transaction is
+--      aborted", rode ROLLBACK; e tente de novo depois de corrigir o que a mensagem indicar.
+--
+-- VALIDAÇÃO: este arquivo e o limpar-teste.sql foram executados num PGlite (Postgres real em memória) com TODAS as
+--   migrations 001 a 024 aplicadas, nos cenários sem líder e com líder: 1ª e 2ª execução com as mesmas contagens
+--   (idempotente), limpar-teste zera tudo e deixa profiles, user_roles, auth.users e app_settings intactos, e o seed roda
+--   de novo depois de limpar. Sem coordenador, ou com v_leader inexistente, o script para com mensagem clara e não grava
+--   nada. NÃO foi executado no Supabase de verdade (pode haver diferença de papel/permissão do SQL Editor).
 --
 -- QUEM É O "RESPONSÁVEL" DOS DADOS:
 --   * O coordenador é descoberto sozinho em user_roles (role = 'coordinator', o mais antigo). Se não houver nenhum,
