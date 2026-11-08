@@ -11,8 +11,10 @@ concluir a tarefa resolve o alerta.
 ## Stack
 - React 19 + TypeScript + Vite 8
 - Tailwind CSS v4
-- Supabase (Postgres, Auth e Row Level Security)
-- Vitest + PGlite (testes unitários e de banco)
+- Supabase (Postgres, Auth, Row Level Security e Edge Function `send-communication`)
+- Resend (envio de e-mail, só pelo servidor, via a Edge Function e o SMTP do Auth)
+- Cloudflare Workers (hospedagem dos arquivos estáticos, `wrangler.jsonc`)
+- Vitest + PGlite (testes unitários e de banco) e Playwright (E2E)
 
 ## Rodando localmente
 
@@ -21,7 +23,9 @@ concluir a tarefa resolve o alerta.
 2. `npm install`
 3. `npm run dev`
 
-Outros comandos: `npm run lint`, `npm run build`, `npm test`.
+Outros comandos: `npm run lint`, `npm run build`, `npm test` (unitários e de banco), `npm run test:e2e` (Playwright contra um Supabase falso local; ver `tests/e2e/README.md`) e `npm run smoke -- https://conectjovem.com.br` (teste de fumaça do site publicado, só GET).
+
+Documentação operacional em `docs/`: `GO-LIVE.md` (runbook de entrega), `AUTH-EMAIL.md` (Auth e e-mails), `EMAIL.md` (envio de comunicações), `PRIVACIDADE.md` e `RETENCAO.md` (rascunhos para validação jurídica), `OBSERVABILIDADE.md`, `REDESIGN.md` e `REDESIGN-PROXIMA-FASE.md`, e `docs/sql/` (verificação e aplicação das migrations).
 
 ## Banco de dados (migrations)
 
@@ -39,7 +43,6 @@ no SQL Editor do Supabase:
 | `007_fix_groups_leader_profiles_fk.sql` | Corrige `groups.leader_id` para referenciar `public.profiles(id)` (antes apontava para `auth.users`, schema não exposto ao PostgREST — quebrava o embed `profiles:leader_id(...)` usado em `/grupos`) e força o reload do cache de schema do PostgREST |
 | `008_set_user_role_race_fix.sql` | Corrige uma condição de corrida (TOCTOU) em `set_user_role()`: serializa chamadas concorrentes com `pg_advisory_xact_lock` para impedir que dois rebaixamentos simultâneos resultem em 0 coordenadores |
 | `009_save_event_atomic.sql` | RPC `save_event` (SECURITY INVOKER): cria/edita o encontro **e** sincroniza `event_groups` numa única transação, evitando encontro sem grupos quando o INSERT dos vínculos falha. RLS e policies inalteradas; EXECUTE só para `authenticated` |
-
 | `010_attendance_states_alerts.sql` | Chamada com 3 estados (RPC `save_attendance`: "não registrado" = sem linha, não conta como falta); alertas objetivos com severidade (`attention`/`critical`) e novos tipos `low_attendance` e `attendance_drop`; regra "resolver/dispensar nunca apaga faltas, só uma presença quebra a sequência" |
 | `011_followups_actions_situation.sql` | Acompanhamentos (`follow_ups`) com transferência de responsável e histórico (`follow_up_transfers`, RPC `transfer_follow_up`); alertas por tempo `no_followup` e `overdue_action` (RPC `sync_time_alerts`); situação do jovem (`youth_situation(s)`: normal/atenção/crítico por regra objetiva); RPCs de apoio `assignable_responsibles` e `follow_up_people` |
 | `012_attendance_group_sync_dashboard.sql` | O histórico de presença acompanha o jovem quando ele muda de grupo (trigger + backfill); RPCs `dashboard_overview` e `group_indicators` |
@@ -55,8 +58,8 @@ no SQL Editor do Supabase:
 | `023_cron_time_alerts.sql` | **Opcional, não aplicada**: varredura diária dos alertas temporais via `pg_cron` (06:00 de Brasília). Habilite `pg_cron` no painel antes; o agendamento é pulado se a extensão não existir. Desfazer: `cron.unschedule` (ver cabeçalho) |
 | `024_set_user_role_recheck_after_lock.sql` | `set_user_role` refaz a checagem de coordenador **depois** do lock: quem acabou de ser rebaixado por uma chamada concorrente não consegue mais rebaixar outro (achado do teste de concorrência em Postgres real) |
 
-**Ordem de aplicação pendente no SQL Editor: 020, 021, 024.** A 023 (pg_cron) só depois de habilitar a extensão `pg_cron` no
-painel; ela não depende da 024 nem as demais dela. A 022 (retenção) ainda não existe.
+**Pendentes no plano de entrega, nesta ordem: 020, 021, 024** (confirme o que já está no banco real com `docs/sql/verificacao-migrations.sql` e siga `docs/sql/aplicar-migrations.md`; o histórico do CLI se registra com `migration repair`, ver `docs/GO-LIVE.md`). A 023 (pg_cron) só depois de
+habilitar a extensão `pg_cron` no painel; ela não depende da 024 nem as demais dela. A 022 (retenção) ainda não existe.
 
 A 006 termina calculando os alertas para o histórico de chamadas já existente.
 
@@ -157,8 +160,10 @@ Depois disso, os papéis são geridos pela tela **Configurações**.
 
 | Parâmetro | Padrão | Uso |
 |---|---|---|
-| Faltas consecutivas para alerta | 3 | Gera alerta automático |
-| Frequência mínima esperada | 70% | Destaque no Dashboard e em Relatórios |
+| Faltas consecutivas para gerar alerta | 3 | Gera o alerta de faltas (atenção) |
+| Faltas consecutivas para alerta crítico | 6 | Eleva o alerta de faltas a crítico |
+| Frequência mínima esperada (%) | 70 | Alerta de frequência baixa; aviso no Painel e nos gráficos |
+| Prazo de carência do acompanhamento (dias) | 7 | Depois disso, sem acompanhamento, gera o alerta "sem acompanhamento" |
 
 ## Testes
 

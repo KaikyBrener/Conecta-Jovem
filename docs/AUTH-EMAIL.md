@@ -18,7 +18,7 @@ nome dentro de **Authentication**.
 - [ ] **Site URL** = `https://conectjovem.com.br`
 - [ ] **Redirect URLs** (uma por linha):
   - `https://conectjovem.com.br/**`
-  - `http://localhost:5173/**` (desenvolvimento)
+  - `http://localhost:5173/**` (só enquanto desenvolve; **em produção real, remova**)
 
 O app pede a redefinição com `redirectTo = <origem atual>/redefinir-senha` (`window.location.origin`, sem URL fixa).
 Se a origem não estiver nas Redirect URLs, o Supabase ignora o `redirectTo` e manda o link para a **Site URL**.

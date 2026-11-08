@@ -113,7 +113,7 @@ Detalhes: [`docs/EMAIL.md`](EMAIL.md).
 
 ## 6. Deploy da função
 
-- [ ] Na raiz do repositório, nesta branch, rodar `npx supabase functions deploy send-communication`.
+- [ ] Na raiz do repositório, na `main` atualizada, rodar `npx supabase functions deploy send-communication`.
       `verify_jwt` fica no padrão (ligado). O deploy leva o import fixado em `supabase-js 2.117.2`, `ALLOWED_ORIGIN`
       normalizada e `REPLY_TO_EMAIL`.
 
@@ -152,7 +152,7 @@ Checklist completo (URLs, SMTP do Resend, templates, proteções, como testar e 
 [`docs/AUTH-EMAIL.md`](AUTH-EMAIL.md). Os itens abaixo são o resumo.
 
 - [ ] Em Authentication → URL Configuration, **Site URL** = `https://conectjovem.com.br`.
-- [ ] **Redirect URLs**: `https://conectjovem.com.br/**` e `http://localhost:5173/**`.
+- [ ] **Redirect URLs**: `https://conectjovem.com.br/**`. A de `http://localhost:5173/**` serve só para desenvolvimento: **em produção real, remova**.
 - [ ] Senha mínima **10** no Auth (o app já valida 10 na tela). Se fizer parte dos "ajustes de Auth" já declarados, só confira.
 - [ ] **SMTP próprio** no Auth (Project Settings → Auth → SMTP). O envio padrão do Supabase tem limite baixo de e-mails
       por hora, o que afeta convites e recuperação de senha.
