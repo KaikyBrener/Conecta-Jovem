@@ -30,7 +30,7 @@ export function RecuperarSenha() {
     setError('');
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       // origem do próprio app (nunca vem de entrada do usuário); precisa estar nas
-      // "Redirect URLs" do Supabase Auth (ver README)
+      // "Redirect URLs" do Supabase Auth (ver docs/OPERACAO.md)
       redirectTo: `${window.location.origin}/redefinir-senha`,
     });
     setLoading(false);

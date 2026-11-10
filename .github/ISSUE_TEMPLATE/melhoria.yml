@@ -1,0 +1,33 @@
+name: Melhoria
+description: Sugestão de ajuste ou funcionalidade
+title: "[Melhoria] "
+labels: ["melhoria"]
+body:
+  - type: textarea
+    id: necessidade
+    attributes:
+      label: Qual necessidade isso resolve?
+      description: Quem usa (coordenador ou líder), em qual situação e qual dificuldade existe hoje.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: Como você imagina que funcione. Se tiver referência visual, anexe.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: Prioridade
+      options:
+        - Alta
+        - Média
+        - Baixa
+    validations:
+      required: true

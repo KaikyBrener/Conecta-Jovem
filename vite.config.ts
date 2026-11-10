@@ -9,7 +9,7 @@ import tailwindcss from '@tailwindcss/vite';
  * - O script inline de tema do index.html é liberado por hash SHA-256 calculado aqui, sem 'unsafe-inline'.
  * - `connect-src` libera apenas a origem do Supabase (VITE_SUPABASE_URL). Sem ela o build FALHA: o app
  *   também não funciona sem a variável (src/lib/supabase.ts), e uma CSP sem a origem quebraria o login.
- * Limites da meta tag (frame-ancestors, HSTS, nosniff, Referrer-Policy) dependem do host: ver README.
+ * Limites da meta tag (frame-ancestors, HSTS, nosniff, Referrer-Policy) dependem do host: ver docs/OPERACAO.md.
  */
 function cspPlugin(supabaseUrl: string | undefined): Plugin {
   return {

@@ -1,0 +1,49 @@
+name: Bug
+description: Algo não funciona como deveria
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Não inclua dados pessoais reais (nomes, telefones, e-mails de jovens) nos prints ou textos.
+        Para falhas de segurança, **não use esta página**: veja o SECURITY.md.
+  - type: textarea
+    id: caso-de-uso
+    attributes:
+      label: Caso de uso
+      description: O que a pessoa estava tentando fazer, em qual tela e com qual perfil (coordenador ou líder).
+      placeholder: "Ex.: Líder registrando a chamada do culto de domingo, em Chamada > Salvar."
+    validations:
+      required: true
+  - type: textarea
+    id: motivo
+    attributes:
+      label: Motivo
+      description: Por que acontece, se você souber, ou o que está dando errado.
+      placeholder: "Ex.: Com mais de 20 presentes marcados, o botão trava e nada é salvo."
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidência
+      description: Print, vídeo ou erro do console (F12). Arraste o arquivo para cá.
+    validations:
+      required: true
+  - type: input
+    id: ambiente
+    attributes:
+      label: Navegador e dispositivo
+      placeholder: "Ex.: Safari no iPhone 14, ou Chrome 130 no Windows"
+  - type: dropdown
+    id: gravidade
+    attributes:
+      label: Gravidade
+      options:
+        - Crítica (impede o uso ou expõe dados)
+        - Alta
+        - Média
+        - Baixa
+    validations:
+      required: true

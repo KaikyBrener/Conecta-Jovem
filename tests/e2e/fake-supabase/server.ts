@@ -126,7 +126,7 @@ async function handleAuth(req: IncomingMessage, url: URL, body: any): Promise<Ht
     if (req.method === 'PUT') {
       const user = await userRecord(who.id);
       if (body.password) {
-        // Política do projeto de produção (mínimo 10, ver docs/EMAIL.md e README) e diferente da senha atual
+        // Política do projeto de produção (mínimo 10, ver docs/EMAIL.md e docs/OPERACAO.md) e diferente da senha atual
         if (String(body.password).length < 10) {
           return authError(422, 'weak_password', 'Password should be at least 10 characters.');
         }

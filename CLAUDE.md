@@ -39,7 +39,7 @@ do banco — **nunca** commitar nem ler/expor em logs.
   precisa de `ENABLE ROW LEVEL SECURITY` e políticas explícitas por papel.
 - Alterações de schema **somente via nova migration** numerada em `supabase/migrations/`
   (`NNN_descricao.sql`). Nunca editar migration já aplicada; corrigir com uma nova.
-- Migrations são aplicadas manualmente, em ordem, no SQL Editor do Supabase (ver README).
+- Migrations são aplicadas manualmente, em ordem, no SQL Editor do Supabase (ver docs/OPERACAO.md).
 - Preservar o que funciona; trabalhar de forma incremental.
 - Só considerar algo "testado" se o teste foi realmente executado.
 
@@ -144,7 +144,7 @@ cancelled)`, `alert_type (consecutive_absences)`, `alert_status (open, resolved,
 - **E-mail**: único canal; **envio real server-side** (Edge Function `send-communication`, migrations 018/019; `begin/finish_communication_send` só `service_role`). Status draft/sending/sent/failed/cancelled; `sent` só após sucesso do provedor; o cliente nunca define `sending`/`sent`. Líder envia só ao e-mail cadastrado do jovem. Nenhum segredo no frontend. Config do provedor: docs/EMAIL.md.
 - Líder desassocia jovem via `batch_set_youth_group([id], null)` (UPDATE direto falha no RLS porque a linha nova não passa no SELECT).
 - Layout: o documento rola (não o `<main>`); `Modal` usa `z-[60]` acima da bottom-nav.
-- CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP em `public/_headers`. Hospedagem: Cloudflare Workers (assets) via `wrangler.jsonc`; o fallback de SPA é `not_found_handling: "single-page-application"` (não existe `public/_redirects`; ver README).
+- CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP em `public/_headers`. Hospedagem: Cloudflare Workers (assets) via `wrangler.jsonc`; o fallback de SPA é `not_found_handling: "single-page-application"` (não existe `public/_redirects`; ver docs/OPERACAO.md).
 - **020**: `create_event_series` recusa série ativa idêntica; trigger bloqueia excluir encontro com chamada (cancelar é o caminho). **021**: `anonymize_youth(id)` (coordenador, irreversível; mantém id/grupo/presença).
 
 ### FKs e embeds do PostgREST
@@ -235,7 +235,7 @@ Detalhes e justificativas: `docs/OBSERVABILIDADE.md`.
   `ProfileLoadError` (fail-closed, tentar de novo/sair); `allowedRoles` segue fail-closed.
 - Erros do GoTrue são sempre traduzidos por `translateAuthError(msg, fallback)`; nunca exiba `error.message` cru.
 - **Convite não é feito pelo app** (exigiria `service_role` ou backend novo): usar o painel do Supabase. Configuração de
-  Site URL/Redirect URLs: ver README.
+  Site URL/Redirect URLs: ver docs/OPERACAO.md.
 
 ## Decisões importantes
 
