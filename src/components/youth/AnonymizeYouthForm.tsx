@@ -21,6 +21,7 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
     <form
       className="space-y-4"
       aria-busy={loading}
+      data-unsaved-guard="off" /* o nome digitado é só a confirmação: fechar não perde dado nenhum */
       onSubmit={(e) => { e.preventDefault(); if (canConfirm) onConfirm(); }}
     >
       <div role="note" className="flex items-start gap-2 text-sm text-danger-ink bg-danger-soft border border-danger-line rounded-control px-3 py-2">
@@ -38,10 +39,12 @@ export function AnonymizeYouthForm({ youthName, loading, error, onConfirm, onCan
           <li>telefone, e-mail, endereço e observações;</li>
           <li>os textos de presença, tarefas, acompanhamentos, alertas e e-mails deste jovem.</li>
         </ul>
+        <p>E-mails em rascunho ou que falharam são cancelados e não podem mais ser enviados.</p>
         <p className="font-medium text-ink">Será mantido:</p>
         <ul className="list-disc pl-5 space-y-0.5">
           <li>o grupo e os registros de presença e falta, para as estatísticas;</li>
-          <li>o jovem fica inativo.</li>
+          <li>o jovem fica inativo;</li>
+          <li>o registro de quem anonimizou e quando, no cadastro e no Histórico.</li>
         </ul>
       </div>
 

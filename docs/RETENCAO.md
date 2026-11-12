@@ -72,4 +72,4 @@
 7. **Comprovação:** a organização precisa de um registro de que a retenção rodou (data e quantidade)? Onde guardar sem reter o dado apagado?
 8. **Backups:** o prazo de backup do plano Supabase é aceitável, dado que dados expurgados continuam nele até expirar?
 9. **Contas da equipe:** líder que sai da organização — desativar no Auth, e o que fazer com o nome dele em `activity_log`?
-10. **Anonimização (021):** ela já limpa os textos de tarefas, acompanhamentos, alertas e e-mails do jovem (revisão feita: sem coluna de texto ligada por id ficando de fora). A 022 deve também registrar o ato (marca "anonimizado" e linha no histórico) e tratar os rascunhos anonimizados? Ver `docs/PRIVACIDADE.md`, seção 6.
+10. **Anonimização (021 e 025):** ela já limpa os textos de tarefas, acompanhamentos, alertas e e-mails do jovem (revisão feita: sem coluna de texto ligada por id ficando de fora). Desde a 025, também registra o ato (marca no cadastro e linha no histórico) e cancela os rascunhos e envios com falha. Para a 022 resta decidir por quanto tempo esse registro é guardado. Ver `docs/PRIVACIDADE.md`, seção 6.

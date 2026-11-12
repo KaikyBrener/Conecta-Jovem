@@ -9,6 +9,7 @@ import { CheckCircle2, Circle, AlertCircle, AlertTriangle, ListPlus } from 'luci
 import { Badge } from '../ui/Badge';
 import { LoadingBlock } from '../ui/LoadingBlock';
 import { SituationPanel } from './SituationPanel';
+import { AnonymizedNote } from './AnonymizedNote';
 import { FollowUpSection } from '../followups/FollowUpSection';
 import { CommunicationSection } from '../communications/CommunicationSection';
 import type { AlertChoice } from '../communications/CommunicationModal';
@@ -88,6 +89,8 @@ export function YouthDetail({ youth, groupName, canEdit, onCreateTask, onEdit, o
           </div>
         </div>
       </div>
+
+      {youth.anonymized_at && <AnonymizedNote at={youth.anonymized_at} by={youth.anonymized_by} />}
 
       <SituationPanel
         situation={situation}

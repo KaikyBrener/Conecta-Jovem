@@ -7,6 +7,8 @@
 -- SEÇÃO A (Q1–Q9): prova que 001–019 estão aplicadas POR INTEIRO. Rode ANTES de aplicar qualquer migration nova.
 -- SEÇÃO B (Q10):   confere 020, 021 e 024. Rode só DEPOIS de aplicá-las (antes disso, ela acusa as três, como esperado).
 -- SEÇÃO C (Q11/Q12): confere a 023 (pg_cron). Só depois de habilitar o pg_cron no painel e aplicar a 023.
+-- SEÇÃO D (Q13):   confere a 025 (auditoria da anonimização). Rode só DEPOIS de aplicá-la. A Seção A ignora o que a
+--                  025 cria (duas colunas e um trigger em youth), então dá "falhas: 0" antes e depois dela.
 --
 -- RESULTADO ESPERADO, igual em todas: UMA única linha  --- | Qn verificados: X | falhas: 0
 -- Qualquer outra linha é um problema, com as colunas  mig | item | problema:
@@ -31,6 +33,7 @@
 -- Q1  Tabelas: existência, RLS ligado, nº de colunas e nº de policies
 --     Esperado: "Q1 verificados: 18 | falhas: 0". TABELA AUSENTE = a migration que a cria não rodou;
 --     RLS DESLIGADO = alguém desligou à mão; contagem diferente = veja Q2/Q7.
+--     (As colunas youth.anonymized_at/anonymized_by, da 025, ficam fora da contagem: são conferidas na Q13.)
 with esperado(mig, tabela, n_colunas, n_policies) as (values
   ('001', 'profiles', 3, 3), ('001', 'user_roles', 3, 2), ('001', 'groups', 6, 4), ('001', 'youth', 13, 3), ('003', 'events', 11, 2),
   ('003', 'event_groups', 2, 2), ('003', 'attendance', 8, 4), ('006', 'app_settings', 7, 2), ('006', 'alerts', 17, 5), ('006', 'tasks', 15, 5),
@@ -39,7 +42,8 @@ with esperado(mig, tabela, n_colunas, n_policies) as (values
   ('018', 'communication_send_log', 4, 0)
 ), real as (
   select e.*, c.oid, c.relrowsecurity,
-         (select count(*) from information_schema.columns k where k.table_schema='public' and k.table_name=e.tabela) as cols,
+         (select count(*) from information_schema.columns k where k.table_schema='public' and k.table_name=e.tabela
+            and not (k.table_name='youth' and k.column_name in ('anonymized_at', 'anonymized_by'))) as cols,
          (select count(*) from pg_policies p where p.schemaname='public' and p.tablename=e.tabela) as pols
   from esperado e left join pg_class c on c.relname=e.tabela and c.relnamespace='public'::regnamespace and c.relkind='r'
 ), falhas as (
@@ -198,7 +202,8 @@ order by 1, 2;
 
 -- Q6  Triggers: existência na tabela certa e habilitados; definição estreitada pela 012; triggers excedentes
 --     Esperado: "Q6 verificados: 42 | falhas: 0". TRIGGER AUSENTE / DESABILITADO / "definição antiga (006)" = parcial;
---     ??? = trigger que não está em nenhuma migration. (O trigger da 020 é ignorado aqui e conferido na Q10.)
+--     ??? = trigger que não está em nenhuma migration. (O trigger da 020 é ignorado aqui e conferido na Q10; o da
+--     025, na Q13.)
 with esperado(mig, gatilho, tabela) as (values
   ('014', 'activity_log_immutable', 'public.activity_log'), ('006', 'alerts_guard', 'public.alerts'), ('014', 'alerts_log_activity', 'public.alerts'),
   ('011', 'alerts_refresh_time_alerts', 'public.alerts'), ('006', 'alerts_updated_at', 'public.alerts'),
@@ -235,7 +240,8 @@ with esperado(mig, gatilho, tabela) as (values
   from pg_trigger t join pg_class c on c.oid=t.tgrelid
   where not t.tgisinternal and c.relnamespace='public'::regnamespace
     and not exists (select 1 from esperado e where e.gatilho=t.tgname)
-    and t.tgname not in ('events_block_delete_with_attendance')  -- da 020: conferido na Q10
+    and t.tgname not in ('events_block_delete_with_attendance',  -- da 020: conferido na Q10
+                         'youth_anonymized_guard')               -- da 025: conferido na Q13
 )
 select * from falhas
 union all select '---', 'Q6 verificados: '||((select count(*) from esperado)+1), 'falhas: '||(select count(*) from falhas)
@@ -520,3 +526,57 @@ select jobname, schedule, command, active
   from cron.job
  where jobname like 'conecta-jovem-%'
  order by jobname;
+
+
+-- =====================================================================================================================
+-- SEÇÃO D — 025 (auditoria da anonimização e cancelamento dos e-mails não enviados): rodar SÓ DEPOIS de aplicá-la
+-- =====================================================================================================================
+
+-- Q13 025: colunas da marca, trigger de guarda, ação nova do histórico e anonymize_youth regravada
+--     Esperado: "Q13 verificados: 9 | falhas: 0". Antes de aplicar a 025, acusa 7 itens (esperado: tudo menos a
+--     existência de anonymize_youth e a trava FOR UPDATE, que já vêm da 021).
+--     COLUNA AUSENTE / TRIGGER AUSENTE / FUNÇÃO AUSENTE = 025 não aplicada ou parcial; "corpo ANTIGO" = anonymize_youth
+--     ainda é a da 021 (não registra a auditoria nem cancela rascunhos); EXECUTE inesperado = grant/revoke parcial.
+with c_esp(coluna, tipo) as (values
+  ('anonymized_at', 'timestamptz'), ('anonymized_by', 'uuid')
+), m_esp(marcador) as (values
+  ('youth_anonymized'), ('communications_cancelled'), ('PERFORM 1 FROM public.communications WHERE youth_id = p_youth_id FOR UPDATE')
+), an as (
+  select p.oid, p.prosecdef, p.prosrc, array_to_string(p.proconfig, ' ') as cfg
+  from (select to_regprocedure('public.anonymize_youth(uuid)') as f) x left join pg_proc p on p.oid = x.f
+), gd as (
+  select p.oid from (select to_regprocedure('public.youth_anonymized_guard()') as f) x left join pg_proc p on p.oid = x.f
+), falhas as (
+  select '025' as mig, 'youth.'||e.coluna as item,
+         case when k.column_name is null then 'COLUNA AUSENTE' else 'tipo '||k.udt_name||' (esperado '||e.tipo||')' end as problema
+  from c_esp e left join information_schema.columns k
+    on k.table_schema='public' and k.table_name='youth' and k.column_name=e.coluna
+  where k.column_name is null or k.udt_name <> e.tipo
+  union all
+  select '025', 'youth_anonymized_guard em public.youth', 'TRIGGER AUSENTE, DESABILITADO ou não é BEFORE INSERT OR UPDATE'
+  where not exists (select 1 from pg_trigger t where t.tgname = 'youth_anonymized_guard' and not t.tgisinternal
+                      and t.tgrelid = to_regclass('public.youth') and t.tgenabled = 'O'
+                      and pg_get_triggerdef(t.oid) ~* 'BEFORE INSERT OR UPDATE')
+  union all
+  select '025', 'youth_anonymized_guard()',
+         case when gd.oid is null then 'FUNÇÃO AUSENTE' else 'EXECUTE indevido para anon/authenticated' end
+  from gd where gd.oid is null or has_function_privilege('anon', gd.oid, 'execute') or has_function_privilege('authenticated', gd.oid, 'execute')
+  union all
+  select '025', 'activity_log_action_check', 'a ação youth_anonymized não está na lista (constraint antiga, da 015)'
+  where not exists (select 1 from pg_constraint c where c.conname = 'activity_log_action_check'
+                      and c.conrelid = to_regclass('public.activity_log') and pg_get_constraintdef(c.oid) like '%youth_anonymized%')
+  union all
+  select '025', 'anonymize_youth(uuid)',
+         case when an.oid is null then 'FUNÇÃO AUSENTE'
+              when not an.prosecdef or coalesce(an.cfg, '') !~ 'search_path=.*pg_temp' then 'deveria ser SECURITY DEFINER com pg_temp ('||coalesce(an.cfg, 'sem search_path')||')'
+              else 'EXECUTE anon='||has_function_privilege('anon', an.oid, 'execute')||', authenticated='||
+                   has_function_privilege('authenticated', an.oid, 'execute')||' (esperado anon=false, authenticated=true)' end
+  from an where an.oid is null or not an.prosecdef or coalesce(an.cfg, '') !~ 'search_path=.*pg_temp'
+     or has_function_privilege('anon', an.oid, 'execute') or not has_function_privilege('authenticated', an.oid, 'execute')
+  union all
+  select '025', 'anonymize_youth(uuid)', 'corpo ANTIGO: falta o marcador "'||m.marcador||'"'
+  from m_esp m, an where an.oid is null or position(m.marcador in an.prosrc) = 0
+)
+select * from falhas
+union all select '---', 'Q13 verificados: 9', 'falhas: '||(select count(*) from falhas)
+order by 1, 2;

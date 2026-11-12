@@ -19,6 +19,7 @@ Quem executa: o responsável pelo projeto, no **SQL Editor** do painel. Nenhuma 
 | 1 | `020_series_idempotency_and_event_delete_guard.sql` | série idêntica é recusada; encontro com chamada não pode ser excluído | — |
 | 2 | `021_anonymize_youth.sql` | RPC `anonymize_youth` (só coordenador, irreversível) | depende da 020 aplicada |
 | 3 | `024_set_user_role_recheck_after_lock.sql` | `set_user_role` refaz a checagem depois do lock | depois da 021 |
+| 4 | `025_anonymize_audit_and_cancel_unsent.sql` | a anonimização registra quem e quando (cadastro e Histórico) e cancela rascunhos e envios com falha do jovem | depende só da 021; conferida pela **Q13** (Seção D) |
 | — | `023_cron_time_alerts.sql` | varredura diária por `pg_cron` (**opcional**) | **só depois** de habilitar `pg_cron` no painel (Database → Extensions). Sem a extensão, a função é criada e o agendamento é pulado com um aviso. |
 | — | `022` | (retenção) | **ainda não existe**; nada a aplicar |
 
@@ -49,6 +50,10 @@ Se você rodar a Q10 no meio do caminho, é normal ela acusar o que ainda não f
 
 A 023, se e quando for aplicada, é conferida pelas **Q11 e Q12** (Seção C).
 
+Depois da 025, rode `NOTIFY pgrst, 'reload schema';` de novo e a **Seção D (Q13)**. Esperado:
+`Q13 verificados: 9 | falhas: 0`. Antes de aplicá-la, a Q13 acusa 7 itens, o que é esperado. A Seção A continua dando
+`falhas: 0` antes e depois da 025.
+
 ## Se uma migration falhar no meio
 
 1. **Pare.** Não aplique a próxima.
@@ -60,7 +65,10 @@ A 023, se e quando for aplicada, é conferida pelas **Q11 e Q12** (Seção C).
 **Por que não reexecutar:** as migrations do projeto não são idempotentes em geral (por exemplo, reaplicar a 004 ou a
 005 regride policies). Lendo o SQL, a 020, a 021 e a 024 usam apenas `CREATE OR REPLACE FUNCTION`,
 `DROP TRIGGER IF EXISTS`/`CREATE TRIGGER` e `REVOKE`/`GRANT`. Em tese seriam reexecutáveis, mas isso **não foi testado
-no banco real**, e um erro no meio pode ter deixado o banco num estado que só a análise do erro esclarece.
+no banco real**, e um erro no meio pode ter deixado o banco num estado que só a análise do erro esclarece. A 025 foi
+escrita para ser reexecutável (`ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`) e a reaplicação é coberta por teste
+no PGlite (`tests/db/anonymize-audit.test.ts`), também **sem teste no banco real**: a regra de parar e trazer o erro
+vale igual.
 
 ## Depois de aplicar
 

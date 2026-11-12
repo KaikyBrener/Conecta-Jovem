@@ -1,14 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { concurrencyEnabled, createScratch, raceBehindHeldTransaction, settle, type Scratch, type Session } from './support';
 
-// Cenário 6 — anonymize_youth (021) contra begin_communication_send (019): corrida entre a anonimização e um envio.
-// O `PERFORM 1 ... FOR UPDATE` das comunicações do jovem (021) fecha a janela entre a checagem de 'sending' e o UPDATE.
+// Cenário 6 — anonymize_youth (021, reescrita na 025) contra begin_communication_send (019): corrida entre a
+// anonimização e um envio. O `PERFORM 1 ... FOR UPDATE` das comunicações do jovem fecha a janela entre a checagem de
+// 'sending' e o UPDATE. Desde a 025 a anonimização CANCELA o rascunho: um envio que chega depois é recusado
+// ('not_sendable') em vez de sair com o conteúdo anonimizado.
 
 const SIG = 'public.anonymize_youth(uuid)';
 const COMM_LOCK = /PERFORM 1 FROM public\.communications WHERE youth_id = p_youth_id FOR UPDATE;/;
 const ORIGINAL_SUBJECT = 'Assunto original sigiloso';
 
-interface BeginResult { ok: boolean; error?: string; subject?: string; recipient_email?: string }
+interface BeginResult { ok: boolean; error?: string; reason?: string; subject?: string; recipient_email?: string }
+const NOT_SENDABLE = { ok: false, error: 'conflict', reason: 'not_sendable' };
 
 describe.skipIf(!concurrencyEnabled())('anonymize_youth × begin_communication_send: concorrência real', () => {
   let s: Scratch;
@@ -83,7 +86,7 @@ describe.skipIf(!concurrencyEnabled())('anonymize_youth × begin_communication_s
   });
 
   describe('(ii) anonimização confirmada ANTES do envio ler o conteúdo', () => {
-    it('com o lock: o begin espera e lê o conteúdo JÁ anonimizado (nunca o original)', async () => {
+    it('com o lock: o begin espera, encontra o rascunho JÁ cancelado e não envia (nunca lê o original)', async () => {
       const { youth, comm } = await youthWithDraft();
       const co = await s.session({ userId: coord });
       const svc = await s.session({ role: 'service_role' });
@@ -92,9 +95,9 @@ describe.skipIf(!concurrencyEnabled())('anonymize_youth × begin_communication_s
       });
       expect(r.holder.ok).toBe(true);
       expect(r.blocked).toBe(true);
-      expect(r.contender.ok && r.contender.value).toMatchObject({
-        ok: true, subject: 'Mensagem anonimizada', recipient_email: 'anonimizado@anonimizado.invalid',
-      });
+      expect(r.contender.ok && r.contender.value).toEqual(NOT_SENDABLE);
+      expect(JSON.stringify(r.contender)).not.toContain(ORIGINAL_SUBJECT);
+      expect(await commRow(comm)).toEqual({ status: 'cancelled', subject: 'Mensagem anonimizada' });
     });
 
     describe('controle SEM o FOR UPDATE (documenta que NÃO é a trava que protege este sentido)', () => {
@@ -104,7 +107,7 @@ describe.skipIf(!concurrencyEnabled())('anonymize_youth × begin_communication_s
       afterAll(async () => { await s.admin.query(original); });
 
       // O UPDATE de communications já serializa com o begin (trava a mesma linha): este controle NÃO quebra.
-      it('o begin continua lendo o conteúdo anonimizado (protegido pelo próprio UPDATE)', async () => {
+      it('o begin continua recusado e sem ler o original (protegido pelo próprio UPDATE)', async () => {
         const { youth, comm } = await youthWithDraft();
         const co = await s.session({ userId: coord });
         const svc = await s.session({ role: 'service_role' });
@@ -112,7 +115,8 @@ describe.skipIf(!concurrencyEnabled())('anonymize_youth × begin_communication_s
           observer: s.admin, holder: co, holderCall: anonymize(co, youth), contender: svc, contenderCall: begin(svc, comm),
         });
         expect(r.blocked).toBe(true);
-        expect(r.contender.ok && r.contender.value).toMatchObject({ ok: true, subject: 'Mensagem anonimizada' });
+        expect(r.contender.ok && r.contender.value).toEqual(NOT_SENDABLE);
+        expect(await commRow(comm)).toEqual({ status: 'cancelled', subject: 'Mensagem anonimizada' });
       });
     });
   });
@@ -132,8 +136,15 @@ describe.skipIf(!concurrencyEnabled())('anonymize_youth × begin_communication_s
         }
         if (an.ok) {
           expect(await youthName(youth)).toBe('Jovem anonimizado');
-          expect((await commRow(comm)).subject).toBe('Mensagem anonimizada');
-          if (bg.ok && bg.value.ok) expect(bg.value.subject, `iteração ${i}`).toBe('Mensagem anonimizada');
+          expect(await commRow(comm), `iteração ${i}`).toEqual({ status: 'cancelled', subject: 'Mensagem anonimizada' });
+          // A anonimização concluiu: o envio NUNCA devolve conteúdo (nem o anonimizado). Ou chegou depois e achou o
+          // rascunho cancelado, ou chegou antes e foi barrado pelo limite por hora (30 envios do mesmo usuário aqui),
+          // sem mudar o estado.
+          expect(bg.ok, `iteração ${i}`).toBe(true);
+          if (bg.ok) {
+            expect(bg.value.ok, `iteração ${i}`).toBe(false);
+            if (bg.value.error !== 'rate_limited') expect(bg.value, `iteração ${i}`).toEqual(NOT_SENDABLE);
+          }
           tally.anonymizedThenSend += 1;
         } else {
           expect(an.code).toBe('P0001');

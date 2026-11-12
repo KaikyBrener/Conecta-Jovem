@@ -1,4 +1,4 @@
-// Anonimização de jovem (RPC anonymize_youth, migration 021). Regras puras da tela; a regra real está no banco.
+// Anonimização de jovem (RPC anonymize_youth, migrations 021 e 025). Regras puras da tela; a regra real está no banco.
 
 /** Nome que a 021 grava no lugar do nome real. */
 export const ANONYMIZED_YOUTH_NAME = 'Jovem anonimizado';
@@ -19,4 +19,8 @@ export interface AnonymizeResult {
   tasks: number;
   follow_ups: number;
   communications: number;
+  /** Rascunhos e envios com falha que foram cancelados (migration 025; ausente antes dela). */
+  communications_cancelled?: number;
+  /** Data registrada da anonimização (migration 025; ausente antes dela). */
+  anonymized_at?: string;
 }

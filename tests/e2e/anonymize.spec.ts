@@ -1,4 +1,4 @@
-// Anonimização pela ficha do jovem: RPC anonymize_youth REAL (migration 021) sobre o Supabase falso.
+// Anonimização pela ficha do jovem: RPC anonymize_youth REAL (migrations 021 e 025) sobre o Supabase falso.
 import { api, expect, modal, openYouthSheet, test, type TestDb } from './fixtures.ts';
 import { seedPeople } from './phase7-helpers.ts';
 
@@ -52,6 +52,73 @@ test.describe('Anonimização do jovem', () => {
     // O jovem anonimizado fica inativo e a ficha dele não oferece mais a ação
     const again = await openYouthSheet(page, 'Jovem anonimizado', 'Inativos');
     await expect(again.getByRole('button', { name: 'Anonimizar dados' })).toHaveCount(0);
+  });
+
+  test('fica registrado quem anonimizou e quando: na ficha, no banco e no Histórico', async ({ page, db, loginAs }) => {
+    const s = await seed(db);
+    await loginAs(s.carla);
+    const sheet = await openYouthSheet(page, NAME);
+    await sheet.getByRole('button', { name: 'Anonimizar dados' }).click();
+    const dialog = modal(page);
+    await expect(dialog.getByText('o registro de quem anonimizou e quando')).toBeVisible();
+    await dialog.getByLabel(/Para confirmar, digite o nome do jovem/).fill(NAME);
+    await dialog.getByRole('button', { name: 'Anonimizar definitivamente' }).click();
+    await expect(page.getByText('Dados do jovem anonimizados.')).toBeVisible();
+
+    const [mark] = await db.sql<{ by: string | null; recent: boolean }>(
+      `SELECT anonymized_by AS by, anonymized_at > now() - interval '5 minutes' AS recent FROM youth WHERE id = $1`, [s.youth]);
+    expect(mark).toEqual({ by: s.carla.id, recent: true });
+
+    const again = await openYouthSheet(page, 'Jovem anonimizado', 'Inativos');
+    await expect(again.getByTestId('jovem-anonimizado-em')).toHaveText(
+      new RegExp(`^Dados anonimizados em \\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2} por ${s.carla.fullName}\\.$`));
+
+    await page.goto('/historico');
+    const linha = page.getByTestId('historico-linha').filter({ hasText: 'Dados anonimizados' });
+    await expect(linha).toHaveCount(1);
+    await expect(linha).toContainText(s.carla.fullName);
+    await expect(linha).not.toContainText('Maria');
+    await expect(page.getByLabel('Filtrar por tipo de ação').locator('option', { hasText: 'Dados anonimizados' })).toHaveCount(1);
+  });
+
+  test('rascunho e envio que falhou viram cancelados: a ficha não oferece mais enviar e o servidor recusa', async ({ page, db, loginAs }) => {
+    const s = await seed(db);
+    await db.sql(
+      `INSERT INTO communications (youth_id, recipient_email, recipient_kind, subject, body, created_by)
+       VALUES ($1, 'maria.teste@exemplo.com', 'youth', 'Rascunho de teste', 'Corpo', $2),
+              ($1, 'maria.teste@exemplo.com', 'youth', 'Falha de teste', 'Corpo', $2)`, [s.youth, s.carla.id]);
+    await db.sql(`UPDATE communications SET status = 'failed', failure_reason = 'network', attempts = 1, last_attempt_at = now()
+                   WHERE subject = 'Falha de teste'`);
+    await loginAs(s.carla);
+
+    const sheet = await openYouthSheet(page, NAME);
+    await expect(sheet.getByTestId('comunicacao-item')).toHaveCount(2);
+    await sheet.getByRole('button', { name: 'Anonimizar dados' }).click();
+    const dialog = modal(page);
+    await expect(dialog.getByText('E-mails em rascunho ou que falharam são cancelados')).toBeVisible();
+    await dialog.getByLabel(/Para confirmar, digite o nome do jovem/).fill(NAME);
+    await dialog.getByRole('button', { name: 'Anonimizar definitivamente' }).click();
+    await expect(page.getByText('Dados do jovem anonimizados.')).toBeVisible();
+
+    expect(await db.sql(`SELECT status::text AS status, subject, recipient_email FROM communications ORDER BY created_at, id`)).toEqual([
+      { status: 'cancelled', subject: 'Mensagem anonimizada', recipient_email: 'anonimizado@anonimizado.invalid' },
+      { status: 'cancelled', subject: 'Mensagem anonimizada', recipient_email: 'anonimizado@anonimizado.invalid' },
+    ]);
+
+    // na ficha: os dois aparecem cancelados, sem "continuar", "reenviar" nem "reabrir"
+    const again = await openYouthSheet(page, 'Jovem anonimizado', 'Inativos');
+    const items = again.getByTestId('comunicacao-item');
+    await expect(items).toHaveCount(2);
+    for (const i of [0, 1]) await expect(items.nth(i)).toHaveAttribute('data-status', 'cancelled');
+    for (const id of ['comunicacao-continuar', 'comunicacao-reenviar', 'comunicacao-reabrir']) {
+      await expect(again.getByTestId(id)).toHaveCount(0);
+    }
+
+    // direto na API: reabrir é recusado pelo banco
+    const [{ id }] = await db.sql<{ id: string }>(`SELECT id FROM communications LIMIT 1`);
+    const reopen = await api(page, 'POST', 'rpc/mark_communication', { p_id: id, p_status: 'draft' });
+    expect(reopen.status).toBeGreaterThanOrEqual(400);
+    expect((await db.sql<{ s: string }>(`SELECT status::text AS s FROM communications WHERE id = $1`, [id]))[0].s).toBe('cancelled');
   });
 
   test('cancelar não altera nada', async ({ page, db, loginAs }) => {

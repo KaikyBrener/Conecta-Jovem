@@ -104,7 +104,7 @@ export const FOLLOW_UP_TYPE_LABEL: Record<FollowUpType, string> = {
 /** Ordem dos tipos no formulário de acompanhamento */
 export const FOLLOW_UP_TYPES: FollowUpType[] = ['conversation', 'call', 'in_person', 'guidance', 'return', 'other'];
 
-/** Rótulos do histórico operacional (os 11 tipos de ação gravados pelo banco) */
+/** Rótulos do histórico operacional (os tipos de ação gravados pelo banco) */
 export const ACTIVITY_ACTION_LABEL: Record<ActivityAction, string> = {
   attendance_recorded: 'Chamada registrada',
   follow_up_created: 'Acompanhamento registrado',
@@ -118,6 +118,7 @@ export const ACTIVITY_ACTION_LABEL: Record<ActivityAction, string> = {
   youth_deactivated: 'Jovem inativado',
   event_series_created: 'Série de encontros criada',
   communication_sent: 'E-mail enviado',
+  youth_anonymized: 'Dados anonimizados',
 };
 
 /** Ordem dos tipos no filtro do histórico */
@@ -134,6 +135,7 @@ export const ACTIVITY_ACTIONS: ActivityAction[] = [
   'youth_deactivated',
   'event_series_created',
   'communication_sent',
+  'youth_anonymized',
 ];
 
 // ── Comunicações por e-mail ──────────────────────────────────────────────────
