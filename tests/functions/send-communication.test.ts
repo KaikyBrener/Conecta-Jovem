@@ -184,7 +184,13 @@ describe('falhas do provedor (200 failed, sem vazar texto cru)', () => {
         }),
       });
       const p = handleRequest(post(), s.deps);
-      for (let i = 0; i < 100 && s.fetchSpy.mock.calls.length === 0; i++) await new Promise((r) => setImmediate(r));   // digest é assíncrono real
+      // O handler só chama o provedor depois de um `crypto.subtle.digest`, que é assíncrono REAL (fora do relógio falso).
+      // Espera por tempo real (Date e setImmediate não são falsos aqui), e não por número de voltas: com a máquina
+      // carregada, 100 voltas acabavam antes do fetch, o relógio falso avançava sem o timer do provedor existir e o
+      // teste ficava preso até estourar o tempo.
+      const deadline = Date.now() + 20_000;
+      while (s.fetchSpy.mock.calls.length === 0 && Date.now() < deadline) await new Promise((r) => setImmediate(r));
+      expect(s.fetchSpy).toHaveBeenCalledTimes(1);   // o timer de 15 s do provedor já existe a partir daqui
       await vi.advanceTimersByTimeAsync(15_001);
       const res = await p;
       expect(await res.json()).toEqual({ status: 'failed', communication_id: ID, failure_reason: 'timeout' });
