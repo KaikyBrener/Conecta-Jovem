@@ -28,6 +28,17 @@ const mkComm = async (youth: string, by = coord) =>
      VALUES ($1, 'responsavel@exemplo.com', 'Responsável', 'guardian', 'Assunto real', 'Corpo real', $2) RETURNING id`,
     [youth, by]))[0].id;
 
+/** Rascunho no estado em que a função da 021 deixava (destinatário de marcação, ainda 'draft'). */
+const mkCommAnonymizedDraft = async (youth: string) => {
+  const id = await mkComm(youth);
+  await t.q(
+    `UPDATE public.communications
+        SET recipient_email = 'anonimizado@anonimizado.invalid', recipient_name = NULL,
+            subject = 'Mensagem anonimizada', body = 'Conteúdo removido por anonimização (LGPD).'
+      WHERE id = $1`, [id]);
+  return id;
+};
+
 const anonymize = (user: string | null, id: string) =>
   t.as(user, async () => (await t.q<{ r: Result }>(`SELECT public.anonymize_youth($1::uuid) AS r`, [id]))[0].r);
 
@@ -239,6 +250,46 @@ describe('migration 025: e-mails não enviados do jovem anonimizado', () => {
     await anonymize(coord, y);
     expect(await commRow(otherDraft)).toMatchObject({ status: 'draft', subject: 'Assunto real' });
     expect(await youthRow(other)).toMatchObject({ full_name: 'Outro Jovem', anonymized_at: null });
+  });
+});
+
+describe('migration 025: quem foi anonimizado antes dela (função da 021)', () => {
+  const MIGRATION = fileURLToPath(new URL('../../supabase/migrations/025_anonymize_audit_and_cancel_unsent.sql', import.meta.url));
+
+  it('ao aplicar, cancela os rascunhos e falhas que a 021 deixou enviáveis; enviados e e-mails de outros jovens ficam como estão', async () => {
+    const api = serviceApi(t);
+    const y = await mkYouth('Antes Da 025');
+    const draft = await mkComm(y);
+    const failed = await mkComm(y);
+    await api.sendFail(failed, coord, 'provider_rejected');
+    const sent = await mkComm(y);
+    await api.sendOk(sent, coord);
+    // Estado que a função da 021 deixava: conteúdo anonimizado, status intacto, cadastro sem marca.
+    await t.q(
+      `UPDATE public.communications
+          SET recipient_email = 'anonimizado@anonimizado.invalid', recipient_name = NULL,
+              subject = 'Mensagem anonimizada', body = 'Conteúdo removido por anonimização (LGPD).'
+        WHERE youth_id = $1`, [y]);
+    await t.q(`UPDATE public.youth SET full_name = 'Jovem anonimizado', email = NULL, phone = NULL, is_active = false WHERE id = $1`, [y]);
+    expect((await commRow(draft)).status).toBe('draft');
+    const sending = await mkCommAnonymizedDraft(y);
+    expect((await api.begin(sending, coord)).ok).toBe(true);   // antes da 025 o servidor ainda aceitava enviar
+
+    const other = await mkYouth('Jovem Comum');
+    const otherDraft = await mkComm(other);
+
+    await t.db.exec(readFileSync(MIGRATION, 'utf8'));
+
+    expect(await commRow(draft)).toMatchObject({ status: 'cancelled', subject: 'Mensagem anonimizada' });
+    expect(await commRow(failed)).toMatchObject({ status: 'cancelled', attempts: 1 });
+    expect((await commRow(sent)).status).toBe('sent');
+    expect((await commRow(sending)).status).toBe('sending');   // envio em andamento nunca é tocado
+    expect(await commRow(otherDraft)).toMatchObject({ status: 'draft', subject: 'Assunto real', recipient_email: 'responsavel@exemplo.com' });
+    expect(await api.begin(draft, coord)).toEqual({ ok: false, error: 'conflict', reason: 'not_sendable' });
+    expect(await api.begin(failed, coord)).toEqual({ ok: false, error: 'conflict', reason: 'not_sendable' });
+    // sem inventar auditoria: o cadastro antigo continua sem marca e sem linha no histórico
+    expect((await youthRow(y)).anonymized_at).toBeNull();
+    expect(await logRows(y)).toHaveLength(0);
   });
 });
 

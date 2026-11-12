@@ -19,6 +19,8 @@
 --      begin_communication_send recusa o envio ('conflict' / 'not_sendable'). Assim o rascunho anonimizado deixa de
 --      ser enviável sem mexer no caminho de envio (nenhum deploy da Edge Function é necessário).
 --    * 'sent' continua 'sent' (contagem de envios preservada). 'sending' continua bloqueando a anonimização (021).
+--    * Jovens anonimizados ANTES desta migration (pela função da 021): os rascunhos e falhas deles já estavam com o
+--      destinatário de marcação e continuavam enviáveis. A seção 4 cancela esses também, uma única vez por linha.
 --    * Efeito sobre números: os envios que falharam e ainda podiam ser repetidos deixam de aparecer como 'failed'
 --      (viram 'cancelled'; attempts e last_attempt_at permanecem; failure_reason é limpo pelo guard, como em todo
 --      cancelamento).
@@ -194,5 +196,17 @@ $$;
 
 REVOKE ALL ON FUNCTION public.anonymize_youth(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.anonymize_youth(uuid) TO authenticated;
+
+
+-- ============================================================================
+-- 4. E-mails não enviados de quem foi anonimizado ANTES desta migration
+-- ============================================================================
+-- A função da 021 trocava o destinatário por 'anonimizado@anonimizado.invalid' (endereço reservado, que só ela
+-- escreve) mas deixava o rascunho/falha enviável. Aqui eles passam a 'cancelled', como os da função nova.
+-- Não toca em 'sent', 'sending' nem em e-mails de quem não foi anonimizado. Rodar de novo não muda mais nada.
+UPDATE public.communications
+   SET status = 'cancelled'
+ WHERE recipient_email = 'anonimizado@anonimizado.invalid'
+   AND status::text IN ('draft', 'failed');
 
 NOTIFY pgrst, 'reload schema';
