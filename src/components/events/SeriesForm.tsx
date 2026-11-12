@@ -17,6 +17,7 @@ import {
   type SeriesRecurrence,
 } from '../../lib/series';
 import { formErrorCls, inputCls, labelCls, primaryBtnCls, secondaryBtnCls } from '../../lib/formStyles';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface SeriesFormProps {
   allGroups: Group[];
@@ -66,6 +67,9 @@ export function SeriesForm({ allGroups, onSubmit, onCancel, loading, error }: Se
     () => (step === 'confirm' ? seriesDates(Number(weekday), recurrence, startDate, endDate) : []),
     [step, weekday, recurrence, startDate, endDate],
   );
+
+  // Na conferência os campos saem da tela, mas a série ainda não foi criada: a janela pergunta antes de fechar.
+  useUnsavedChanges(step === 'confirm');
 
   const toggleGroup = (id: string) =>
     setSelectedGroups((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));

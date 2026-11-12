@@ -1,0 +1,75 @@
+name: CI
+
+# Roda as mesmas verificações pedidas antes de um PR (CONTRIBUTING.md). Nada aqui fala com o Supabase real, com a
+# Cloudflare ou com o Resend: os testes de banco usam PGlite, o E2E usa um Supabase falso local e o build recebe
+# valores fictícios só para a CSP ser gerada.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24
+
+jobs:
+  verificacao:
+    name: Lint, build e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build (tipos + produção)
+        run: npm run build
+        env:
+          # Valores fictícios: o build exige a URL para montar a CSP. Nenhum segredo é usado no CI.
+          VITE_SUPABASE_URL: https://ci.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: chave-publicavel-de-ci
+      - name: Testes unitários e de banco (PGlite)
+        run: npm test
+
+  concorrencia:
+    name: Concorrência (Postgres real descartável)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Testes de concorrência
+        run: npm run test:concurrency
+        env:
+          CONCURRENCY_TESTS: "1"   # sobe um Postgres descartável (embedded-postgres); nunca o Supabase real
+
+  e2e:
+    name: E2E (Playwright, Supabase falso)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Testes E2E (desktop + celular)
+        run: npm run test:e2e

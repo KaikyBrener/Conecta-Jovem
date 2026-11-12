@@ -21,6 +21,9 @@ npm run test:e2e   # quando a mudança afeta telas ou fluxos
 
 Só diga que algo foi testado se o teste realmente rodou.
 
+O GitHub Actions (`.github/workflows/ci.yml`) roda lint, build, `npm test`, os testes de concorrência e o E2E em cada PR e
+em cada push na `main`. Ele não substitui rodar as verificações antes de abrir o PR.
+
 ## Convenções
 
 - **Idioma**: interface, mensagens, commits e PRs em português (pt-BR).

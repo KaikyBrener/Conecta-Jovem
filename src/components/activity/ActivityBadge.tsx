@@ -14,6 +14,7 @@ const COLOR: Record<string, BadgeColor> = {
   youth_deactivated: 'gray',
   event_series_created: 'blue',
   communication_sent: 'indigo',
+  youth_anonymized: 'gray',
 };
 
 /** Selo com o tipo da ação do histórico (rótulos pt-BR de lib/labels) */

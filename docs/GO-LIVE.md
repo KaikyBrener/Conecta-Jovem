@@ -63,7 +63,7 @@ Legenda:
     ```
   - Se o CLI **recusar** o formato `001`: pare e traga o erro. **Não renomeie** arquivos de migration.
 
-## 3. Aplicar 020, 021 e 024
+## 3. Aplicar 020, 021, 024 e 025
 
 Passo a passo em [`docs/sql/aplicar-migrations.md`](sql/aplicar-migrations.md).
 
@@ -72,11 +72,15 @@ Passo a passo em [`docs/sql/aplicar-migrations.md`](sql/aplicar-migrations.md).
 - [ ] Aplicar `024_set_user_role_recheck_after_lock.sql`.
 - [ ] Rodar `NOTIFY pgrst, 'reload schema';`.
 - [ ] Rodar a **Seção B (Q10)**. Esperado: `Q10 verificados: 11 | falhas: 0`.
+- [ ] Aplicar `025_anonymize_audit_and_cancel_unsent.sql` (registro de quem anonimizou e quando; rascunhos e envios
+      com falha do jovem anonimizado passam a cancelados). Depende só da 021.
+- [ ] Rodar `NOTIFY pgrst, 'reload schema';` e a **Seção D (Q13)**. Esperado: `Q13 verificados: 9 | falhas: 0`.
 - [ ] Registrar o histórico:
   ```bash
   npx supabase migration repair --status applied 020
   npx supabase migration repair --status applied 021
   npx supabase migration repair --status applied 024
+  npx supabase migration repair --status applied 025
   npx supabase migration list
   ```
 - [ ] (Opcional, depois) A `023` (pg_cron): só após habilitar `pg_cron` no painel (Database → Extensions). Conferir com
@@ -187,6 +191,8 @@ Checklist completo (URLs, SMTP do Resend, templates, proteções, como testar e 
 - [ ] (Opcional) **Anonimização**: testar com um jovem de **TESTE**, criado só para isso (**nunca com dado real**: é
       irreversível). Como coordenador: ficha do jovem → "Anonimizar dados" → digitar o nome → confirmar. O jovem deve
       virar "Jovem anonimizado", inativo, no mesmo grupo. Como líder, a ação não deve aparecer. Exige a 021 aplicada.
+      Com a 025: a ficha mostra "Dados anonimizados em … por …", o **Histórico** ganha a linha "Dados anonimizados"
+      e um rascunho de e-mail desse jovem aparece como cancelado, sem opção de enviar.
 
 ## 11. Pós-lançamento
 

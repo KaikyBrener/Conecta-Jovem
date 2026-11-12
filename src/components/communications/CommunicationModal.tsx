@@ -253,6 +253,18 @@ export function CommunicationModal({
   // Durante o envio a janela não fecha: o resultado precisa chegar aqui
   const close = () => { if (!sendingRef.current) onClose(); };
 
+  // Na revisão não há campos na tela, mas a mensagem pode ainda não estar gravada (ou estar diferente do rascunho
+  // gravado): a janela pergunta antes de fechar por Esc, clique fora ou "Fechar janela". Nos outros passos o
+  // próprio Modal percebe os campos alterados.
+  const same = (a: string | null, b: string) => (a ?? '').trim() === b.trim();
+  const unsavedReview = !view && step === 'review' && (
+    !draft
+    || (draft.status === 'draft' && !(
+      same(draft.recipient_email, email) && same(draft.recipient_name, name) && same(draft.subject, subject)
+      && same(draft.body, body) && draft.recipient_kind === kind
+    ))
+  );
+
   const stepIndex = STEPS.findIndex((s) => s.id === step);
   const noYouthEmail = kind === 'youth' && !suggestions.loading && !suggestions.error && !suggestion;
   const leaderNoEmail = isLeader && !suggestions.loading && !suggestions.error && !suggestion;
@@ -275,7 +287,7 @@ export function CommunicationModal({
   );
 
   return (
-    <Modal title="Enviar e-mail" onClose={close}>
+    <Modal title="Enviar e-mail" onClose={close} unsaved={unsavedReview}>
       <div className="space-y-4" data-testid="comunicacao-modal" data-etapa={view ? 'resultado' : step}>
         <p className="text-sm text-ink-soft">Jovem: <strong className="text-ink">{youthName}</strong></p>
 

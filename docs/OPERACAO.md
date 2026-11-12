@@ -31,9 +31,10 @@ no SQL Editor do Supabase:
 | `020_series_idempotency_and_event_delete_guard.sql` | `create_event_series` não duplica série idêntica (reenvio/duplo clique); encontro com chamada registrada não pode ser excluído (cancele-o) |
 | `021_anonymize_youth.sql` | RPC `anonymize_youth(id)` (só coordenador, irreversível): limpa dados pessoais do jovem e o texto residual em presença, alertas, tarefas, acompanhamentos e e-mails, mantendo id, grupo e estatísticas. Prazos de retenção e base legal: validar com o responsável da organização |
 | `023_cron_time_alerts.sql` | **Opcional, não aplicada**: varredura diária dos alertas temporais via `pg_cron` (06:00 de Brasília). Habilite `pg_cron` no painel antes; o agendamento é pulado se a extensão não existir. Desfazer: `cron.unschedule` (ver cabeçalho) |
+| `025_anonymize_audit_and_cancel_unsent.sql` | Auditoria da anonimização: colunas `youth.anonymized_at`/`anonymized_by` (só a RPC escreve; trigger `youth_anonymized_guard`) e ação `youth_anonymized` no histórico, com autor e data. Rascunhos e envios com falha do jovem anonimizado viram `cancelled` (não podem mais ser enviados nem reabertos). Reescreve `anonymize_youth` da 021 |
 | `024_set_user_role_recheck_after_lock.sql` | `set_user_role` refaz a checagem de coordenador **depois** do lock: quem acabou de ser rebaixado por uma chamada concorrente não consegue mais rebaixar outro (achado do teste de concorrência em Postgres real) |
 
-**Pendentes no plano de entrega, nesta ordem: 020, 021, 024** (confirme o que já está no banco real com `docs/sql/verificacao-migrations.sql` e siga `docs/sql/aplicar-migrations.md`; o histórico do CLI se registra com `migration repair`, ver `docs/GO-LIVE.md`). A 023 (pg_cron) só depois de
+**Pendentes no plano de entrega, nesta ordem: 020, 021, 024, 025** (confirme o que já está no banco real com `docs/sql/verificacao-migrations.sql` e siga `docs/sql/aplicar-migrations.md`; o histórico do CLI se registra com `migration repair`, ver `docs/GO-LIVE.md`). A 023 (pg_cron) só depois de
 habilitar a extensão `pg_cron` no painel; ela não depende da 024 nem as demais dela. A 022 (retenção) ainda não existe.
 
 A 006 termina calculando os alertas para o histórico de chamadas já existente.

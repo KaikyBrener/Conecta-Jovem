@@ -57,6 +57,24 @@ const seriesEvents = (db: TestDb) =>
        FROM events e WHERE e.series_id IS NOT NULL ORDER BY e.series_date`);
 
 test.describe('Séries — criar', () => {
+  test('na conferência (campos fora da tela), Esc pergunta antes de descartar a série ainda não criada', async ({ page, db, loginAs }) => {
+    const s = await seed(db);
+    await loginAs(s.carla);
+    await openNewSeries(page);
+    await review(page, { ...weekly, groups: ['Grupo Alfa'] });
+    await expect(modal(page).getByTestId('serie-confirmacao')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Descartar alterações?' })).toBeVisible();
+    await answerConfirmation(page, false);
+    await expect(page.getByTestId('serie-confirmacao')).toBeVisible();   // continua na conferência, com os dados
+
+    await page.keyboard.press('Escape');
+    await answerConfirmation(page, true);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await seriesEvents(db)).toHaveLength(0);
+  });
+
   test('semanal: prévia, confirmação, encontros com selo "Série: nome" e grupos aplicados', async ({ page, db, loginAs }) => {
     const s = await seed(db);
     await loginAs(s.carla);

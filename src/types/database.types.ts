@@ -46,10 +46,14 @@ export interface Youth {
   created_by: string;
   created_at: string;
   updated_at: string;
+  /** Quando os dados foram anonimizados (migration 025). Só o banco escreve; ausente se a 025 não foi aplicada. */
+  anonymized_at?: string | null;
+  /** Quem anonimizou (profiles.id). Só o banco escreve. */
+  anonymized_by?: string | null;
 }
 
-export type YouthInsert = Omit<Youth, 'id' | 'created_at' | 'updated_at'>;
-export type YouthUpdate = Partial<Omit<Youth, 'id' | 'created_at' | 'updated_at' | 'created_by'>>;
+export type YouthInsert = Omit<Youth, 'id' | 'created_at' | 'updated_at' | 'anonymized_at' | 'anonymized_by'>;
+export type YouthUpdate = Partial<Omit<Youth, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'anonymized_at' | 'anonymized_by'>>;
 
 // ── Encontros ────────────────────────────────────────────────────────────────
 
@@ -102,7 +106,8 @@ export type ActivityAction =
   | 'youth_activated'
   | 'youth_deactivated'
   | 'event_series_created'
-  | 'communication_sent';
+  | 'communication_sent'
+  | 'youth_anonymized';
 
 /** Linha da listagem do histórico. `summary` é sempre texto fixo montado pelo banco (sem dado sensível). */
 export interface ActivityEntry {

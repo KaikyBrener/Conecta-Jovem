@@ -41,9 +41,9 @@ describe('activityBounds', () => {
 });
 
 describe('rótulos do histórico', () => {
-  it('cobrem os 12 tipos de ação, sem repetição', () => {
-    expect(ACTIVITY_ACTIONS).toHaveLength(12);
-    expect(new Set(ACTIVITY_ACTIONS).size).toBe(12);
+  it('cobrem os 13 tipos de ação, sem repetição', () => {
+    expect(ACTIVITY_ACTIONS).toHaveLength(13);
+    expect(new Set(ACTIVITY_ACTIONS).size).toBe(13);
     for (const a of ACTIVITY_ACTIONS) expect(ACTIVITY_ACTION_LABEL[a]).toBeTruthy();
   });
   it('tipo desconhecido não quebra', () => {
