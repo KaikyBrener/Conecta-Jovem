@@ -84,7 +84,9 @@ Convenções observadas:
 - Hooks novos carregam dados em `useEffect` com flag `cancelled` e sem setState síncrono
   no effect (regra `react(set-state-in-effect)` do oxlint). Não exporte constantes de arquivos de componente.
 - Integração por URL: `/tarefas?novo=1&jovem=<id>` ou `&alerta=<id>` abre nova tarefa pré-preenchida.
-- Formulários em `Modal` (bottom-sheet no mobile). Exclusões e ações irreversíveis pedem confirmação com
+- Formulários em `Modal` (bottom-sheet no mobile). O `Modal` pergunta "Descartar alterações?" ao fechar por Esc, clique fora ou
+  "Fechar janela" com campo de `<form>` alterado; dados que saem da tela (etapa de conferência) declaram-se com
+  `useUnsavedChanges(true)` ou a prop `unsaved`; `<form data-unsaved-guard="off">` desliga. "Cancelar" do formulário fecha direto. Exclusões e ações irreversíveis pedem confirmação com
   `await useConfirm()({ title, message, confirmLabel, tone })` (`contexts/ConfirmContext.tsx`, janela própria do DS-6);
   não use `window.confirm`. No E2E: `answerConfirmation(page, true|false)` (fixtures).
 - Layout: sidebar no desktop; bottom-nav no mobile com itens principais + menu "Mais".
@@ -145,7 +147,7 @@ cancelled)`, `alert_type (consecutive_absences)`, `alert_status (open, resolved,
 - Líder desassocia jovem via `batch_set_youth_group([id], null)` (UPDATE direto falha no RLS porque a linha nova não passa no SELECT).
 - Layout: o documento rola (não o `<main>`); `Modal` usa `z-[60]` acima da bottom-nav.
 - CSP: meta injetada só no **build** (`vite.config.ts`); headers HTTP em `public/_headers`. Hospedagem: Cloudflare Workers (assets) via `wrangler.jsonc`; o fallback de SPA é `not_found_handling: "single-page-application"` (não existe `public/_redirects`; ver docs/OPERACAO.md).
-- **020**: `create_event_series` recusa série ativa idêntica; trigger bloqueia excluir encontro com chamada (cancelar é o caminho). **021**: `anonymize_youth(id)` (coordenador, irreversível; mantém id/grupo/presença).
+- **020**: `create_event_series` recusa série ativa idêntica; trigger bloqueia excluir encontro com chamada (cancelar é o caminho). **021**: `anonymize_youth(id)` (coordenador, irreversível; mantém id/grupo/presença). **025**: a anonimização grava `youth.anonymized_at/by` (só a RPC escreve) e a ação `youth_anonymized` no histórico, e cancela rascunhos e falhas de e-mail do jovem.
 
 ### FKs e embeds do PostgREST
 
